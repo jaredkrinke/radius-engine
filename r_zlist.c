@@ -1,0 +1,117 @@
+/*
+Copyright 2010 Jared Krinke.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+#include <lua.h>
+#include <lauxlib.h>
+#include <stdlib.h>
+
+#include "r_assert.h"
+#include "r_zlist.h"
+#include "r_script.h"
+
+/* TODO: Inline */
+static r_status_t r_zlist_sort_insert(r_state_t *rs, r_object_list_t *object_list, int insert_index)
+{
+    /* Insert an item into the already-ordered sublist preceding the item */
+    int compare_index = insert_index - 1;
+
+    while (compare_index >= 0)
+    {
+        r_zlist_t *zlist = (r_zlist_t*)object_list;
+        r_object_ref_t *insert_item = &zlist->object_list.items[insert_index];
+        r_object_ref_t *compare_item = &zlist->object_list.items[compare_index];
+
+        if (zlist->item_compare(insert_item->value.object, compare_item->value.object) > 0)
+        {
+            r_object_ref_swap(insert_item, compare_item);
+            insert_index = compare_index;
+        }
+        else
+        {
+            break;
+        }
+
+        compare_index--;
+    }
+
+    return R_SUCCESS;
+}
+
+static r_status_t r_zlist_sort(r_state_t *rs, r_zlist_t *zlist)
+{
+    r_status_t status = (rs != NULL && zlist != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Progressively sort the list by inserting elements into sorted sublist preceding them */
+        unsigned int insert_index;
+
+        for (insert_index = 1; insert_index < zlist->object_list.count; ++insert_index)
+        {
+            r_zlist_sort_insert(rs, (r_object_list_t*)zlist, insert_index);
+        }
+    }
+
+    return status;
+}
+
+/* TODO: Check all script functions to ensure errors are reported somehow! */
+int l_ZList_add(lua_State *ls, r_object_type_t list_type)
+{
+    return l_ObjectList_add(ls, list_type, r_zlist_sort_insert);
+}
+
+int l_ZList_forEach(lua_State *ls, r_object_type_t list_type)
+{
+    return l_ObjectList_forEach(ls, list_type);
+}
+
+int l_ZList_remove(lua_State *ls, r_object_type_t list_type, r_object_type_t item_type)
+{
+    return l_ObjectList_remove(ls, list_type, item_type);
+}
+
+int l_ZList_clear(lua_State *ls, r_object_type_t list_type)
+{
+    return l_ObjectList_clear(ls, list_type);
+}
+
+r_status_t r_zlist_init(r_state_t *rs, r_object_t *object, r_object_type_t list_type, r_object_type_t item_type, r_zlist_compare_function_t item_compare)
+{
+    /* TODO: Item comparison function doesn't need to be in the zlist... */
+    r_zlist_t *zlist = (r_zlist_t*)object;
+
+    zlist->item_compare = item_compare;
+
+    return r_object_list_init(rs, object, list_type, item_type);
+}
+
+r_status_t r_zlist_process_arguments(r_state_t *rs, r_object_t *object, int argument_count)
+{
+    return r_object_list_process_arguments(rs, object, argument_count, r_zlist_sort_insert);
+}
+
+r_status_t r_zlist_cleanup(r_state_t *rs, r_object_t *object, r_object_type_t list_type)
+{
+    return r_object_list_cleanup(rs, object, list_type);
+}

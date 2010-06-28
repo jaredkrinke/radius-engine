@@ -1,0 +1,805 @@
+2010-06-27 deraj@users.sourceforge.net
+
+* All: Applied MIT License to engine code
+
+2010-06-20 deraj@users.sourceforge.net
+
+* r_audio.c: Read/write wrappers return count even if less than requested
+
+2010-06-19 deraj@users.sourceforge.net
+
+* r_state.h: Added audio data pointer to r_state_t
+* r_state.c: Initialize audio data pointer to NULL
+* r_audio.h: Added function to set current audio state
+* r_audio.c: Queueing clips now uses the active state
+
+* r_layer.h: Added audio state to r_layer_t
+* r_layer.c: Initialization and cleanup of audio state
+* r_event.c: Current audio state is now set when layers are pushed/popped
+
+* r_audio.h: Audio state clearing function
+* r_audio.c: Implemented clear function
+* r_audio_clip_cache.c: Moved playSound to Audio.play and added Audio.clear
+
+* r_list.c: r_list_clear now sets the item count back to zero
+
+* r_script.h: Added optional argument support to script argument verification
+* r_script.c: Implemented r_script_verify_arguments_with_optional
+
+* r_audio.h: Added constants for position extremes
+* r_audio.c: Implemented volume and left-right fading
+* r_audio_clip_cache.c: Audio.play can now accept volume and position
+
+2010-06-10 deraj@users.sourceforge.net
+
+* r_list.h: List element manipulation functions now accept r_state_t pointer
+* r_list.c: Add r_state_t pointer
+* r_object_list.c: Add r_state_t pointer
+
+* r_audio.h: Clip instances now hold only a handle to the clip data
+* r_audio.c: Clip instances use a handle
+
+2010-06-06 deraj@users.sourceforge.net
+
+* r_list.c: Fixed bug in list initialization
+
+* r_audio.c: Audio clip manager initialization code is now called
+
+* r_audio.c: Clip instances are removed from the audio state once complete
+
+2010-06-04 deraj@users.sourceforge.net
+
+* r_audio_clip_cache.h: Initial audio clip cache definition
+* r_audio_clip_cache.c: Audio clip cache implementation
+
+* r_audio.c: Fixed seek implementation
+
+2010-06-01 deraj@users.sourceforge.net
+
+* r_audio.c: Added private audio clip store
+
+* r_audio.c: Started SDL_RWops implementation for PhysicsFS
+
+2010-05-31 deraj@users.sourceforge.net
+
+* r_image_cache.h: Image type is now an object
+* r_image_cache.c: Refactored images as objects so that lifetimes are managed
+
+* r_object.h: Field read/write functions supply object
+* r_object.c: Field read/write functions supply object
+
+* r_object.h: r_object_push_new declaration
+* r_object.c: Added r_object_push_new for creating objects from C
+
+* r_script.h: Added macros for tracking script stack invariants
+* r_script.c: Fixed node registration to not modify script stack
+* r_object.c: Added script stack invariants to object functions
+
+* r_image_cache.c: Added persistent table to image cache
+
+* r_script_lib.c: Added garbageCollect for running garbage collector
+
+* r_resource_cache.h: Generic resource cache definition
+* r_resource_cache.c: Generic resource cache implementation
+* r_image_cache.c: Refactored image cache to use generic resource cache
+
+2010-05-29 deraj@users.sourceforge.net
+
+* r_audio.h: Moved audio clip instance list inside r_audio.
+* r_audio.c: Moved audio clip instance list inside r_audio.
+
+* r_image_cache.c: Use a reference for image cache instead of registry
+
+2010-05-19 deraj@users.sourceforge.net
+
+* r_audio_clip_instance_list.h: Simple growable list for audio clip instances
+* r_audio_clip_instance_list.c: Audio clip instance list implementation
+
+2010-05-17 deraj@users.sourceforge.net
+
+* r_audio.h: Initial audio structures defined
+
+* r_list.h: Generic list utility type
+* r_list.c: Generic growable list implementation
+
+2010-05-16 deraj@users.sourceforge.net
+
+* r_audio.h: Added initial audio subsystem interface
+* r_audio.c: Initial audio implementation
+* r_defs.h: Added audio status codes
+* radius.c: Added audio initialization for applications
+
+* r_defs.h: Fixed script facility code
+
+2010-04-04 deraj@users.sourceforge.net
+
+* r_image_cache.c: Added additional error context
+* r_video.c: Added additional error context
+
+2010-03-26 deraj@users.sourceforge.net
+
+* r_image_cache.c (r_image_cache_start): Default font is loaded when the image
+    cache is started (ensuring the default font exists before it is assigned
+    in an element initializer)
+
+* r_string_buffer.c (r_string_buffer_clear): Length is now reset to zero when
+    cleared (before this, the string appeared to always be empty after
+    clearing--even if appended to later)
+
+2010-03-24 deraj@users.sourceforge.net
+
+* Utility\Input.lua: Initial logical/customizable input support
+
+2010-03-22 deraj@users.sourceforge.net
+
+* r_script_lib.c (l_Table_forEach): Implemented for-each table function
+
+2009-12-31 deraj@users.sourceforge.net
+
+* r_state.h: r_state_t can now be created on the stack
+* r_state.c: r_state_t stack-allocated implentation
+* radius.c: Main r_state_t is now allocated on the stack
+
+* radius.c: Application-based initialization
+* r_file_system.h: Application-specific path creation prototypes
+* r_file_system.c: Application-specific path implementation
+
+* r_defs.h: Platform definitions
+* r_platform.h: Platform-specific prototypes
+* r_platform.c: Platform-specific implementation selector
+* r_platform_windows.h: Windows platform-specific implementation
+
+* r_string.c (r_string_format_allocate): Format as a newly-allocated string
+
+* r_defs.h: Status codes are now defined in an enumeration
+
+2009-12-30 deraj@users.sourceforge.net
+
+* r_script.c (r_script_verify_arguments): Expected argument array may be NULL if
+                                          no arguments are expected
+
+* r_video.h: Prototypes for video functions for scripts
+* r_video.c: Video functions available to scripts
+
+* r_script_lib.c (l_dump): Dump function now dumps all arguments
+
+* r_image_cache.h: Images are now pointers to image-related data (currently
+                   just the texture ID--which may change as textures on reload)
+* r_image_cache.c: All images are reloaded properly when changing video modes
+
+* r_video.c (r_video_draw_element): Update to use new image data
+
+* r_video.c (r_video_set_mode): Input is "un-grabbed" when switching out of
+                                fullscreen
+
+* r_video.c: Video mode get functions split up
+
+* r_video.c (r_video_draw, r_video_set_mode): Error on draw with no mode set
+
+* radius.c (main): No video mode is set by default
+
+* radius.h: New library entry point
+* radius.c: New library entry point implementation
+
+2009-12-29 deraj@users.sourceforge.net
+
+* r_file_system.h: Moved file system setup to new file
+* r_file_system.c: File system interface implementation
+
+* r_file_internal.h: Internal file wrapper
+* r_file_internal.c: Implementation of native file wrapper
+
+* r_file.h: Initial file object definition
+* r_file.c: Initial file object implementation
+
+2009-12-28 deraj@users.sourceforge.net
+
+* r_file.h: File system initialization uses a user-specific write directory
+* r_file.c: Write directory prepended to search path
+
+* radius.c: Temporary user directory added for testing
+
+* r_defs.h: Added generic file system error code
+
+* r_file.h: Added file wrapper
+* r_file.c: Initial file wrapper implementation
+
+2009-12-20 deraj@users.sourceforge.net
+
+* r_layer.h: Added error handler to layer definition
+* r_layer.c: Error handler definition and initialization
+
+* r_script.c: Errors are now propagated to active layer error handler
+
+2009-12-13 deraj@users.sourceforge.net
+
+* r_object_enum.h: Definition of named enumerations
+* r_object_enum.c: Named enumerations for object fields
+
+* r_element.h: Alignment enumerated values
+* r_element.c: Alignment field read/write
+
+2009-12-11 deraj@users.sourceforge.net
+
+* r_script_lib.c: Refactored math functions
+
+* r_script_lib.c: Added min/max aggregation functions
+
+2009-12-09 deraj@users.sourceforge.net
+
+* r_script_lib.c (l_isType): Re-wrote type-checking functions
+
+2009-12-08 deraj@users.sourceforge.net
+
+* r_string.h: String utility function header
+* r_string.c: String formatting functions
+
+* r_log.c: Finalized dump function
+
+* r_object_list (r_object_list_clear): Fixed bug in clearing object lists
+
+2009-12-07 deraj@users.sourceforge.net
+
+* r_log.h: Formatted logging functions
+* r_log.c: Added formatted logging functions
+
+2009-12-06 deraj@users.sourceforge.net
+
+* r_log.c: Fixed stack management of logging function
+
+* r_script_lib.c (l_dump): Initial implementation of more useful dump function
+
+2009-11-30 deraj@users.sourceforge.net
+
+* r_object_list.c (r_object_list_remove): Fixed bug where previously-existing
+        references could be erroneously released, leading to duplicates
+
+2009-11-29 deraj@users.sourceforge.net
+
+* r_entity.c (r_entity_update): Children are now updated before their parent
+
+* r_zlist.c (r_zlist_sort_insert): ZLists are now properly sorted according
+                                   to the coordinate system
+
+* r_script_lib.c (l_debugBreak): Added call stack logging
+
+2009-11-28 deraj@users.sourceforge.net
+
+* r_object_list.h: Object list find/remove/clear prototypes
+* r_object_list.c: Implemented object list find/remove/clear
+
+* r_object_ref.c: Added global override option for read functions
+
+* All: Objects now use global read value override for returning fixed functions
+
+* r_object_list.c: Fixed a bug in object list remove
+
+2009-11-26 deraj@users.sourceforge.net
+
+* Data\Main.lua: Initial work on example game
+
+2009-11-24 deraj@users.sourceforge.net
+
+* Data\Console.lua: Mostly-functional console
+
+2009-11-21 deraj@users.sourceforge.net
+
+* r_element.c: Text element can now specify an underlying string buffer
+* r_video.c: Text elements can use characters from a string or a string buffer
+
+* r_entity_list.c: Entity list objects now have an updated function
+
+* r_entity.c: Consolidated entity update function code
+
+* r_entity.c: Entities can now have children entities
+
+* r_script.c: Added generic "node" type for registering tables/functions
+
+* All: Streamlined setup/registration to use nodes
+
+* r_script_lib.c: Renamed global logging entry point to "messageLogged"
+
+* r_video.c: Color blending/unblending
+
+2009-11-20 deraj@users.sourceforge.net
+
+* r_image_cache.c: Added default font loading
+
+* r_element.c: Switched around order of parameters
+
+* All: Renamed wrappers to objects
+
+* All: Rawset/rawget are now used where possible
+
+2009-11-19 deraj@users.sourceforge.net
+
+* r_script.c (r_script_verify_arguments): Added generic function for verifying script
+                                          function arguments
+
+* r_string_buffer.c: Added insert and clear functions to string buffers
+
+2009-11-17 deraj@users.sourceforge.net
+
+* r_script_lib.c: Moved logging hook into r_script_lib.c
+
+* r_script_lib.c: Added execute function
+
+* Data\Main.lua: Added ring buffer for output
+
+* Data\Main.lua: Implemented more useful text editing capabilities
+
+2009-11-16 deraj@users.sourceforge.net
+
+* r_log.h: Log function prototype
+* r_log.c: Logging functions can now be added
+
+* r_script.c: Logging is now exposed to scripts
+
+2009-11-15 deraj@users.sourceforge.net
+
+* All: Renamed "register_functions" to "setup" to better reflect purpose
+
+* r_wrapper.h: Wrapper header now contains an "extensible" flag
+* r_wrapper.c: Wrappers can now be extensible and store additional values in
+               their environment table
+
+* r_string_buffer.h: String buffer definition
+* r_string_buffer.c: String buffer implementation
+
+2009-11-14 deraj@users.sourceforge.net
+
+* r_wrapper.h: Global references are no longer separated
+* r_wrapper.c: Writing references to wrappers does not require script type
+
+* r_wrapper_ref.h: Separated wrapper reference code from wrappers
+* r_wrapper_ref.c: Wrapper ref implementation separated from wrappers
+
+2009-11-10 deraj@users.sourceforge.net
+
+* r_wrapper.h: Wrappers now carry an ID that links to their value
+* r_wrapper.c: Wrappers can push values based on an ID
+
+2009-11-08 deraj@users.sourceforge.net
+
+* r_wrapper.c: Added wrapper pointer-to-script value table
+
+* All: Removed unnecessary plumbing of wrapper index positions
+
+2009-11-07 deraj@users.sourceforge.net
+
+* r_layer_stack.c: Fixed active layer push function
+
+* r_wrapper.h: Added default initializer to field definition
+
+* r_wrapper.c: Wrapper default initialization function
+
+* r_event.c: Replaced old event handling code
+
+* r_video.c: Layer rendering
+
+* All: Removed old "rs_" nomenclature
+
+2009-11-06 deraj@users.sourceforge.net
+
+* r_wrapper_list.h: Moved wrapper ref swap function to wrapper list
+
+* r_wrapper_list.c: Added pop function for wrapper lists
+
+* r_layer_stack.h: Layer stack definition
+* r_layer_stack.c: Initial layer stack implementation using wrapper lists
+
+* r_layer.c: Initial layer implementation
+
+2009-11-05 deraj@users.sourceforge.net
+
+* r_wrapper.h: Added wrapper processing functions to wrapper header
+
+* r_wrapper.c: An argument processing function can be used to initialize
+               wrappers
+
+* r_element_list.c: Element lists can now be initialized with a set of
+                    elelments
+
+* r_entity.h: Entity definition
+* r_entity.c: Initial entity implementation
+
+* r_entity_list.h: Entity list definition
+* r_entity_list.c: Entity list implementation
+
+* r_wrapper_list.h: Generic wrapper list definition
+* r_wrapper_list.c: Generic wrapper list implementation
+
+* r_zlist.h: ZLists are now wrapper lists
+* r_zlist.c: ZLists share code with wrapper lists
+
+2009-11-04 deraj@users.sourceforge.net
+
+* r_zlist.c (r_zlist_sort_insert): Fixed insertion/sort
+
+* r_element_list.c: Completed initial element list implementation
+
+2009-11-03 deraj@users.sourceforge.net
+
+* r_wrapper.c: Wrapper references can now use either a host wrapper's
+               environment table or the registry table
+
+* r_script_lib.c: Moved script function registration to implementation files
+
+* r_wrapper.c (r_wrapper_ref_write_internal): Script type conversion now
+                                              inferred from script type
+
+* r_wrapper.h (r_wrapper_ref_t): Wrapper type no longer included in each ref
+
+2009-11-02 deraj@users.sourceforge.net
+
+* r_wrapper.h: Initial wrapper cleanup prototype
+
+* r_wrapper.h: Wrapper headers/templates are now shared
+
+* r_wrapper.c: Removed wrapper reference template
+
+* r_zlist.c: Removed ZList template
+
+* r_zlist.c (r_zlist_add): ZLists now write read/write references using the
+                           same code as wrapper refs
+
+2009-11-01 deraj@users.sourceforge.net
+
+* r_element_list.h: Element list definition
+* r_element_list.c: Initial element list implementation
+
+* r_wrapper.h: Wrapper template struct
+* r_wrapper.c: Wrappers now initialized with template struct
+
+* r_wrapper.c (rs_wrapper_field_read_internal,
+               rs_wrapper_field_write_internal): Consolidated reference type
+                                                 read/write code
+
+* r_script.c (r_script_call): Error handler index is no longer supported
+
+2009-10-31 deraj@users.sourceforge.net
+
+* r_zlist.c: Implemented insertion sort for ZLists
+
+2009-10-29 deraj@users.sourceforge.net
+
+* r_wrapper.c: Implemented function references for wrappers
+
+* r_zlist.h: Initial ZList types
+* r_zlist.c: Initial work on ZList adding
+
+2009-10-27 deraj@users.sourceforge.net
+
+* r_wrapper.c: String and wrapper references now use an environment table
+               instead of the global registry table to enable garbage
+               collection
+
+2009-10-22 deraj@users.sourceforge.net
+
+* r_video.c (rs_video_draw_element): Cleaned up element rendering
+
+* r_element.h: Most element data is now shared
+
+2009-10-21 deraj@users.sourceforge.net
+
+* r_video.h: Font coordinate type
+* r_video_font.c: Font texture coordinate table
+
+2009-10-20 deraj@users.sourceforge.net
+
+* r_image_cache.h: Prototypes for image field reading/writing
+* r_image_cache.c (r_wrapper_field_image_read, r_wrapper_field_image_write):
+    Generic image field reading/writing
+
+* r_wrapper.h: Wrapper string (including reference)
+* r_wrapper.c (rs_wrapper_field_read_internal,
+    rs_wrapper_field_write_internal): String reading/writing for wrappers
+
+2009-10-19 deraj@users.sourceforge.net
+
+* r_element.c (r_wrapper_field_image_write): Image field writing
+
+* r_image_cache.c (r_image_cache_load_default_images): Default image init
+* r_video.c (r_video_set_mode): Create default image after setting video mode
+
+* r_wrapper.c (l_Wrapper_metatable_newindex): Wrapper field writing
+
+*r_wrapper.c (rs_wrapper_field_write_internal): Nil is allowed for wrappers
+
+2009-10-18 deraj@users.sourceforge.net
+
+* r_wrapper.c (l_Wrapper_new): Generic wrapper type constructor
+
+2009-10-17 deraj@users.sourceforge.net
+
+* r_wrapper.c: Implemented field reader for wrapped structures
+
+* r_script.c: Miscellaneous debugging functions
+
+2009-10-16 deraj@users.sourceforge.net
+
+* rc.c: Updated console application to conform to the rest of the code
+
+* r_wrapper.h: New wrapper type definitions
+* r_wrapper.c: Implemented userdata wrapper field read/write support
+
+2009-10-14 deraj@users.sourceforge.net
+
+* r_video.c (l_drawElement): Initial take on texture coordinates for elements
+
+2009-10-13 deraj@users.sourceforge.net
+
+* r_image_cache.c (rs_image_cache_load): Updated image loading to use physfs
+                                         and libpng to load images
+
+2009-10-05 deraj@users.sourceforge.net
+
+* r_image_cache.c: Fixed image cache implementation and added fake checkered
+                   image for testing
+                   
+* r_video.c (l_drawElement): Revised element drawing to only use rectangular
+                             images
+
+2009-10-04 deraj@users.sourceforge.net
+
+* r_image_cache.h: Initial image cache interface
+* r_image_cache.c: Implemented image cache (except for image loading)
+
+2009-10-03 deraj@users.sourceforge.net
+
+* All: Completed main code cleanup work
+
+* All: Normalized all typedefs to have "_t" suffix
+
+2009-10-03 deraj@users.sourceforge.net
+
+* All: More script isolation
+
+2009-10-02 deraj@users.sourceforge.net
+
+* All: Started isolating code that interfaces with scripts
+
+2009-10-01 deraj@users.sourceforge.net
+
+* All: Updated most syntax
+
+2008-04-22 deraj@users.sourceforge.net
+
+* r_video.c (l_drawElement): Fixed bug where color didn't revert after drawing
+* r_video.c (l_drawEntity): Fixed bug where rotates were about the wrong axis
+
+2008-04-21 deraj@users.sourceforge.net
+
+* radius.c (main): Lua file names are now capitalized correctly
+
+* ZList.lua (ZListRemove): Fixed remove function to not loop indefinitely
+
+* EntityList.lua: Added new EntityList type for lists of entities
+* Main.lua: Updated to use new EntityList type and remove entities
+
+* r_state_t.c (r_state_new): rand() is initialized with the current time
+* r_script_lib.c (l_random): Added random number generator function
+
+2008-04-20 deraj@users.sourceforge.net
+
+* r_video.c: Entities can now specify their overall color
+
+2008-04-16 deraj@users.sourceforge.net
+
+* r_video.c (l_drawElement): More points can be drawn for polygons than just 4
+
+* main.lua: Started work on a proof-of-concept untextured console
+
+2008-04-15 deraj@users.sourceforge.net
+
+* r_event.c: Layer update function now pushes the layer as the first argument
+
+* r_video.c (l_drawElement):  Rotation is applied before scaling
+(l_drawElement): Element colors are now applied
+
+* r_color_lib.h: Added color object interface
+* r_color_lib.c: Added color object interface
+
+* main.lua: Implemented white box test entity using update function
+
+2008-04-14 deraj@users.sourceforge.net
+
+* Makefile.am: Added entity script interface
+* r_entity_lib.h: Added entity script interface
+* r_entity_lib.c: Implemented dimension retrieval for entities
+
+* r_video.c: Entity drawing
+
+2008-04-06 deraj@users.sourceforge.net
+
+* color.lua: Color type
+* size.lua: Size type
+* point.lua: Point type
+* polygon.lua: Polygon type
+
+* r_event.c: Times are now stored per layer
+(r_event_main_loop): Frame rates or minimal rates may be specified
+* r_layer_lib: Times are now stored per layer
+
+2008-04-05 deraj@users.sourceforge.net
+
+* r_layer_lib.h: Moved layer interface headers
+* r_layer_lib.c: Layer interface
+
+* r_event.c: Moved some utility functions to r_layer_lib
+(r_event_get_desired_frame_period_ms): Layer-settable frame period
+
+* zlist.lua: Z-sorted list implementation
+
+* r_video.c: SDL timer facilities are now initialized
+
+2008-04-04 deraj@users.sourceforge.net
+
+* r_matrix.h: Added affine transformation types types/functions
+* r_matrix.c: Matrix multiply, affine transformations
+
+* r_defs.h: Generic definitions header
+* r_vector.h: Moved real number representation into main header
+
+* r_video.c: Added temporary coordinate mapping
+(r_video_set_mode): Vertical coordinates are now defined for all layers
+* r_event.c: Added temporary coordinate mapping for mouse events
+
+* radius-tmp.c: Test program that should be removed at some point
+(main) Added small testing program for debugging problems with matrices
+
+* Makefile.am: Updated for new modules
+
+* layer.lua: Initial layer definition
+
+* r_script.h: Added call or log error function
+* r_script.c (r_script_call): Added call that logs an error on error
+
+2008-04-03 deraj@users.sourceforge.net
+
+* r_vector.h: Vector types/functions header
+* r_vector.c: Homogeneous conversion functions
+
+* r_matrix.h: Matrix types/functions header
+
+2008-04-01 deraj@users.sourceforge.net
+
+* r_event.c (r_event_handle_mouse_button_event): Mouse button support
+(r_event_handle_mouse_motion_event): Mouse motion support
+(r_event_loop): Mouse button event support
+(r_event_loop): Clicking the window close button now exits
+
+* main.lua: Tested mouse button/motion event support
+
+* keys.lua: Keyboard event handler setup
+* mouse.lua: Mouse button event handler setup
+
+2008-03-31 deraj@users.sourceforge.net
+
+* r_event.c (r_event_end): Specific event handler registration not needed
+(r_event_start): Specific event handler registration not needed
+(r_event_handle_key_event): Generic KeyboardEvent handler is now used
+instead of many separate hard-coded event handlers
+
+* main.lua: Switched to new unified key event handling
+
+* Makefile.am: Added r_script_lib.c and r_script_lib.h
+
+* r_script_lib.h: Added scripting utility functions header
+* r_script_lib.c: Added scripting utility functions
+(check_type): Helper function for verifying types
+(r_script_register_functions): Register type-checking functions
+
+2008-03-28 deraj@users.sourceforge.net
+
+* radius.c (main): Nested init code so that cleanup only appears once
+
+2008-03-24 deraj@users.sourceforge.net
+
+* Makefile.am: Added r_event_keys.h and r_event_keys.c
+
+* r_event_keys.h: Header for key names
+* r_event_keys.c: Initialization and retrieval of key names
+
+* r_event.h: Noted that main loop should only be called once, added init/deinit
+* r_event.c: Keys are initialized in r_event_loop
+(r_event_start): Event initialization
+(r_event_end): Event deinitialization
+(r_event_handle_key_event): Call key press/release event handlers
+
+* radius.c (main): Initialize events, deinitialize video
+(main): print out error on failure to run main.lua
+
+* main.lua: Example key event handlers
+
+2008-03-23 deraj@users.sourceforge.net
+
+* Makefile.am: radius-console doesn't use SDL/OpenGL/libpng
+(radius): Added graphical application radius
+* configure.in: Added libpng support
+* configure.in: Separate variables defined for SDL/OpenGL/libpng use
+
+* radius-console.c (main): Replaced free() with r_state_free() as it should be
+(defines): Increased input buffer size to 1024 characters
+
+* r_script.h: R_LUA_ENV_STATE changed to RS_ENV_STATE
+(r_script_get_state): Renamed l_get_rs to r_script_get_state
+* r_script.c: R_LUA_ENV_STATE changed to RS_ENV_STATE
+
+* r_file_lib.c: Added require() script function for loading required scripts
+(r_file_reader): Added text block reader function and arguments structure
+(r_file_load_script): Helper for loading a script
+
+* radius.c: Added graphical application
+
+* r_video.h: Video module
+* r_video.c: Video module
+
+* r_event.h: Input/event loop module
+* r_event.c: F12 exits the graphical application
+
+2008-03-20 deraj@users.sourceforge.net
+
+* r_script.h: Added rs_script_started
+* r_script.c (rs_script_started): Added test for scripting started
+
+* r_file.c (r_file_start): File module registers function if scripting is on
+* r_file.c (r_file_start): Automatically load zip files in the root directory
+* r_file.c (r_file_start): Added root directory parameter
+
+* radius-console.c (main): Added R_ROOT_DATA_DIR for data directory root
+
+2008-03-19 deraj@users.sourceforge.net
+
+* r_file.h: Header for file system interactions
+* r_file.c: Added file system start/stop
+
+* r_file_lib.h: Header for file system functions available to scripts
+* r_file_lib.c: Added "ls" function for listing files in the file system
+
+* radius-console.c: Added support for the file system module
+
+* r_log_lib.c: Logging functions available to scripts
+* r_log_lib.y: Header for logging functions available to scripts
+
+* Makefile.am (radius_console_SOURCES): Moved files around
+
+2008-03-18 deraj@users.sourceforge.net
+
+* r_file_system.h: Created file system header
+* r_file_system.c: Skeleton file system source
+
+* Makefile.am (radius_console_SOURCES): Added file system files
+
+* configure.in: Added tests for PhysicsFS
+
+2008-03-17 deraj@users.sourceforge.net
+
+* r_lua_lib.h: Functions available to Lua scripts
+* r_lua_lib.c (r_lua_register_functions): Function to register functions in Lua
+(l_print): Print strings out
+
+* r_log.h: Created logging function header file
+* r_log.c (r_log, r_log_error): Implemented initial logging functions
+
+* r_lua.h: Created Lua interactions header file
+* r_lua.c (l_panic, r_lua_start, r_lua_end): Added basic Lua functions
+(r_lua_set_error_return_point): Lua panic function
+
+* radius.h: Moved constants to more appropriate headers
+
+* radius-console.c (main): Modified Lua interpreter to use modular functions,
+
+* Makefile.am (radius_console_SOURCES): Added r_lua.c, r_lua.h, r_log.c
+(radius_console_SOURCES): r_log.h, r_lua_lib.c, r_lua_lib.h
+(bin_PROGRAMS): Renamed radius-test radius-console
+
+2008-03-16 deraj@users.sourceforge.net
+
+* radius.h: Added a bunch of generic constants
+* radius.h: Added constants for the Lua interpreter
+
+* radius-test.c (main): Initial Lua interpreter
+
+* configure.in: Added test for Lua header
+

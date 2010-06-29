@@ -9,6 +9,8 @@
 * r_audio.c: Implemented r_audio_set_volume
 * r_audio_clip_cache.c: Added Audio.setVolume function
 
+* r_audio_clip_cache.c: Added Audio.getVolume function
+
 * r_audio.c (r_audio_clip_data_free_internal): Ignore frees of empty clips
 
 2010-06-27 deraj@users.sourceforge.net

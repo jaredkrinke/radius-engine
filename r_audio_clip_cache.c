@@ -92,6 +92,33 @@ static r_status_t r_audio_clip_cache_release_all(r_state_t *rs)
     return r_audio_clip_cache_process(rs, r_audio_clip_cache_release);
 }
 
+static int l_Audio_getVolume(lua_State *ls)
+{
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    int result_count = 0;
+
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        status = r_script_verify_arguments(rs, 0, NULL);
+
+        if (R_SUCCEEDED(status))
+        {
+            lua_State *ls = rs->script_state;
+
+            lua_pushnumber(ls, rs->audio_volume > 0 ? (((double)rs->audio_volume) + 1) / R_AUDIO_VOLUME_MAX : 0.0);
+            lua_insert(ls, 1);
+            result_count = 1;
+        }
+    }
+
+    lua_pop(ls, lua_gettop(ls) - result_count);
+
+    return result_count;
+}
+
 static int l_Audio_setVolume(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
@@ -212,6 +239,7 @@ r_status_t r_audio_clip_cache_start(r_state_t *rs)
     {
         lua_State *ls = rs->script_state;
         r_script_node_t audio_nodes[] = {
+            { "getVolume", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_getVolume },
             { "setVolume", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_setVolume },
             { "play",      R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_play },
             { "clear",     R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_clear },

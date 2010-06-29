@@ -1,3 +1,16 @@
+2010-06-28 deraj@users.sourceforge.net
+
+* r_state.h: Added audio_volume field to r_state_t
+* r_state.c: Audio volume defaults to 0 (no audio)
+
+* r_audio.c (r_audio_callback): Respect global audio volume
+
+* r_audio.h: Added r_audio_set_volume for setting audio volume
+* r_audio.c: Implemented r_audio_set_volume
+* r_audio_clip_cache.c: Added Audio.setVolume function
+
+* r_audio.c (r_audio_clip_data_free_internal): Ignore frees of empty clips
+
 2010-06-27 deraj@users.sourceforge.net
 
 * All: Applied MIT License to engine code

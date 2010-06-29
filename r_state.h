@@ -45,8 +45,9 @@ typedef struct _r_state
     int                             video_height;
     r_affine_transform2d_stack_t    *pixels_to_coordinates;
 
-    /* Audio state (note: audio lock must be held when manipulating this) */
+    /* Audio state (note: audio lock must be held when manipulating audio state) */
     void                            *audio;
+    unsigned char                   audio_volume;
 
     /* Script state */
     lua_State                       *script_state;

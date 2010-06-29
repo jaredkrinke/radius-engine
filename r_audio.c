@@ -165,7 +165,7 @@ static void r_audio_clip_data_free_internal(r_state_t *rs, r_audio_clip_data_t *
         break;
 
     default:
-        R_ASSERT(0); /* Invalid clip type */
+        /* Ignore free of an empty audio clip */
         break;
     }
 
@@ -435,6 +435,25 @@ static r_status_t r_audio_state_clear_internal(r_state_t *rs, r_audio_state_t *a
     return status;
 }
 
+static r_status_t r_audio_clear_internal(r_state_t *rs)
+{
+    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
+
+        /* Only do any work if there's an active audio state */
+        if (audio_state != NULL)
+        {
+            status = r_audio_state_clear_internal(rs, audio_state);
+        }
+    }
+
+    return status;
+}
+
 static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
 {
     const r_state_t *rs = (const r_state_t*)data;
@@ -444,11 +463,12 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
 
     if (R_SUCCEEDED(status))
     {
-        if (audio_state != NULL)
+        if (audio_state != NULL && rs->audio_volume > 0)
         {
             /* Mix each frame */
             const unsigned int frames = bytes / (R_AUDIO_BYTES_PER_SAMPLE * R_AUDIO_CHANNELS);
             unsigned int i;
+            int global_volume = (int)(rs->audio_volume + 1);
 
             /* TODO: This could certainly be optimized better */
             for (i = 0; i < frames; ++i)
@@ -480,7 +500,7 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
                                     /* TODO: Some of these calculations can be skipped if position is min, zero, max or volume is max */
                                     const int fade_factor = ((int)R_AUDIO_POSITION_MAX) + ((channel == 0) ? -1 : 1) * clip_instances[i].position;
 
-                                    sample += ((int)clip_frame[channel]) * (((int)clip_instances[i].volume) + 1) / 256 * fade_factor / 256;
+                                    sample += ((int)clip_frame[channel]) * global_volume / 256 * (((int)clip_instances[i].volume) + 1) / 256 * fade_factor / 256;
 
                                     /* Update clip instance's position if this is the last channel */
                                     if (channel == (R_AUDIO_CHANNELS - 1))
@@ -578,31 +598,7 @@ r_status_t r_audio_start(r_state_t *rs)
 
         if (R_SUCCEEDED(status))
         {
-            SDL_AudioSpec desired_spec;
-
-            desired_spec.freq = R_AUDIO_FREQUENCY;
-            desired_spec.format = R_AUDIO_FORMAT;
-            desired_spec.channels = R_AUDIO_CHANNELS;
-            desired_spec.samples = R_AUDIO_BUFFER_LENGTH;
-            desired_spec.callback = &r_audio_callback;
-            desired_spec.userdata = (void*)rs;
-
-            status = (SDL_OpenAudio(&desired_spec, NULL) == 0) ? R_SUCCESS : R_F_AUDIO_FAILURE;
-
-            if (R_SUCCEEDED(status))
-            {
-                SDL_PauseAudio(0);
-                status = r_audio_clip_cache_start(rs);
-
-                if (R_FAILED(status))
-                {
-                    SDL_CloseAudio();
-                }
-            }
-            else
-            {
-                r_log_error_format(rs, "Could not initialize SDL audio subsystem: %s", SDL_GetError());
-            }
+            status = r_audio_clip_cache_start(rs);
 
             if (R_FAILED(status))
             {
@@ -625,15 +621,17 @@ void r_audio_end(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        SDL_PauseAudio(1);
+        status = r_audio_set_volume(rs, 0);
+    }
+
+    if (R_SUCCEEDED(status))
+    {
+        r_audio_set_current_state(rs, NULL);
+    }
+
+    if (R_SUCCEEDED(status))
+    {
         status = r_audio_clip_cache_end(rs);
-
-        if (R_SUCCEEDED(status))
-        {
-            r_audio_set_current_state(rs, NULL);
-        }
-
-        SDL_CloseAudio();
     }
 
     if (R_SUCCEEDED(status))
@@ -643,8 +641,68 @@ void r_audio_end(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        status = r_audio_clip_manager_start(rs);
+        status = r_audio_clip_manager_end(rs);
     }
+}
+
+r_status_t r_audio_set_volume(r_state_t *rs, unsigned char volume)
+{
+    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Check to see if the audio subsystem is already running */
+        r_boolean_t audio_not_running = (rs->audio_volume <= 0) ? R_TRUE : R_FALSE;
+
+        if (volume > 0)
+        {
+            /* Start the audio subsystem, if necessary */
+            if (audio_not_running)
+            {
+                SDL_AudioSpec desired_spec;
+
+                desired_spec.freq = R_AUDIO_FREQUENCY;
+                desired_spec.format = R_AUDIO_FORMAT;
+                desired_spec.channels = R_AUDIO_CHANNELS;
+                desired_spec.samples = R_AUDIO_BUFFER_LENGTH;
+                desired_spec.callback = &r_audio_callback;
+                desired_spec.userdata = (void*)rs;
+
+                status = (SDL_OpenAudio(&desired_spec, NULL) == 0) ? R_SUCCESS : R_F_AUDIO_FAILURE;
+
+                if (R_FAILED(status))
+                {
+                    r_log_error_format(rs, "Could not initialize SDL audio subsystem: %s", SDL_GetError());
+                }
+            }
+
+            /* Set volume to some non-zero value */
+            if (R_SUCCEEDED(status))
+            {
+                SDL_LockAudio();
+                rs->audio_volume = volume;
+                SDL_UnlockAudio();
+
+                if (audio_not_running)
+                {
+                    /* Audio starts paused, so unpause it now */
+                    SDL_PauseAudio(0);
+                }
+            }
+        }
+        else if (!audio_not_running)
+        {
+            /* Audio subsystem is currently running, but should be stopped */
+            /* TODO: Should some attempt be made to clear all audio states (for all layers) at this point? */
+            SDL_PauseAudio(1);
+            rs->audio_volume = 0;
+            status = r_audio_clear_internal(rs);
+            SDL_CloseAudio();
+        }
+    }
+
+    return status;
 }
 
 r_status_t r_audio_set_current_state(r_state_t *rs, r_audio_state_t *audio_state)
@@ -697,13 +755,7 @@ r_status_t r_audio_clear(r_state_t *rs)
         SDL_LockAudio();
 
         {
-            r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
-
-            /* Only do any work if there's an active audio state */
-            if (audio_state != NULL)
-            {
-                status = r_audio_state_clear_internal(rs, audio_state);
-            }
+            status = r_audio_clear_internal(rs);
         }
 
         SDL_UnlockAudio();

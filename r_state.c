@@ -42,6 +42,7 @@ r_status_t r_state_init(r_state_t *rs, const char *argv0)
         rs->pixels_to_coordinates = NULL;
 
         rs->audio = NULL;
+        rs->audio_volume = 0;
 
         rs->script_state = NULL;
 

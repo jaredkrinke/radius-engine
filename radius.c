@@ -42,32 +42,39 @@ static int radius_execute_internal(const char *argv0, const char *application_na
 
     if (R_SUCCEEDED(status))
     {
-        status = r_script_start(rs);
+        /* Initialize file system first because it will setup stdout/stderr as necessary */
+        char *data_dir_internal = NULL;
+        char *user_dir_internal = NULL;
+        char *script_path_internal = NULL;
+        char *default_font_path_internal = NULL;
 
-        if (R_SUCCEEDED(status))
+        /* Set up application-based default values, if necessary */
+        if (application_name != NULL)
         {
-            char *data_dir_internal = NULL;
-            char *user_dir_internal = NULL;
-            char *script_path_internal = NULL;
-            char *default_font_path_internal = NULL;
-
-            /* Set up application-based default values, if necessary */
-            if (application_name != NULL)
-            {
-                status = r_file_system_allocate_application_paths(rs, application_name, &data_dir_internal, &user_dir_internal, &script_path_internal, &default_font_path_internal);
-
-                if (R_SUCCEEDED(status))
-                {
-                    data_dir = data_dir_internal;
-                    user_dir = user_dir_internal;
-                    script_path = script_path_internal;
-                    default_font_path = default_font_path_internal;
-                }
-            }
+            status = r_file_system_allocate_application_paths(rs, application_name, &data_dir_internal, &user_dir_internal, &script_path_internal, &default_font_path_internal);
 
             if (R_SUCCEEDED(status))
             {
-                status = r_file_system_start(rs, data_dir, user_dir);
+                data_dir = data_dir_internal;
+                user_dir = user_dir_internal;
+                script_path = script_path_internal;
+                default_font_path = default_font_path_internal;
+            }
+        }
+
+        if (R_SUCCEEDED(status))
+        {
+            status = r_file_system_start(rs, data_dir, user_dir);
+
+            if (R_SUCCEEDED(status))
+            {
+                status = r_script_start(rs);
+
+                if (R_SUCCEEDED(status))
+                {
+                    /* Add file system script functions */
+                    status = r_file_system_setup_script(rs);
+                }
 
                 if (R_SUCCEEDED(status))
                 {
@@ -127,24 +134,24 @@ static int radius_execute_internal(const char *argv0, const char *application_na
                         r_log_error(rs, "Could not initialize video library");
                     }
 
-                    r_file_system_end(rs);
+                    r_script_end(rs);
                 }
                 else
                 {
-                    r_log_error(rs, "Could not initialize file system");
+                    r_log_error(rs, "Could not initialize scripting engine");
                 }
 
-                if (application_name != NULL)
-                {
-                    r_file_system_free_application_paths(rs, &data_dir_internal, &user_dir_internal, &script_path_internal, &default_font_path_internal);
-                }
+                r_file_system_end(rs);
+            }
+            else
+            {
+                r_log_error(rs, "Could not initialize file system");
             }
 
-            r_script_end(rs);
-        }
-        else
-        {
-            r_log_error(rs, "Could not initialize scripting engine");
+            if (application_name != NULL)
+            {
+                r_file_system_free_application_paths(rs, &data_dir_internal, &user_dir_internal, &script_path_internal, &default_font_path_internal);
+            }
         }
 
         r_state_cleanup(rs);

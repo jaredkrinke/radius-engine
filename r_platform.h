@@ -27,6 +27,7 @@ THE SOFTWARE.
 
 /* Platform-specific functions */
 extern r_status_t r_platform_create_directory(r_state_t *rs, const char *dir);
+extern r_status_t r_platform_setup_output(r_state_t *rs, const char *user_dir);
 extern r_status_t r_platform_application_allocate_user_dir(r_state_t *rs, const char *application, char **user_dir);
 
 #endif

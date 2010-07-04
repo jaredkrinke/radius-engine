@@ -286,7 +286,7 @@ static int l_require(lua_State *ls)
     return 0;
 }
 
-r_status_t r_file_system_setup(r_state_t *rs)
+r_status_t r_file_system_setup_script(r_state_t *rs)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -314,18 +314,24 @@ r_status_t r_file_system_setup(r_state_t *rs)
 
 r_status_t r_file_system_start(r_state_t *rs, const char *data_dir, const char *user_dir)
 {
-    r_status_t status = (rs != NULL && rs->script_state != NULL && data_dir != NULL && user_dir != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    r_status_t status = (rs != NULL && data_dir != NULL && user_dir != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
 
     if (R_SUCCEEDED(status))
     {
-        /* Initialize PhysicsFS */
-        status = (PHYSFS_init(rs->argv0) != 0) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+        /* Ensure the user directory is set up */
+        status = r_platform_create_directory(rs, user_dir);
 
         if (R_SUCCEEDED(status))
         {
-            /* Ensure the user directory is set up */
-            status = r_platform_create_directory(rs, user_dir);
+            /* Setup output (e.g. on Windows this should divert stdout/stderr to files in the user profile) */
+            status = r_platform_setup_output(rs, user_dir);
+        }
+
+        if (R_SUCCEEDED(status))
+        {
+            /* Initialize PhysicsFS */
+            status = (PHYSFS_init(rs->argv0) != 0) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
         }
 
         /* Set write directory */
@@ -350,12 +356,6 @@ r_status_t r_file_system_start(r_state_t *rs, const char *data_dir, const char *
         if (R_SUCCEEDED(status))
         {
             status = r_file_system_add_all_data_sources(rs);
-        }
-
-        /* Set up script functions */
-        if (R_SUCCEEDED(status))
-        {
-            status = r_file_system_setup(rs);
         }
 
         if (status == R_F_FILE_SYSTEM_ERROR)

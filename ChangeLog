@@ -1,3 +1,15 @@
+2010-07-03 deraj@users.sourceforge.net
+
+* r_file_system.h: r_file_system_setup_script sets up script functions
+* r_file_system.c: File system script functions are set up separately
+
+* r_file_system.c (r_file_system_start): stdout/stderr are reopened on Windows
+
+* r_platform.h: Added r_platform_setup_output for preparing output
+* r_platform_windows.h: stdout/stderr are redirected to user profile
+
+* radius.c (radius_execute_internal): Base file system is now initialized first
+
 2010-06-28 deraj@users.sourceforge.net
 
 * r_state.h: Added audio_volume field to r_state_t

@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include <stdio.h>
 #include <windows.h>
 #include <physfs.h>
 
@@ -44,6 +45,43 @@ r_status_t r_platform_create_directory(r_state_t *rs, const char *dir)
         if (R_FAILED(status) && GetLastError() == ERROR_ALREADY_EXISTS)
         {
             status = R_S_ALREADY_EXISTS;
+        }
+    }
+
+    return status;
+}
+
+r_status_t r_platform_setup_output(r_state_t *rs, const char *user_dir)
+{
+    r_status_t status = (rs != NULL && user_dir != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Reopen stdout and stderr as text files in the user directory */
+        char *stdout_path = NULL;
+
+        status = r_string_format_allocate(rs, &stdout_path, R_FILE_SYSTEM_MAX_PATH_LENGTH, R_FILE_SYSTEM_MAX_PATH_LENGTH, "%s\\stdout.txt", user_dir);
+
+        if (R_SUCCEEDED(status))
+        {
+            char *stderr_path = NULL;
+
+            status = r_string_format_allocate(rs, &stderr_path, R_FILE_SYSTEM_MAX_PATH_LENGTH, R_FILE_SYSTEM_MAX_PATH_LENGTH, "%s\\stderr.txt", user_dir);
+
+            if (R_SUCCEEDED(status))
+            {
+                status = (freopen(stdout_path, "w", stdout) != NULL) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+
+                if (R_SUCCEEDED(status))
+                {
+                    status = (freopen(stderr_path, "w", stderr) != NULL) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+                }
+
+                free(stderr_path);
+            }
+
+            free(stdout_path);
         }
     }
 

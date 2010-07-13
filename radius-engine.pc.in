@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: @PACKAGE_NAME@
+Description: Lua script-based 2D engine built on top of OpenGL and SDL
+Version: @PACKAGE_VERSION@
+URL: @PACKAGE_URL@
+Requires:
+Conflicts:
+Libs: @RADIUS_ENGINE_LIBS@
+Cflags: @RADIUS_ENGINE_CFLAGS@

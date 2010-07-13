@@ -1,3 +1,14 @@
+2010-07-13 deraj@users.sourceforge.net
+
+* Makefile.am: (Linux build) Added Automake makefile
+* acinclude.m4: (Linux build) Added M4 macros for Autoconf
+* configure.in: (Linux build) Added Autoconf template
+* radius-engine.pc.in: (Linux build) Added pkg-config template
+
+* r_platform.c: Removed unnecessary header
+
+* radius.h: Incremented version
+
 2010-07-03 deraj@users.sourceforge.net
 
 * r_file_system.h: r_file_system_setup_script sets up script functions

@@ -1,0 +1,30 @@
+AC_INIT([Radius Engine], [0.2], [deraj@users.sourceforge.net], [radius-engine], [http://avsn.sourceforge.net/])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+
+AC_CANONICAL_BUILD
+AC_CANONICAL_TARGET
+AC_CANONICAL_HOST
+
+AC_PROG_CC
+AC_PROG_INSTALL
+AC_PROG_RANLIB
+
+dnl Check for dependencies
+AM_PATH_OPENGL(:, [AC_MSG_ERROR([*** OpenGL not found! ***])])
+AM_PATH_SDL(1.2.0, :, [AC_MSG_ERROR([*** SDL version 1.2.0 not found! ***])])
+AM_PATH_LUA(:, [AC_MSG_ERROR([*** Lua 5.0 or newer not found! ***])])
+AM_PATH_PNG(:, [AC_MSG_ERROR([*** libpng not found! ***])])
+AM_PATH_PHYSFS(:, [AC_MSG_ERROR([*** PhysicsFS 1.0.0 or newer not found! ***])])
+AM_PATH_SDL_SOUND(:, [AC_MSG_ERROR([*** SDL_Sound 1.0.0 or newer not found! ***])])
+
+CFLAGS="-DR_PLATFORM_UNIX $CFLAGS $GL_CFLAGS $SDL_CFLAGS $LUA_CFLAGS $PNG_CFLAGS $PHYSFS_CFLAGS $SDL_SOUND_CFLAGS"
+LIBS="$LUA_LIBS $PNG_LIBS $PHYSFS_LIBS $SDL_SOUND_LIBS $GL_LIBS $SDL_LIBS"
+
+dnl Set up pkg-config metadata
+RADIUS_ENGINE_CFLAGS="$CFLAGS"
+AC_SUBST([RADIUS_ENGINE_CFLAGS])
+RADIUS_ENGINE_LIBS="-lradius-engine $LIBS"
+AC_SUBST([RADIUS_ENGINE_LIBS])
+
+AC_CONFIG_FILES([Makefile radius-engine.pc])
+AC_OUTPUT

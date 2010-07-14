@@ -1,3 +1,10 @@
+2010-07-14 deraj@users.sourceforge.net
+
+* r_object_list.c (r_object_list_clear): Only clear items if count > 0
+* r_object_list.c (r_object_list_clear): Avoid underflow of i by testing count
+
+* r_defs.h: Modified R_SUCCEEDED/R_FAILED to not depend on enum size/signedness
+
 2010-07-13 deraj@users.sourceforge.net
 
 * Makefile.am: (Linux build) Added Automake makefile

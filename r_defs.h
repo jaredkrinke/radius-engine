@@ -75,14 +75,14 @@ typedef enum {
 
     RA_F_INVALID_POINTER    = 0x84004003,
     RA_F_DECODE_ERROR       = 0x84000101,
-    R_F_AUDIO_FAILURE         = 0x84004005,
+    R_F_AUDIO_FAILURE       = 0x84004005,
 
     R_F_INVALID             = 0x8100ffff
 } r_status_t;
 
 /* Error code macros */
-#define R_SUCCEEDED(status)     (status >= 0)
-#define R_FAILED(status)        (status < 0)
+#define R_SUCCEEDED(status)     ((status & 0x80000000) == 0)
+#define R_FAILED(status)        ((status & 0x80000000) != 0)
 #define R_FACILITY(status)      (status & 0x07ff0000)
 
 /* Boolean value representation */

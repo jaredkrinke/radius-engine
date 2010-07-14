@@ -179,11 +179,16 @@ static r_status_t r_object_list_clear(r_state_t *rs, r_object_list_t *object_lis
 {
     lua_State *ls = rs->script_state;
     r_status_t status = R_SUCCESS;
-    unsigned int i;
 
-    for (i = object_list->count - 1; i >= 0 && R_SUCCEEDED(status); --i)
+    /* Don't clear if there are no items (avoiding underflow for i) */
+    if (object_list->count > 0)
     {
-        status = r_object_list_remove(rs, object_list, i);
+        unsigned int i;
+
+        for (i = object_list->count - 1; object_list->count > 0 && R_SUCCEEDED(status); --i)
+        {
+            status = r_object_list_remove(rs, object_list, i);
+        }
     }
 
     return status;

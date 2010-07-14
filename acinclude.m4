@@ -243,14 +243,12 @@ esac
   GL_CFLAGS=""
   GL_LIBS=""
 
-  GLXEXTRALIBS="-lX11 -lXext -lXmu -lXt -lXi"
-
   AC_LANG_SAVE
   AC_LANG_C
 
   if ! test x"$no_x" = xyes; then
     GL_CFLAGS="$X_CFLAGS"
-    GL_X_LIBS="$X_PRE_LIBS $X_LIBS $GLXEXTRALIBS $X_EXTRA_LIBS $LIBM"
+    GL_X_LIBS="$X_PRE_LIBS $X_LIBS $X_EXTRA_LIBS $LIBM"
   fi
 
   AC_ARG_WITH(gl-prefix,    
@@ -294,10 +292,13 @@ case "$target" in
 		AC_SEARCH_LIBS(glFrustum,
 			[GL MesaGL Mesa3d opengl opengl32],
 			[
-				HAVE_GL=yes
-				GL_LIBS="$GL_LIBS $LIBS"
+                AC_SEARCH_LIBS(gluPerspective, [GLU MesaGLU glu32],
+                [
+				    HAVE_GL=yes
+				    GL_LIBS="$GL_LIBS $LIBS"
+                ], AC_ERROR([GLU not found]), $GL_LIBS $GL_X_LIBS)
 			],
-			AC_ERROR(Need OpenGL),
+			AC_ERROR([OpenGL not found]),
 			$GL_LIBS $GL_X_LIBS)
 		;;
 esac
@@ -317,84 +318,6 @@ esac
   fi
   AC_SUBST(GL_CFLAGS)
   AC_SUBST(GL_LIBS)
-])
-
-dnl # $Id: lua.m4,v 1.1 2003/06/19 11:36:04 erik Exp $
-dnl #
-dnl #
-dnl # AM_PATH_LUA([ACTION-IF-FOUND [,ACTION-IF-NOT-FOUND]])
-dnl #
-
-AC_DEFUN([AM_PATH_LUA],
-[
-  AC_REQUIRE([AC_PROG_CC])
-
-  AC_REQUIRE([AC_CHECK_LIBM])
-
-  LUA_CFLAGS=""
-  LUA_LIBS=""
-
-  AC_LANG_SAVE
-  AC_LANG_C
-
-  AC_ARG_WITH(lua-prefix,    
-    [  --with-lua-prefix=PFX     Prefix where LUA is installed],
-    [
-      LUA_CFLAGS="-I$withval/include"
-      LUA_LIBS="-L$withval/lib"
-    ])
-
-  AC_ARG_WITH(lua-includes,    
-    [  --with-lua-includes=DIR   where the LUA includes are installed],
-    [
-      LUA_CFLAGS="-I$withval"
-    ])
-
-  AC_ARG_WITH(lua-libraries,    
-    [  --with-lua-libraries=DIR  where the LUA libraries are installed],
-    [
-      LUA_LIBS="-L$withval"
-    ])
-
-  saved_CFLAGS="$CFLAGS"
-  saved_LIBS="$LIBS"
-  AC_LANG_SAVE
-  AC_LANG_C
-  HAVE_LUA=no
-
-  exec 8>&AC_FD_MSG
-
-case "$host" in
-	*-*-cygwin* | *-*-mingw32*)
-		LUA_CFLAGS=""
-		LUA_LIBS="-llua"
-		HAVE_LUA=yes
-		;;
-	*-apple-darwin*)
-		LUA_LIBS=""
-		HAVE_LUA=yes
-		;;
-	*)
-		LUA_CFLAGS="`luca-config --compile`"
-		LUA_LIBS="`lua-config --libs`"
-		;;
-esac
-
-  LIBS="$saved_LIBS"
-  CFLAGS="$saved_CFLAGS"
-
-  exec AC_FD_MSG>&8
-  AC_LANG_RESTORE
-
-  if test "$HAVE_LUA" = "yes"; then
-     ifelse([$1], , :, [$1])     
-  else
-     LUA_CFLAGS=""
-     LUA_LIBS=""
-     ifelse([$2], , :, [$2])
-  fi
-  AC_SUBST(LUA_CFLAGS)
-  AC_SUBST(LUA_LIBS)
 ])
 
 dnl # $Id: png.m4,v 1.2 2004/01/02 09:46:31 erik Exp $
@@ -461,6 +384,30 @@ AC_DEFUN([AM_PATH_PNG],
   fi
   AC_SUBST(PNG_CFLAGS)
   AC_SUBST(PNG_LIBS)
+])
+
+AC_DEFUN([AM_PATH_LUA],
+[
+  AC_REQUIRE([AC_PROG_CC])
+
+  LUA_CFLAGS=''
+  LUA_LIBS=''
+
+  PKG_CHECK_MODULES([LUA], [lua5.1], [HAVE_LUA=yes])
+
+  AC_LANG_PUSH([C])
+  AC_LANG_POP()
+
+  if test "$HAVE_LUA" = "yes"; then
+     ifelse([$1], , :, [$1])     
+  else
+     LUA_CFLAGS=""
+     LUA_LIBS=""
+     ifelse([$2], , :, [$2])
+  fi
+  
+  AC_SUBST(LUA_CFLAGS)
+  AC_SUBST(LUA_LIBS)
 ])
 
 AC_DEFUN([AM_PATH_PHYSFS],
@@ -554,12 +501,12 @@ AC_DEFUN([AM_PATH_SDL_SOUND],
   HAVE_SDL_SOUND=no
 
   AC_CHECK_HEADER([SDL/SDL_sound.h], [
-	SDL_SOUND_LIBS="$SDL_SOUND_LIBS -lsdl_sound"
+	SDL_SOUND_LIBS="$SDL_SOUND_LIBS -lSDL_sound"
 	HAVE_SDL_SOUND=yes
     ])
-dnl  dnl TODO: How to determine sdl_sound dependencies? Hopefully better than just testing them all one at a time...
-dnl  AC_CHECK_LIB(sdl_sound, Sound_Init, [
-dnl	SDL_SOUND_LIBS="$SDL_SOUND_LIBS -lsdl_sound"
+dnl  dnl TODO: How to determine SDL_sound dependencies? Hopefully better than just testing them all one at a time...
+dnl  AC_CHECK_LIB(SDL_sound, Sound_Init, [
+dnl	SDL_SOUND_LIBS="$SDL_SOUND_LIBS -lSDL_sound"
 dnl	HAVE_SDL_SOUND=yes
 dnl    ])
 

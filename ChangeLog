@@ -9,6 +9,14 @@
 
 * radius.h: Incremented version
 
+* r_platform_unix: Initial platform-specific functions for UNIX-like OS
+
+* acinclude.m4: Fixed capitalization of SDL_sound
+
+* acinclude.m4: AM_PATH_LUA uses pkg-config now
+
+* r_image_cache.c: Protected OpenGL calls before OpenGL context is set
+
 2010-07-03 deraj@users.sourceforge.net
 
 * r_file_system.h: r_file_system_setup_script sets up script functions

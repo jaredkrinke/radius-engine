@@ -101,9 +101,12 @@ static void internal_png_read(png_struct *png, png_byte *data, png_size_t length
 /* TODO: just pass in r_image_t* here */
 static r_status_t r_image_free_texture(r_state_t *rs, r_image_internal_t *image_data)
 {
-    glDeleteTextures(1, &image_data->id);
+    if (rs->video_mode_set)
+    {
+        glDeleteTextures(1, &image_data->id);
 
-    image_data->id = R_IMAGE_INTERNAL_INVALID_ID;
+        image_data->id = R_IMAGE_INTERNAL_INVALID_ID;
+    }
 
     return R_SUCCESS;
 }
@@ -144,95 +147,103 @@ static r_status_t r_image_load(r_state_t *rs, const char *image_path, r_object_t
 
     if (R_SUCCEEDED(status))
     {
-        /* Open the file */
-        PHYSFS_file *file = PHYSFS_openRead(image_path);
-
-        status = (file != NULL) ? R_SUCCESS : R_F_NOT_FOUND;
-
-        if (R_SUCCEEDED(status))
+        /* Only load the image if a video mode has been set */
+        if (rs->video_mode_set)
         {
-            png_struct *png = png_create_read_struct(PNG_LIBPNG_VER_STRING, (void*)rs, internal_png_error, internal_png_warning);
+            /* Open the file */
+            PHYSFS_file *file = PHYSFS_openRead(image_path);
 
-            status = (png != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+            status = (file != NULL) ? R_SUCCESS : R_F_NOT_FOUND;
 
             if (R_SUCCEEDED(status))
             {
-                png_info *png_info = png_create_info_struct(png);
+                png_struct *png = png_create_read_struct(PNG_LIBPNG_VER_STRING, (void*)rs, internal_png_error, internal_png_warning);
 
-                status = (png_info != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+                status = (png != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
 
                 if (R_SUCCEEDED(status))
                 {
-                    /* Work-around libpng's lack of return codes */
-                    if (!setjmp(png_jmpbuf(png)))
+                    png_info *png_info = png_create_info_struct(png);
+
+                    status = (png_info != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+                    if (R_SUCCEEDED(status))
                     {
-                        /* First return (normal case) */
-                        unsigned int width = 0;
-                        unsigned int height = 0;
-                        int bit_depth, color_type, interlace_method, compression_method, filter_method;
-                        r_pixel_t *pixels = NULL;
-
-                        png_set_read_fn(png, file, internal_png_read);
-                        png_read_info(png, png_info);
-                        png_get_IHDR(png, png_info, &width, &height, &bit_depth, &color_type, &interlace_method, &compression_method, &filter_method);
-                        pixels = (r_pixel_t*)malloc(width * height * sizeof(r_pixel_t));
-                        status = (pixels != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
-
-                        if (R_SUCCEEDED(status))
+                        /* Work-around libpng's lack of return codes */
+                        if (!setjmp(png_jmpbuf(png)))
                         {
-                            /* Set up row pointers */
-                            void **rows;
+                            /* First return (normal case) */
+                            unsigned int width = 0;
+                            unsigned int height = 0;
+                            int bit_depth, color_type, interlace_method, compression_method, filter_method;
+                            r_pixel_t *pixels = NULL;
 
-                            rows = (void**)malloc(height * sizeof(void*));
-                            status = (rows != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+                            png_set_read_fn(png, file, internal_png_read);
+                            png_read_info(png, png_info);
+                            png_get_IHDR(png, png_info, &width, &height, &bit_depth, &color_type, &interlace_method, &compression_method, &filter_method);
+                            pixels = (r_pixel_t*)malloc(width * height * sizeof(r_pixel_t));
+                            status = (pixels != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
 
                             if (R_SUCCEEDED(status))
                             {
-                                unsigned int i;
-                                GLuint id = 0;
+                                /* Set up row pointers */
+                                void **rows;
 
-                                for (i = 0; i < height; ++i)
+                                rows = (void**)malloc(height * sizeof(void*));
+                                status = (rows != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+                                if (R_SUCCEEDED(status))
                                 {
-                                    rows[i] = (void*)(&pixels[width * i]);
+                                    unsigned int i;
+                                    GLuint id = 0;
+
+                                    for (i = 0; i < height; ++i)
+                                    {
+                                        rows[i] = (void*)(&pixels[width * i]);
+                                    }
+
+                                    /* Read image data */
+                                    png_read_image(png, (png_byte**)rows);
+
+                                    /* TODO: comment */
+                                    /* TODO: This should use OpenGL compatible sizes and other necessary information should be added to the image cache... */
+
+                                    glGenTextures(1, &id);
+                                    glBindTexture(GL_TEXTURE_2D, id);
+
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); 
+                                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (void*)pixels);
+
+                                    /* Fill image data */
+                                    ((r_image_t*)object)->image_data.id = id;
+
+                                    free(rows);
                                 }
 
-                                /* Read image data */
-                                png_read_image(png, (png_byte**)rows);
-
-                                /* TODO: comment */
-                                /* TODO: This should use OpenGL compatible sizes and other necessary information should be added to the image cache... */
-
-                                glGenTextures(1, &id);
-                                glBindTexture(GL_TEXTURE_2D, id);
-
-                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); 
-                                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (void*)pixels);
-
-                                /* Fill image data */
-                                ((r_image_t*)object)->image_data.id = id;
-
-                                free(rows);
+                                free(pixels);
                             }
-
-                            free(pixels);
                         }
-                    }
-                    else
-                    {
-                        /* Second return (error case) */
-                        status = R_FAILURE;
+                        else
+                        {
+                            /* Second return (error case) */
+                            status = R_FAILURE;
+                        }
+
+                        png_destroy_read_struct(NULL, &png_info, NULL);
                     }
 
-                    png_destroy_read_struct(NULL, &png_info, NULL);
+                    png_destroy_read_struct(&png, NULL, NULL);
                 }
 
-                png_destroy_read_struct(&png, NULL, NULL);
+                PHYSFS_close(file);
             }
-
-            PHYSFS_close(file);
+        }
+        else
+        {
+            status = RV_S_VIDEO_MODE_NOT_SET;
         }
     }
 
@@ -313,8 +324,8 @@ r_status_t r_image_cache_reload(r_state_t *rs)
         status = r_image_cache_free_textures(rs);
     }
 
-    /* Load default image */
-    if (R_SUCCEEDED(status))
+    /* Load default image, if necessary */
+    if (R_SUCCEEDED(status) && rs->video_mode_set)
     {
         /* Create a checkerboard default image */
         const unsigned int width = R_IMAGE_CACHE_DEFAULT_IMAGE_WIDTH;

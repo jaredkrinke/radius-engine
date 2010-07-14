@@ -66,6 +66,8 @@ typedef enum {
     /* Video status codes */
     R_FACILITY_VIDEO        = 0x03000000,
 
+    RV_S_VIDEO_MODE_NOT_SET = 0x04000002,
+
     R_VIDEO_FAILURE         = 0x83004005,
 
     /* Audio status codes */

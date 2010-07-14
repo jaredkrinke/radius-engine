@@ -105,12 +105,6 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
 
             if (R_SUCCEEDED(status))
             {
-                /* Changing the video mode may reset the OpenGL context, so all images must be reloaded */
-                status = r_image_cache_reload(rs);
-            }
-
-            if (R_SUCCEEDED(status))
-            {
                 r_affine_transform2d_stack_translate(rs->pixels_to_coordinates, (r_real_t)(-rs->video_width) / 2, -R_VIDEO_HEIGHT);
                 r_affine_transform2d_stack_scale(rs->pixels_to_coordinates, 1, -1);
 
@@ -147,6 +141,12 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
     if (R_SUCCEEDED(status))
     {
         rs->video_mode_set = R_TRUE;
+
+        if (R_SUCCEEDED(status))
+        {
+            /* Changing the video mode may reset the OpenGL context, so all images must be reloaded */
+            status = r_image_cache_reload(rs);
+        }
     }
 
     return status;

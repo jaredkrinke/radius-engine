@@ -363,11 +363,6 @@ static r_status_t r_audio_clip_instance_list_add(r_state_t *rs, r_audio_clip_ins
     return r_list_add(rs, (r_list_t*)list, (void*)clip, &r_audio_clip_instance_list_def);
 }
 
-static r_audio_clip_instance_t *r_audio_clip_instance_list_get_index(r_state_t *rs, r_audio_clip_instance_list_t *list, unsigned int index)
-{
-    return (r_audio_clip_instance_t*)r_list_get_index(rs, (r_list_t*)list, index, &r_audio_clip_instance_list_def);
-}
-
 static r_status_t r_audio_clip_instance_list_remove_index(r_state_t *rs, r_audio_clip_instance_list_t *list, unsigned int index)
 {
     return r_list_remove_index(rs, (r_list_t*)list, index, &r_audio_clip_instance_list_def);
@@ -533,7 +528,7 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
             {
                 r_audio_clip_instance_t *clip_instance = &((r_audio_clip_instance_t*)audio_state->clip_instances.items)[i];
 
-                if (((r_audio_clip_instance_t*)audio_state->clip_instances.items)[i].volume == 0)
+                if (clip_instance->volume == 0)
                 {
                     /* Omit r_state_t pointer to prevent it from being accessed on multiple threads at once */
                     status = r_audio_clip_instance_list_remove_index(NULL, &audio_state->clip_instances, i);

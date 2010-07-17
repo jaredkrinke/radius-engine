@@ -56,25 +56,6 @@ static r_status_t r_zlist_sort_insert(r_state_t *rs, r_object_list_t *object_lis
     return R_SUCCESS;
 }
 
-static r_status_t r_zlist_sort(r_state_t *rs, r_zlist_t *zlist)
-{
-    r_status_t status = (rs != NULL && zlist != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-    R_ASSERT(R_SUCCEEDED(status));
-
-    if (R_SUCCEEDED(status))
-    {
-        /* Progressively sort the list by inserting elements into sorted sublist preceding them */
-        unsigned int insert_index;
-
-        for (insert_index = 1; insert_index < zlist->object_list.count; ++insert_index)
-        {
-            r_zlist_sort_insert(rs, (r_object_list_t*)zlist, insert_index);
-        }
-    }
-
-    return status;
-}
-
 /* TODO: Check all script functions to ensure errors are reported somehow! */
 int l_ZList_add(lua_State *ls, r_object_type_t list_type)
 {

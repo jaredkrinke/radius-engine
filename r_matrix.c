@@ -57,21 +57,6 @@ static void r_affine_transform2d_multiply(const r_affine_transform2d_t *a, const
     }
 }
 
-static void r_affine_transform2d_copy(const r_affine_transform2d_t *source, r_affine_transform2d_t *destination)
-{
-    int i;
-
-    for (i = 0; i < 3; ++i)
-    {
-        int j;
-
-        for (j = 0; j < 3; ++j)
-        {
-            (*destination)[i][j] = (*source)[i][j];
-        }
-    }
-}
-
 r_affine_transform2d_stack_t *r_affine_transform2d_stack_new()
 {
     r_affine_transform2d_stack_t *t = (r_affine_transform2d_stack_t*)malloc(sizeof(r_affine_transform2d_stack_t));

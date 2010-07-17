@@ -320,6 +320,18 @@ static r_status_t r_event_handle_event(r_state_t *rs, r_layer_t *layer, SDL_Even
     return status;
 }
 
+/* TODO: inline */
+void r_event_get_time_difference(unsigned int t1, unsigned int t2, unsigned int *difference_ms)
+{
+    if (t2 >= t1)
+    {
+        *difference_ms = 0;
+        /* TODO: better wrap-around logic might be nice here */
+    }
+
+    *difference_ms = t1 - t2;
+}
+
 r_status_t r_event_loop(r_state_t *rs)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -327,7 +339,6 @@ r_status_t r_event_loop(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        lua_State *ls = rs->script_state;
         r_layer_t *layer = NULL;
         r_layer_t *last_layer = NULL;
 

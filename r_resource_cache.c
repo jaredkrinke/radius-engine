@@ -37,9 +37,9 @@ r_status_t r_resource_cache_start(r_state_t *rs, r_resource_cache_t *resource_ca
     {
         /* Create empty resource cache table */
         r_script_node_root_t roots[] = {
-            { 0, &resource_cache->ref_table,        { "", R_SCRIPT_NODE_TYPE_TABLE, { NULL } } },
-            { 0, &resource_cache->persistent_table, { "", R_SCRIPT_NODE_TYPE_TABLE, { NULL } } },
-            { 0, NULL, NULL }
+            { 0, &resource_cache->ref_table,        { "", R_SCRIPT_NODE_TYPE_TABLE, NULL, NULL } },
+            { 0, &resource_cache->persistent_table, { "", R_SCRIPT_NODE_TYPE_TABLE, NULL, NULL } },
+            { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
         };
 
         status = r_script_register_nodes(rs, roots);

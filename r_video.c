@@ -404,7 +404,6 @@ r_status_t r_video_setup(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        lua_State *ls = rs->script_state;
         r_script_node_t video_nodes[] = {
             { "getPixelWidth",  R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Video_getPixelWidth },
             { "getPixelHeight", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Video_getPixelHeight },
@@ -416,7 +415,7 @@ r_status_t r_video_setup(r_state_t *rs)
 
         r_script_node_root_t roots[] = {
             { LUA_GLOBALSINDEX, NULL, { "Video", R_SCRIPT_NODE_TYPE_TABLE, video_nodes } },
-            { 0, NULL, NULL }
+            { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
         };
 
         status = r_script_register_nodes(rs, roots);
@@ -569,6 +568,9 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
             }
 
             break;
+
+        default:
+            status = R_VIDEO_FAILURE;
         }
 
         glPopMatrix();
@@ -700,7 +702,6 @@ r_status_t r_video_draw(r_state_t *rs)
         glColor4f(1, 1, 1, 1);
 
         {
-            lua_State *ls = rs->script_state;
             r_layer_t *layer = NULL;
 
             status = r_layer_stack_get_active_layer(rs, &layer);

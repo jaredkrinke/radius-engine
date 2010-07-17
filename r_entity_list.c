@@ -29,11 +29,11 @@ THE SOFTWARE.
 #include "r_entity_list.h"
 #include "r_script.h"
 
-r_object_ref_t r_entity_list_ref_new       = { R_OBJECT_REF_INVALID, NULL };
-r_object_ref_t r_entity_list_ref_add       = { R_OBJECT_REF_INVALID, NULL };
-r_object_ref_t r_entity_list_ref_for_each  = { R_OBJECT_REF_INVALID, NULL };
-r_object_ref_t r_entity_list_ref_remove    = { R_OBJECT_REF_INVALID, NULL };
-r_object_ref_t r_entity_list_ref_clear     = { R_OBJECT_REF_INVALID, NULL };
+r_object_ref_t r_entity_list_ref_new       = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_entity_list_ref_add       = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_entity_list_ref_for_each  = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_entity_list_ref_remove    = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_entity_list_ref_clear     = { R_OBJECT_REF_INVALID, { NULL } };
 
 static int r_entity_compare(r_object_t *a, r_object_t *b)
 {
@@ -95,7 +95,6 @@ r_status_t r_entity_list_setup(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        lua_State *ls = rs->script_state;
         r_script_node_t entity_list_nodes[] = { { "new", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_EntityList_new }, { NULL } };
 
         r_script_node_root_t roots[] = {
@@ -105,7 +104,7 @@ r_status_t r_entity_list_setup(r_state_t *rs)
             { 0,                &r_entity_list_ref_remove,   { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_EntityList_remove } },
             { 0,                &r_entity_list_ref_clear,    { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_EntityList_clear } },
             { LUA_GLOBALSINDEX, NULL,                        { "EntityList", R_SCRIPT_NODE_TYPE_TABLE, entity_list_nodes } },
-            { 0, NULL, NULL }
+            { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
         };
 
         status = r_script_register_nodes(rs, roots);
@@ -126,7 +125,6 @@ r_status_t r_entity_list_update(r_state_t *rs, r_entity_list_t *entity_list, uns
 
     if (R_SUCCEEDED(status))
     {
-        lua_State *ls = rs->script_state;
         unsigned int i;
 
         /* Update each entity */

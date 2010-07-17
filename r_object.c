@@ -27,10 +27,10 @@ THE SOFTWARE.
 #include "r_assert.h"
 #include "r_script.h"
 
-r_object_ref_t r_object_ref_metatable = { R_OBJECT_REF_INVALID, NULL };
+r_object_ref_t r_object_ref_metatable = { R_OBJECT_REF_INVALID, { NULL } };
 
 /* (Weak) Mapping from object ID to the actual script value */
-r_object_ref_t r_object_id_to_value = { R_OBJECT_REF_INVALID, NULL };
+r_object_ref_t r_object_id_to_value = { R_OBJECT_REF_INVALID, { NULL } };
 unsigned int r_object_next_id = 1;
 
 static r_status_t r_object_field_read_internal(r_state_t *rs, r_object_t *object, r_object_field_t *field, int object_index)
@@ -363,7 +363,6 @@ static int l_Object_metatable_gc(lua_State *ls)
 static r_status_t r_object_process_arguments(r_state_t *rs, r_object_t *object, int argument_count, int object_index)
 {
     /* Calculate argument count range */
-    lua_State *ls = rs->script_state;
     r_status_t status = R_SUCCESS;
 
     int argument_count_min = 0;
@@ -637,7 +636,7 @@ r_status_t r_object_setup(r_state_t *rs)
 
         r_script_node_root_t roots[] = {
             { 0, &r_object_ref_metatable, { "", R_SCRIPT_NODE_TYPE_TABLE, object_metatable_nodes } },
-            { 0, NULL, NULL }
+            { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
         };
 
         status = r_script_register_nodes(rs, roots);

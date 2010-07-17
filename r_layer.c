@@ -80,7 +80,6 @@ r_status_t r_layer_setup(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        lua_State *ls = rs->script_state;
         r_script_node_t layer_nodes[] = { { "new", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Layer_new }, { NULL } };
         r_script_node_t node = { "Layer", R_SCRIPT_NODE_TYPE_TABLE, layer_nodes };
 
@@ -97,7 +96,6 @@ r_status_t r_layer_update(r_state_t *rs, r_layer_t *layer, unsigned int current_
 
     if (R_SUCCEEDED(status))
     {
-        lua_State *ls = rs->script_state;
         r_entity_list_t *entities = (r_entity_list_t*)layer->entities.value.object;
 
         if (entities != NULL)

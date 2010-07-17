@@ -31,10 +31,10 @@ THE SOFTWARE.
 #define R_LAYER_STACK_LAYERS    "layers"
 
 /* TODO: These kinds of static variables for global references mean that there can't be more than one instance of the engine running. Fix this and store data in r_state_t. */
-r_object_ref_t r_layer_stack_ref_push  = { R_OBJECT_REF_INVALID, NULL };
-r_object_ref_t r_layer_stack_ref_pop   = { R_OBJECT_REF_INVALID, NULL };
+r_object_ref_t r_layer_stack_ref_push  = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_layer_stack_ref_pop   = { R_OBJECT_REF_INVALID, { NULL } };
 
-r_object_ref_t r_layer_stack_layers = { R_OBJECT_REF_INVALID, NULL };
+r_object_ref_t r_layer_stack_layers = { R_OBJECT_REF_INVALID, { NULL } };
 
 r_layer_t *last_active_layer = NULL;
 
@@ -82,7 +82,7 @@ r_status_t r_layer_stack_setup(r_state_t *rs)
         r_script_node_root_t roots[] = {
             { 0, &r_layer_stack_ref_push, { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_LayerStack_push } },
             { 0, &r_layer_stack_ref_pop,  { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_LayerStack_pop } },
-            { 0, NULL, NULL }
+            { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
         };
 
         status = r_script_register_nodes(rs, roots);
@@ -121,7 +121,6 @@ r_status_t r_layer_stack_get_active_layer(r_state_t *rs, r_layer_t **layer)
         R_ASSERT(r_layer_stack_layers.value.object->header->type == R_OBJECT_TYPE_LAYER_STACK);
 
         {
-            lua_State *ls = rs->script_state;
             r_layer_stack_t *layer_stack = (r_layer_stack_t*)r_layer_stack_layers.value.object;
 
             if (layer_stack->count > 0)

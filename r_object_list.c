@@ -126,7 +126,6 @@ static r_status_t r_object_list_add(r_state_t *rs, r_object_list_t *object_list,
 static r_status_t r_object_list_remove(r_state_t *rs, r_object_list_t *object_list, unsigned int item)
 {
     /* Ensure the index is valid */
-    lua_State *ls = rs->script_state;
     r_status_t status = (item >= 0 && item < object_list->count) ? R_SUCCESS : R_F_INVALID_INDEX;
 
     if (R_SUCCEEDED(status))
@@ -158,7 +157,6 @@ static r_status_t r_object_list_remove(r_state_t *rs, r_object_list_t *object_li
 static r_status_t r_object_list_find(r_state_t *rs, r_object_list_t *object_list, r_object_t *object, unsigned int *index)
 {
     /* Find the item by a linear scan */
-    lua_State *ls = rs->script_state;
     r_status_t status = R_F_NOT_FOUND;
     unsigned int i;
 
@@ -177,7 +175,6 @@ static r_status_t r_object_list_find(r_state_t *rs, r_object_list_t *object_list
 
 static r_status_t r_object_list_clear(r_state_t *rs, r_object_list_t *object_list, r_object_type_t list_type)
 {
-    lua_State *ls = rs->script_state;
     r_status_t status = R_SUCCESS;
 
     /* Don't clear if there are no items (avoiding underflow for i) */

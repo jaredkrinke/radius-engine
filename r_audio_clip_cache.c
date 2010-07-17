@@ -63,7 +63,7 @@ static r_status_t r_audio_cache_load(r_state_t *rs, const char *resource_path, r
 r_object_header_t r_audio_clip_header = { R_OBJECT_TYPE_AUDIO_CLIP, sizeof(r_audio_clip_t), R_FALSE, r_audio_clip_fields, r_audio_clip_init, NULL, r_audio_clip_cleanup };
 
 r_resource_cache_header_t r_audio_clip_cache_header = { &r_audio_clip_header, r_audio_cache_load };
-r_resource_cache_t r_audio_clip_cache = { &r_audio_clip_cache_header, { R_OBJECT_REF_INVALID, NULL }, { R_OBJECT_REF_INVALID, NULL } };
+r_resource_cache_t r_audio_clip_cache = { &r_audio_clip_cache_header, { R_OBJECT_REF_INVALID, { NULL } }, { R_OBJECT_REF_INVALID, { NULL } } };
 
 static r_status_t r_audio_clip_cache_retrieve(r_state_t *rs, const char* audio_clip_path, r_boolean_t persistent, r_audio_clip_t *audio_clip)
 {
@@ -237,7 +237,6 @@ r_status_t r_audio_clip_cache_start(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        lua_State *ls = rs->script_state;
         r_script_node_t audio_nodes[] = {
             { "getVolume", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_getVolume },
             { "setVolume", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_setVolume },
@@ -248,7 +247,7 @@ r_status_t r_audio_clip_cache_start(r_state_t *rs)
 
         r_script_node_root_t roots[] = {
             { LUA_GLOBALSINDEX, NULL, { "Audio", R_SCRIPT_NODE_TYPE_TABLE, audio_nodes } },
-            { 0, NULL, NULL }
+            { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
         };
 
         status = r_script_register_nodes(rs, roots);

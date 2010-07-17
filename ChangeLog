@@ -2,6 +2,29 @@
 
 * Makefile.am: Source files are now listed one per line
 
+* r_audio.c: Fixed compiler warnings
+* r_audio_clip_cache.c: Fixed compiler warnings
+* r_color.c: Fixed compiler warnings
+* r_element.c: Fixed compiler warnings
+* r_element_list.c: Fixed compiler warnings
+* r_entity.c: Fixed compiler warnings
+* r_entity_list.c: Fixed compiler warnings
+* r_event.c: Fixed compiler warnings
+* r_event.h: Moved r_event_get_time_difference to r_event.c
+* r_file.c: Fixed compiler warnings
+* r_file_system.c: Fixed compiler warnings
+* r_image_cache.c: Fixed compiler warnings
+* r_layer.c: Fixed compiler warnings
+* r_layer_stack.c: Fixed compiler warnings
+* r_matrix.c: Fixed compiler warnings
+* r_object.c: Fixed compiler warnings
+* r_object_list.c: Fixed compiler warnings
+* r_resource_cache.c: Fixed compiler warnings
+* r_script_lib.c: Fixed compiler warnings
+* r_string_buffer.c: Fixed compiler warnings
+* r_video.c: Fixed compiler warnings
+* r_zlist.c: Removed unused code
+
 2010-07-14 deraj@users.sourceforge.net
 
 * r_object_list.c (r_object_list_clear): Only clear items if count > 0

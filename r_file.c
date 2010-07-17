@@ -27,8 +27,8 @@ THE SOFTWARE.
 #include "r_script.h"
 #include "r_file.h"
 
-r_object_ref_t r_file_ref_write       = { R_OBJECT_REF_INVALID, NULL };
-r_object_ref_t r_file_ref_close       = { R_OBJECT_REF_INVALID, NULL };
+r_object_ref_t r_file_ref_write       = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_file_ref_close       = { R_OBJECT_REF_INVALID, { NULL } };
 
 r_object_field_t r_file_fields[] = {
     { "write", LUA_TFUNCTION, 0, 0, R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_file_ref_write, NULL },
@@ -155,7 +155,6 @@ r_status_t r_file_setup(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        lua_State *ls = rs->script_state;
         r_script_node_t file_nodes[] = {
             { "openWrite",       R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_File_openWrite },
             { "createDirectory", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_File_createDirectory },
@@ -166,7 +165,7 @@ r_status_t r_file_setup(r_state_t *rs)
             { 0,                &r_file_ref_write, { "",     R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_File_write } },
             { 0,                &r_file_ref_close, { "",     R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_File_close } },
             { LUA_GLOBALSINDEX, NULL,              { "File", R_SCRIPT_NODE_TYPE_TABLE,    file_nodes } },
-            { 0, NULL, NULL }
+            { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
         };
 
         status = r_script_register_nodes(rs, roots);

@@ -40,17 +40,7 @@ extern void r_event_end(r_state_t *rs);
  * Note: returns part of value that may be exactly represented by r_real_t */
 extern r_status_t r_event_get_current_time(unsigned int *current_time_ms);
 
-/* TODO: inline */
-static void r_event_get_time_difference(unsigned int t1, unsigned int t2, unsigned int *difference_ms)
-{
-    if (t2 >= t1)
-    {
-        *difference_ms = 0;
-        /* TODO: better wrap-around logic might be nice here */
-    }
-
-    *difference_ms = t1 - t2;
-}
+extern void r_event_get_time_difference(unsigned int t1, unsigned int t2, unsigned int *difference_ms);
 
 /* Main event loop */
 extern r_status_t r_event_loop(r_state_t *rs);

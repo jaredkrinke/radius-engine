@@ -824,7 +824,7 @@ r_status_t r_script_setup(r_state_t *rs)
 
             r_script_node_root_t roots[] = {
                 { LUA_GLOBALSINDEX, NULL, { "Table", R_SCRIPT_NODE_TYPE_TABLE, table_nodes } },
-                { 0, NULL, NULL }
+                { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
             };
 
             status = r_script_register_nodes(rs, roots);

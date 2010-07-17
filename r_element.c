@@ -75,7 +75,7 @@ const char *r_element_text_alignment_names[] = {
     "right"
 };
 
-r_object_enum_t r_element_text_alignment_enum = { { R_OBJECT_REF_INVALID, NULL }, R_ELEMENT_TEXT_ALIGNMENT_MAX, r_element_text_alignment_names };
+r_object_enum_t r_element_text_alignment_enum = { { R_OBJECT_REF_INVALID, { NULL } }, R_ELEMENT_TEXT_ALIGNMENT_MAX, r_element_text_alignment_names };
 
 r_status_t r_element_text_alignment_field_read(r_state_t *rs, r_object_t *object, void *value)
 {
@@ -146,8 +146,6 @@ r_status_t r_element_setup(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        lua_State *ls = rs->script_state;
-
         status = r_object_enum_setup(rs, &r_element_text_alignment_enum);
 
         if (R_SUCCEEDED(status))

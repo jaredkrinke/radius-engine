@@ -173,8 +173,8 @@ static r_status_t r_image_load(r_state_t *rs, const char *image_path, r_object_t
                         if (!setjmp(png_jmpbuf(png)))
                         {
                             /* First return (normal case) */
-                            unsigned int width = 0;
-                            unsigned int height = 0;
+                            png_uint_32 width = 0;
+                            png_uint_32 height = 0;
                             int bit_depth, color_type, interlace_method, compression_method, filter_method;
                             r_pixel_t *pixels = NULL;
 
@@ -251,7 +251,7 @@ static r_status_t r_image_load(r_state_t *rs, const char *image_path, r_object_t
 }
 
 r_resource_cache_header_t r_image_cache_header = { &r_image_header, r_image_load };
-r_resource_cache_t r_image_cache = { &r_image_cache_header, { R_OBJECT_REF_INVALID, NULL }, { R_OBJECT_REF_INVALID, NULL } };
+r_resource_cache_t r_image_cache = { &r_image_cache_header, { R_OBJECT_REF_INVALID, { NULL } }, { R_OBJECT_REF_INVALID, { NULL } } };
 
 static r_status_t r_image_cache_retrieve(r_state_t *rs, const char* image_path, r_boolean_t persistent, r_object_t *object, r_object_ref_t *object_ref, r_image_t *image)
 {
@@ -333,7 +333,6 @@ r_status_t r_image_cache_reload(r_state_t *rs)
         r_pixel_t pixels[R_IMAGE_CACHE_DEFAULT_IMAGE_HEIGHT][R_IMAGE_CACHE_DEFAULT_IMAGE_WIDTH];
         unsigned int x, y;
         GLuint id = 0;
-        lua_State *ls = rs->script_state;
 
         for (y = 0; y < height; ++y)
         {

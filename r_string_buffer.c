@@ -32,10 +32,10 @@ THE SOFTWARE.
 #define R_STRING_BUFFER_DEFAULT_ALLOCATED    (32)
 #define R_STRING_BUFFER_SCALING_FACTOR       (2)
 
-r_object_ref_t r_string_buffer_ref_append = { R_OBJECT_REF_INVALID, NULL };
-r_object_ref_t r_string_buffer_ref_insert = { R_OBJECT_REF_INVALID, NULL };
-r_object_ref_t r_string_buffer_ref_remove = { R_OBJECT_REF_INVALID, NULL };
-r_object_ref_t r_string_buffer_ref_clear =  { R_OBJECT_REF_INVALID, NULL };
+r_object_ref_t r_string_buffer_ref_append = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_string_buffer_ref_insert = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_string_buffer_ref_remove = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_string_buffer_ref_clear =  { R_OBJECT_REF_INVALID, { NULL } };
 
 r_script_argument_t l_StringBuffer_append_arguments[]   = { { LUA_TUSERDATA, R_OBJECT_TYPE_STRING_BUFFER }, { LUA_TSTRING, 0 } };
 r_script_argument_t l_StringBuffer_insert_arguments[]   = { { LUA_TUSERDATA, R_OBJECT_TYPE_STRING_BUFFER }, { LUA_TSTRING, 0 }, { LUA_TNUMBER, 0 } };
@@ -402,7 +402,6 @@ r_status_t r_string_buffer_setup(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        lua_State *ls = rs->script_state;
         r_script_node_t string_buffer_nodes[] = { { "new", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_StringBuffer_new }, { NULL } };
 
         r_script_node_root_t roots[] = {
@@ -411,7 +410,7 @@ r_status_t r_string_buffer_setup(r_state_t *rs)
             { 0,                &r_string_buffer_ref_remove, { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_StringBuffer_remove } },
             { 0,                &r_string_buffer_ref_clear,  { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_StringBuffer_clear } },
             { LUA_GLOBALSINDEX, NULL,                        { "StringBuffer", R_SCRIPT_NODE_TYPE_TABLE, string_buffer_nodes } },
-            { 0, NULL, NULL }
+            { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
         };
 
         status = r_script_register_nodes(rs, roots);

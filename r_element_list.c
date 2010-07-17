@@ -29,11 +29,11 @@ THE SOFTWARE.
 #include "r_element_list.h"
 #include "r_script.h"
 
-r_object_ref_t r_element_list_ref_new       = { R_OBJECT_REF_INVALID, NULL };
-r_object_ref_t r_element_list_ref_add       = { R_OBJECT_REF_INVALID, NULL };
-r_object_ref_t r_element_list_ref_for_each  = { R_OBJECT_REF_INVALID, NULL };
-r_object_ref_t r_element_list_ref_remove    = { R_OBJECT_REF_INVALID, NULL };
-r_object_ref_t r_element_list_ref_clear     = { R_OBJECT_REF_INVALID, NULL };
+r_object_ref_t r_element_list_ref_new       = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_element_list_ref_add       = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_element_list_ref_for_each  = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_element_list_ref_remove    = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_element_list_ref_clear     = { R_OBJECT_REF_INVALID, { NULL } };
 
 /* TODO: Ensure const is used on these and everywhere else that it makes sense (e.g. object fields) */
 static int r_element_compare(r_object_t *a, r_object_t *b)
@@ -96,7 +96,6 @@ r_status_t r_element_list_setup(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        lua_State *ls = rs->script_state;
         r_script_node_t element_list_nodes[] = { { "new", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_ElementList_new }, { NULL } };
 
         r_script_node_root_t roots[] = {
@@ -106,7 +105,7 @@ r_status_t r_element_list_setup(r_state_t *rs)
             { 0,                &r_element_list_ref_remove,   { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_ElementList_remove } },
             { 0,                &r_element_list_ref_clear,    { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_ElementList_clear } },
             { LUA_GLOBALSINDEX, NULL,                         { "ElementList", R_SCRIPT_NODE_TYPE_TABLE, element_list_nodes } },
-            { 0, NULL, NULL }
+            { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
         };
 
         status = r_script_register_nodes(rs, roots);

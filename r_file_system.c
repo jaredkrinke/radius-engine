@@ -36,7 +36,7 @@ THE SOFTWARE.
 /* Size of text blocks that are returned by the file reader function */
 #define R_FILE_LOAD_BLOCK_SIZE    4096
 
-r_object_ref_t r_file_system_ref_loaded_scripts = { R_OBJECT_REF_INVALID, NULL };
+r_object_ref_t r_file_system_ref_loaded_scripts = { R_OBJECT_REF_INVALID, { NULL } };
 
 static r_status_t r_file_system_add_all_data_sources(r_state_t *rs)
 {
@@ -295,8 +295,8 @@ r_status_t r_file_system_setup_script(r_state_t *rs)
     {
         lua_State *ls = rs->script_state;
         r_script_node_root_t roots[] = {
-            { 0, &r_file_system_ref_loaded_scripts, { "", R_SCRIPT_NODE_TYPE_TABLE, { NULL } } },
-            { 0, NULL, NULL }
+            { 0, &r_file_system_ref_loaded_scripts, { "", R_SCRIPT_NODE_TYPE_TABLE, NULL, NULL } },
+            { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
         };
 
         status = r_script_register_nodes(rs, roots);

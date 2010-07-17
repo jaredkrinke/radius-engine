@@ -1,3 +1,7 @@
+2010-07-17 deraj@users.sourceforge.net
+
+* Makefile.am: Source files are now listed one per line
+
 2010-07-14 deraj@users.sourceforge.net
 
 * r_object_list.c (r_object_list_clear): Only clear items if count > 0

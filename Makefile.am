@@ -1,5 +1,3 @@
-CPPFLAGS = -DR_PLATFORM_UNIX_DATA_PREFIX=\"$(datadir)\" @CPPFLAGS@
-
 include_HEADERS = radius.h
 
 lib_LIBRARIES = libradius-engine.a

@@ -55,7 +55,12 @@ static int radius_execute_internal(const char *argv0, const char *application_na
 
             if (R_SUCCEEDED(status))
             {
-                data_dir = data_dir_internal;
+                /* Data directory may be overridden at compile time */
+                if (data_dir == NULL)
+                {
+                    data_dir = data_dir_internal;
+                }
+
                 user_dir = user_dir_internal;
                 script_path = script_path_internal;
                 default_font_path = default_font_path_internal;
@@ -172,13 +177,13 @@ int radius_execute_raw(const char *argv0, const char *data_dir, const char *user
     return status;
 }
 
-int radius_execute_application(const char *argv0, const char *application_name)
+int radius_execute_application(const char *argv0, const char *application_name, const char *data_dir_override)
 {
     r_status_t status = (application_name != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
 
     if (R_SUCCEEDED(status))
     {
-        status = radius_execute_internal(argv0, application_name, NULL, NULL, NULL, NULL);
+        status = radius_execute_internal(argv0, application_name, data_dir_override, NULL, NULL, NULL);
     }
 
     return status;

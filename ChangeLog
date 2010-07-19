@@ -2,6 +2,8 @@
 
 * r_color.c: Added Color.clone to duplicate color objects
 
+* r_defs.h: Incremented version
+
 2010-07-17 deraj@users.sourceforge.net
 
 * Makefile.am: Source files are now listed one per line

@@ -1,3 +1,7 @@
+2010-07-18 deraj@users.sourceforge.net
+
+* r_color.c: Added Color.clone to duplicate color objects
+
 2010-07-17 deraj@users.sourceforge.net
 
 * Makefile.am: Source files are now listed one per line

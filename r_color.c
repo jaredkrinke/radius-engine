@@ -27,11 +27,14 @@ THE SOFTWARE.
 #include "r_color.h"
 #include "r_script.h"
 
+r_object_ref_t r_color_ref_clone = { R_OBJECT_REF_INVALID, { NULL } };
+
 r_object_field_t r_color_fields[] = {
-    { "red",     LUA_TNUMBER, 0, offsetof(r_color_t, red),     R_TRUE, R_OBJECT_INIT_REQUIRED, NULL, NULL, NULL, NULL },
-    { "green",   LUA_TNUMBER, 0, offsetof(r_color_t, green),   R_TRUE, R_OBJECT_INIT_REQUIRED, NULL, NULL, NULL, NULL },
-    { "blue",    LUA_TNUMBER, 0, offsetof(r_color_t, blue),    R_TRUE, R_OBJECT_INIT_REQUIRED, NULL, NULL, NULL, NULL },
-    { "opacity", LUA_TNUMBER, 0, offsetof(r_color_t, opacity), R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "red",     LUA_TNUMBER,   0, offsetof(r_color_t, red),     R_TRUE,  R_OBJECT_INIT_REQUIRED, NULL, NULL, NULL, NULL },
+    { "green",   LUA_TNUMBER,   0, offsetof(r_color_t, green),   R_TRUE,  R_OBJECT_INIT_REQUIRED, NULL, NULL, NULL, NULL },
+    { "blue",    LUA_TNUMBER,   0, offsetof(r_color_t, blue),    R_TRUE,  R_OBJECT_INIT_REQUIRED, NULL, NULL, NULL, NULL },
+    { "opacity", LUA_TNUMBER,   0, offsetof(r_color_t, opacity), R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "clone",   LUA_TFUNCTION, 0, 0,                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_color_ref_clone, NULL },
     { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
 };
 
@@ -56,6 +59,34 @@ static int l_Color_new(lua_State *ls)
     return l_Object_new(ls, &r_color_header);
 }
 
+static int l_Color_clone(lua_State *ls)
+{
+    int result_count = 0;
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TUSERDATA, R_OBJECT_TYPE_COLOR }
+    };
+
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+
+    if (R_SUCCEEDED(status))
+    {
+        r_color_t *color = (r_color_t*)lua_touserdata(ls, 1);
+
+        lua_pushnumber(ls, color->red);
+        lua_pushnumber(ls, color->green);
+        lua_pushnumber(ls, color->blue);
+        lua_pushnumber(ls, color->opacity);
+        lua_remove(ls, 1);
+
+        result_count = l_Color_new(ls);
+    }
+
+    lua_pop(ls, result_count - lua_gettop(ls));
+
+    return result_count;
+}
+
 r_status_t r_color_setup(r_state_t *rs)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -64,9 +95,13 @@ r_status_t r_color_setup(r_state_t *rs)
     if (R_SUCCEEDED(status))
     {
         r_script_node_t color_nodes[] = { { "new", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Color_new }, { NULL } };
-        r_script_node_t node = { "Color", R_SCRIPT_NODE_TYPE_TABLE, color_nodes };
+        r_script_node_root_t roots[] = {
+            { 0,                &r_color_ref_clone, { "",      R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Color_clone } },
+            { LUA_GLOBALSINDEX, NULL,               { "Color", R_SCRIPT_NODE_TYPE_TABLE,    color_nodes } },
+            { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
+        };
 
-        status = r_script_register_node(rs, &node, LUA_GLOBALSINDEX);
+        status = r_script_register_nodes(rs, roots);
     }
 
     return status;

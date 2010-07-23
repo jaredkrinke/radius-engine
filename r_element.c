@@ -28,16 +28,29 @@ THE SOFTWARE.
 #include "r_script.h"
 #include "r_color.h"
 
+const char *r_element_type_names[R_ELEMENT_TYPE_MAX] = {
+    "image",
+    "text"
+};
+
+r_object_enum_t r_element_type_enum = { { R_OBJECT_REF_INVALID, { NULL } }, R_ELEMENT_TYPE_MAX, r_element_type_names };
+
+static r_status_t r_element_type_field_read(r_state_t *rs, r_object_t *object, void *value)
+{
+    return r_object_enum_field_read(rs, value, &r_element_type_enum);
+}
+
 /* Image elements */
 r_object_field_t r_element_image_fields[] = {
-    { "image",  LUA_TSTRING,   0,                   offsetof(r_element_image_t, element.image),  R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, r_object_field_image_read, NULL, r_object_field_image_write },
-    { "x",      LUA_TNUMBER,   0,                   offsetof(r_element_image_t, element.x),      R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
-    { "y",      LUA_TNUMBER,   0,                   offsetof(r_element_image_t, element.y),      R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
-    { "z",      LUA_TNUMBER,   0,                   offsetof(r_element_image_t, element.z),      R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
-    { "width",  LUA_TNUMBER,   0,                   offsetof(r_element_image_t, element.width),  R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
-    { "height", LUA_TNUMBER,   0,                   offsetof(r_element_image_t, element.height), R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
-    { "angle",  LUA_TNUMBER,   0,                   offsetof(r_element_image_t, element.angle),  R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
-    { "color",  LUA_TUSERDATA, R_OBJECT_TYPE_COLOR, offsetof(r_element_image_t, element.color),  R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "image",  LUA_TSTRING,   0,                   offsetof(r_element_image_t, element.image),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, r_object_field_image_read, NULL, r_object_field_image_write },
+    { "x",      LUA_TNUMBER,   0,                   offsetof(r_element_image_t, element.x),            R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "y",      LUA_TNUMBER,   0,                   offsetof(r_element_image_t, element.y),            R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "z",      LUA_TNUMBER,   0,                   offsetof(r_element_image_t, element.z),            R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "width",  LUA_TNUMBER,   0,                   offsetof(r_element_image_t, element.width),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "height", LUA_TNUMBER,   0,                   offsetof(r_element_image_t, element.height),       R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "angle",  LUA_TNUMBER,   0,                   offsetof(r_element_image_t, element.angle),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "color",  LUA_TUSERDATA, R_OBJECT_TYPE_COLOR, offsetof(r_element_image_t, element.color),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "type",   LUA_TSTRING,   0,                   offsetof(r_element_image_t, element.element_type), R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_element_type_field_read, NULL, NULL },
     { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
 };
 
@@ -89,17 +102,18 @@ r_status_t r_element_text_alignment_field_write(r_state_t *rs, r_object_t *objec
 
 /* Text elements */
 r_object_field_t r_element_text_fields[] = {
-    { "text",            LUA_TSTRING,   0,                           offsetof(r_element_text_t, text),           R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
-    { "x",               LUA_TNUMBER,   0,                           offsetof(r_element_text_t, element.x),      R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
-    { "y",               LUA_TNUMBER,   0,                           offsetof(r_element_text_t, element.y),      R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
-    { "z",               LUA_TNUMBER,   0,                           offsetof(r_element_text_t, element.z),      R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
-    { "characterWidth",  LUA_TNUMBER,   0,                           offsetof(r_element_text_t, element.width),  R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
-    { "characterHeight", LUA_TNUMBER,   0,                           offsetof(r_element_text_t, element.height), R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
-    { "angle",           LUA_TNUMBER,   0,                           offsetof(r_element_text_t, element.angle),  R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
-    { "color",           LUA_TUSERDATA, R_OBJECT_TYPE_COLOR,         offsetof(r_element_text_t, element.color),  R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
-    { "alignment",       LUA_TSTRING,   0,                           offsetof(r_element_text_t, alignment),      R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, r_element_text_alignment_field_read, NULL, r_element_text_alignment_field_write },
-    { "font",            LUA_TSTRING,   0,                           offsetof(r_element_text_t, element.image),  R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, r_object_field_image_read,           NULL, r_object_field_image_write },
-    { "buffer",          LUA_TUSERDATA, R_OBJECT_TYPE_STRING_BUFFER, offsetof(r_element_text_t, buffer),         R_TRUE, R_OBJECT_INIT_EXCLUDED, NULL, NULL, NULL, NULL },
+    { "text",            LUA_TSTRING,   0,                           offsetof(r_element_text_t, text),                 R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "x",               LUA_TNUMBER,   0,                           offsetof(r_element_text_t, element.x),            R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "y",               LUA_TNUMBER,   0,                           offsetof(r_element_text_t, element.y),            R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "z",               LUA_TNUMBER,   0,                           offsetof(r_element_text_t, element.z),            R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "characterWidth",  LUA_TNUMBER,   0,                           offsetof(r_element_text_t, element.width),        R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "characterHeight", LUA_TNUMBER,   0,                           offsetof(r_element_text_t, element.height),       R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "angle",           LUA_TNUMBER,   0,                           offsetof(r_element_text_t, element.angle),        R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "color",           LUA_TUSERDATA, R_OBJECT_TYPE_COLOR,         offsetof(r_element_text_t, element.color),        R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "alignment",       LUA_TSTRING,   0,                           offsetof(r_element_text_t, alignment),            R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, r_element_text_alignment_field_read, NULL, r_element_text_alignment_field_write },
+    { "font",            LUA_TSTRING,   0,                           offsetof(r_element_text_t, element.image),        R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL, r_object_field_image_read,           NULL, r_object_field_image_write },
+    { "buffer",          LUA_TUSERDATA, R_OBJECT_TYPE_STRING_BUFFER, offsetof(r_element_text_t, buffer),               R_TRUE, R_OBJECT_INIT_EXCLUDED, NULL, NULL, NULL, NULL },
+    { "type",            LUA_TSTRING,   0,                           offsetof(r_element_text_t, element.element_type), R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_element_type_field_read, NULL, NULL },
     { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
 };
 

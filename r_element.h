@@ -30,7 +30,7 @@ THE SOFTWARE.
 
 typedef enum
 {
-    R_ELEMENT_TYPE_IMAGE = 1,
+    R_ELEMENT_TYPE_IMAGE = 0,
     R_ELEMENT_TYPE_TEXT,
     R_ELEMENT_TYPE_MAX
 } r_element_type_t;

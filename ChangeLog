@@ -1,3 +1,8 @@
+2010-07-22 deraj@users.sourceforge.net
+
+* r_element.h: Element type enumeration now starts at zero
+* r_element.c: Element type is now available to scripts
+
 2010-07-18 deraj@users.sourceforge.net
 
 * r_color.c: Added Color.clone to duplicate color objects

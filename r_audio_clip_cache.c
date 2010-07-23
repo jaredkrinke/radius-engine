@@ -216,6 +216,7 @@ static int l_Audio_clear(lua_State *ls)
 
         if (R_SUCCEEDED(status))
         {
+            /* TODO: This should prevent new sounds from being queued for the rest of the frame */
             status = r_audio_clear(rs);
         }
     }

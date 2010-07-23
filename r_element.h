@@ -55,7 +55,7 @@ typedef struct
     r_real_t            height;
     r_real_t            angle;
     r_object_ref_t      image;
-    r_object_ref_t      color;
+    r_object_ref_t      color; /* TODO: Should color values be stored instead of a reference? That would probably make more sense... */
 } r_element_t;
 
 typedef struct

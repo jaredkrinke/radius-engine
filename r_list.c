@@ -29,7 +29,7 @@ THE SOFTWARE.
 #define R_LIST_DEFAULT_ALLOCATED    (8)
 #define R_LIST_SCALING_FACTOR       (2)
 
-#define R_LIST_ITEM(list_def, items, index) ((void*)&items[(index) * (list_def)->item_size])
+#define R_LIST_ITEM(list_def, items, index) ((void*)&(((char*)items)[(index) * (list_def)->item_size]))
 
 /* Note: This takes ownership of the object */
 r_status_t r_list_add(r_state_t *rs, r_list_t *list, void *item, const r_list_def_t *list_def)
@@ -40,7 +40,7 @@ r_status_t r_list_add(r_state_t *rs, r_list_t *list, void *item, const r_list_de
     if (list->count >= list->allocated)
     {
         /* Allocate a larger array */
-        int new_allocated = list->allocated * R_LIST_SCALING_FACTOR;
+        unsigned int new_allocated = list->allocated * R_LIST_SCALING_FACTOR;
         unsigned char *new_items = (unsigned char*)malloc(new_allocated * list_def->item_size);
 
         status = (new_items != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
@@ -55,7 +55,7 @@ r_status_t r_list_add(r_state_t *rs, r_list_t *list, void *item, const r_list_de
                 list_def->item_copy(rs, R_LIST_ITEM(list_def, new_items, i), R_LIST_ITEM(list_def, list->items, i));
             }
 
-            for (i = list->count; i < list->allocated; ++i)
+            for (i = list->count; i < new_allocated; ++i)
             {
                 list_def->item_null(rs, R_LIST_ITEM(list_def, new_items, i));
             }

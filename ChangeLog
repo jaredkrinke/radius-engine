@@ -1,3 +1,11 @@
+2010-07-31 deraj@users.sourceforge.net
+
+* r_list.c (R_LIST_ITEM): Fixed item offset macro
+
+* r_list.c (r_list_add): Fixed initialization of larger array
+* r_object_list.c (r_object_list_add): Fixed initialization of larger array
+* r_object_list.h: Added TODO to merge r_list and r_object_list code
+
 2010-07-22 deraj@users.sourceforge.net
 
 * r_element.h: Element type enumeration now starts at zero

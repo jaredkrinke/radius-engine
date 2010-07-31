@@ -27,6 +27,7 @@ THE SOFTWARE.
 
 #include "r_object_ref.h"
 
+/* TODO: Can r_object_list use r_list internally? */
 typedef struct
 {
     r_object_t                  object;

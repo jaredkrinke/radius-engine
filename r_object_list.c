@@ -72,7 +72,7 @@ static r_status_t r_object_list_add(r_state_t *rs, r_object_list_t *object_list,
     if (object_list->count >= object_list->allocated)
     {
         /* Allocate a larger array */
-        int new_allocated = object_list->allocated * R_OBJECT_LIST_SCALING_FACTOR;
+        unsigned int new_allocated = object_list->allocated * R_OBJECT_LIST_SCALING_FACTOR;
         r_object_ref_t *new_items = (r_object_ref_t*)malloc(new_allocated * sizeof(r_object_ref_t));
 
         status = (new_items != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
@@ -88,7 +88,7 @@ static r_status_t r_object_list_add(r_state_t *rs, r_object_list_t *object_list,
                 new_items[i].value.object = object_list->items[i].value.object;
             }
 
-            for (i = object_list->count; i < object_list->allocated; ++i)
+            for (i = object_list->count; i < new_allocated; ++i)
             {
                 r_object_ref_init(&new_items[i]);
             }

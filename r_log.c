@@ -174,6 +174,11 @@ static r_status_t r_log_file_log(r_state_t *rs, r_log_level_t level, const char 
             written = (size_t)PHYSFS_write(log_file, r_platform_newline, sizeof(r_platform_newline[0]), length);
             status = (written == length) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
         }
+
+        if (R_SUCCEEDED(status))
+        {
+            PHYSFS_flush(log_file);
+        }
     }
 
     return status;

@@ -22,6 +22,9 @@
 * r_layer_stack.h: Added generic looping over layer stack
 * r_layer_stack.c (r_layer_stack_process): Implementation of generic looping
 
+* r_log.c (r_log_file_log): Flush log file after each write
+* r_script_lib.c (l_debugBreak): Write call stack to log
+
 2010-07-31 deraj@users.sourceforge.net
 
 * r_list.c (R_LIST_ITEM): Fixed item offset macro

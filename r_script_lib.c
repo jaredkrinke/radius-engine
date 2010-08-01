@@ -749,8 +749,9 @@ static int l_debugBreak(lua_State *ls)
 
         if (R_SUCCEEDED(status))
         {
-            fprintf(stdout, "Frame %d: %s: %s, line %d\n", level, dbg.source, dbg.name, dbg.currentline);
-            fflush(stdout);
+            r_state_t *rs = r_script_get_r_state(ls);
+
+            r_log_format(rs, "Frame %d: %s: %s, line %d\n", level, dbg.source, dbg.name, dbg.currentline);
         }
     }
 

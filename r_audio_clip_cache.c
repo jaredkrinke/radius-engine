@@ -171,7 +171,8 @@ static int l_Audio_play(lua_State *ls)
             r_audio_clip_t audio_clip;
             const char *audio_clip_path = lua_tostring(ls, 1);
 
-            status = r_audio_clip_cache_retrieve(rs, audio_clip_path, R_FALSE, &audio_clip);
+            /* TODO: If a lot of sound effects (or large ones) are expected, there needs to be a way to purge them from memory */
+            status = r_audio_clip_cache_retrieve(rs, audio_clip_path, R_TRUE, &audio_clip);
 
             if (R_SUCCEEDED(status))
             {

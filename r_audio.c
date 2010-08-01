@@ -307,6 +307,7 @@ r_status_t r_audio_clip_manager_duplicate_handle(r_state_t *rs, r_audio_clip_dat
 
 r_status_t r_audio_clip_manager_release_handle_internal(r_state_t *rs, r_audio_clip_data_handle_t *handle)
 {
+    /* Note that audio clip finalizers generally execute after the audio clip manager has already freed all clips (so this first step fails) */
     r_audio_clip_data_t *audio_clip_data  = r_list_get_index(rs, &r_audio_clip_manager.audio_clip_data, handle->id, &r_audio_clip_data_list_def);
     r_status_t status = (audio_clip_data != NULL) ? R_SUCCESS : R_F_INVALID_INDEX;
 

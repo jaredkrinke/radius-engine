@@ -6,6 +6,8 @@
 * r_object_list.c (r_object_list_add): Fixed initialization of larger array
 * r_object_list.h: Added TODO to merge r_list and r_object_list code
 
+* r_object.c (l_Object_metatable_gc): Fixed type comparison for cleaning up
+
 2010-07-22 deraj@users.sourceforge.net
 
 * r_element.h: Element type enumeration now starts at zero

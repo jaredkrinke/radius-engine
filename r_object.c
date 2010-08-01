@@ -342,7 +342,7 @@ static int l_Object_metatable_gc(lua_State *ls)
     {
         int object_index = 1;
 
-        status = (lua_isuserdata(ls, object_index) == LUA_TUSERDATA) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
+        status = (lua_type(ls, object_index) == LUA_TUSERDATA) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
 
         if (R_SUCCEEDED(status))
         {

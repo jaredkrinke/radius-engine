@@ -13,6 +13,15 @@
 * r_platform_windows.h: Newline: "\r\n"
 * r_platform_unix.h: Newline: "\n"
 
+* r_defs.h: Added R_S_STOP_ENUMERATION for "for each" style callbacks
+
+* r_layer.h: Added propagate_audio flag
+* r_layer.c: propagateAudio field
+* r_event.c (r_event_detect_active_layer): Use top non-propagating audio state
+
+* r_layer_stack.h: Added generic looping over layer stack
+* r_layer_stack.c (r_layer_stack_process): Implementation of generic looping
+
 2010-07-31 deraj@users.sourceforge.net
 
 * r_list.c (R_LIST_ITEM): Fixed item offset macro

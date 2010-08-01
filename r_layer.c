@@ -37,6 +37,7 @@ r_object_field_t r_layer_fields[] = {
     { "mouseButtonPressed", LUA_TFUNCTION, 0,                         offsetof(r_layer_t, mouse_button_pressed), R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
     { "mouseMoved",         LUA_TFUNCTION, 0,                         offsetof(r_layer_t, mouse_moved),          R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
     { "errorOccurred",      LUA_TFUNCTION, 0,                         offsetof(r_layer_t, error_occurred),       R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "propagateAudio",     LUA_TBOOLEAN,  0,                         offsetof(r_layer_t, propagate_audio),      R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
     { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
 };
 
@@ -47,6 +48,8 @@ static r_status_t r_layer_init(r_state_t *rs, r_object_t *object)
 
     layer->frame_period_ms = -1;
     r_object_ref_init(&layer->entities);
+
+    layer->propagate_audio = R_TRUE;
 
     r_object_ref_init(&layer->key_pressed);
     r_object_ref_init(&layer->mouse_button_pressed);

@@ -34,6 +34,7 @@ THE SOFTWARE.
 typedef enum {
     R_SUCCESS               = 0x00000000,
     R_S_FIELD_NOT_FOUND     = 0x00000002,
+    R_S_STOP_ENUMERATION    = 0x00000003,
     R_S_ERROR_HANDLED       = 0x00000005,
     R_S_ALREADY_EXISTS      = 0x000000b7,
 

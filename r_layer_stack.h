@@ -30,9 +30,12 @@ THE SOFTWARE.
 
 typedef r_object_list_t r_layer_stack_t;
 
+typedef r_status_t (*r_layer_process_function_t)(r_state_t *rs, r_layer_t *layer, unsigned int index, void *data);
+
 extern r_status_t r_layer_stack_setup(r_state_t *rs);
 
 extern r_status_t r_layer_stack_get_active_layer(r_state_t *rs, r_layer_t **layer);
+extern r_status_t r_layer_stack_process(r_state_t *rs, r_boolean_t ascending, r_layer_process_function_t process, void *data);
 
 #endif
 

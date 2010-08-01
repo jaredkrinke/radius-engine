@@ -39,6 +39,7 @@ typedef struct
     r_object_ref_t      entities;
 
     /* Audio data */
+    r_boolean_t         propagate_audio;
     r_audio_state_t     audio_state;
 
     /* Event handlers */

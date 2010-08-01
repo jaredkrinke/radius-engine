@@ -146,3 +146,38 @@ r_status_t r_layer_stack_get_active_layer(r_state_t *rs, r_layer_t **layer)
 
     return status;
 }
+
+r_status_t r_layer_stack_process(r_state_t *rs, r_boolean_t ascending, r_layer_process_function_t process, void *data)
+{
+    r_status_t status = (rs != NULL && rs->script_state != NULL && process != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        R_ASSERT(r_layer_stack_layers.value.pointer != NULL);
+        R_ASSERT(r_layer_stack_layers.value.object->header->type == R_OBJECT_TYPE_LAYER_STACK);
+
+        {
+            r_layer_stack_t *layer_stack = (r_layer_stack_t*)r_layer_stack_layers.value.object;
+            unsigned int i;
+
+            for (i = (ascending ? 0 : layer_stack->count - 1); i >= 0 && i < layer_stack->count; ascending ? ++i : --i)
+            {
+                status = process(rs, (r_layer_t*)layer_stack->items[i].value.pointer, i, data);
+
+                if (status == R_S_STOP_ENUMERATION)
+                {
+                    status = R_SUCCESS;
+                    break;
+                }
+                else if (!ascending && i == 0)
+                {
+                    /* Avoid unsigned int underflow */
+                    break;
+                }
+            }
+        }
+    }
+
+    return status;
+}

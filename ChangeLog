@@ -3,6 +3,16 @@
 * r_audio_clip_cache.c (l_Audio_play): Audio.play persistently caches sounds
 * r_audio.c (r_audio_clip_manager_release_handle_internal): Added comment
 
+* r_log.h: Definitions for r_log_file_start, r_log_file_end, r_log_file_log
+* r_log.c: Added r_log_file_start, r_log_file_end, r_log_file_log for logging
+* r_state.h: Added log file state
+* r_state.c: Initialize log file state
+* radius.c: Log file now started after setting up file system
+
+* r_platform.h: Added platform-dependent newline string
+* r_platform_windows.h: Newline: "\r\n"
+* r_platform_unix.h: Newline: "\n"
+
 2010-07-31 deraj@users.sourceforge.net
 
 * r_list.c (R_LIST_ITEM): Fixed item offset macro

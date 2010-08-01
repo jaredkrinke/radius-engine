@@ -25,6 +25,9 @@ THE SOFTWARE.
 
 #include "r_state.h"
 
+/* Platform-specific data */
+extern const char *r_platform_newline;
+
 /* Platform-specific functions */
 extern r_status_t r_platform_create_directory(r_state_t *rs, const char *dir);
 extern r_status_t r_platform_setup_output(r_state_t *rs, const char *user_dir);

@@ -49,5 +49,8 @@ extern void r_log_error_format(r_state_t *rs, const char *format, ...);
 
 extern r_status_t r_log_register(r_state_t *rs, r_log_function_t log);
 
+extern r_status_t r_log_file_start(r_state_t *rs, const char *application_name);
+extern r_status_t r_log_file_end(r_state_t *rs);
+
 #endif
 

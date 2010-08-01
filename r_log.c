@@ -23,10 +23,14 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <time.h>
+#include <physfs.h>
 
 #include "r_assert.h"
 #include "r_log.h"
 #include "r_string.h"
+#include "r_file_system.h"
+#include "r_platform.h"
 
 #define R_LOG_MAX_LINE_LENGTH   1024
 
@@ -37,6 +41,13 @@ THE SOFTWARE.
 
 #define R_OUTPUT_FILE           stdout
 #define R_ERROR_FILE            stderr
+
+/* Log warnings and higher for non-debug builds; everything for debug builds */
+#ifdef R_DEBUG
+#define R_LOG_FILE_LEVEL        R_LOG_LEVEL_EXTRA
+#else
+#define R_LOG_FILE_LEVEL        R_LOG_LEVEL_WARNING
+#endif
 
 r_log_function_t r_log_functions[R_LOG_FUNCTION_MAX];
 int r_log_function_depths[R_LOG_FUNCTION_MAX];
@@ -113,6 +124,61 @@ static void r_log_format_internal(r_state_t *rs, r_log_level_t level, const char
         r_log_internal(rs, level, str);
     }
 }
+
+static r_status_t r_log_file_log(r_state_t *rs, r_log_level_t level, const char *str)
+{
+    PHYSFS_file *log_file = (PHYSFS_file*)rs->log_file;
+    r_status_t status = (rs != NULL && log_file != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Attempt to write time header */
+        time_t t = time(NULL);
+        r_status_t status_header = (t != -1) ? R_SUCCESS : R_FAILURE;
+
+        if (R_SUCCEEDED(status_header))
+        {
+            struct tm *tm = localtime(&t);
+
+            status_header = (tm != NULL) ? R_SUCCESS : R_FAILURE;
+
+            if (R_SUCCEEDED(status_header))
+            {
+                const char *format = "%04d-%02d-%02dT%02d:%02d:%02d ";
+                char header[21];
+
+                status_header = r_string_format(rs, header, R_ARRAY_SIZE(header), format, tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+
+                if (R_SUCCEEDED(status_header))
+                {
+                    size_t written = (size_t)PHYSFS_write(log_file, (void*)header, sizeof(header[0]), sizeof(header) - 1);
+
+                    status_header = (written == sizeof(header) - 1) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+                }
+            }
+        }
+    }
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Write the message, followed by a newline */
+        size_t length = strlen(str);
+        size_t written = (size_t)PHYSFS_write(log_file, (void*)str, sizeof(str[0]), length);
+
+        status = (written == length) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+
+        if (R_SUCCEEDED(status))
+        {
+            length = strlen(r_platform_newline);
+            written = (size_t)PHYSFS_write(log_file, r_platform_newline, sizeof(r_platform_newline[0]), length);
+            status = (written == length) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+        }
+    }
+
+    return status;
+}
+
 
 void r_log(r_state_t *rs, const char *str)
 {
@@ -210,6 +276,60 @@ r_status_t r_log_unregister(r_state_t *rs, r_log_function_t log)
 
             --r_log_function_count;
         }
+    }
+
+    return status;
+}
+
+r_status_t r_log_file_start(r_state_t *rs, const char *application_name)
+{
+    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        char *log_path = NULL;
+
+        /* Write to "ApplicationName.log" */
+        status = r_string_format_allocate(rs, &log_path, R_FILE_SYSTEM_MAX_PATH_LENGTH, R_FILE_SYSTEM_MAX_PATH_LENGTH, "%s.log", application_name);
+
+        if (R_SUCCEEDED(status))
+        {
+            PHYSFS_file *log_file = PHYSFS_openAppend(log_path);
+
+            status = (log_file != NULL) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+
+            if (R_SUCCEEDED(status))
+            {
+                rs->log_file = (void*)log_file;
+                status = r_log_register(rs, r_log_file_log);
+            }
+            else
+            {
+                r_log_error_format(rs, "Could not create log file %s: %s", log_path, PHYSFS_getLastError());
+            }
+        }
+    }
+
+    return status;
+}
+
+r_status_t r_log_file_end(r_state_t *rs)
+{
+    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Close log file */
+        PHYSFS_file *log_file = (PHYSFS_file*)rs->log_file;
+
+        if (log_file != NULL)
+        {
+            status = (PHYSFS_close(log_file) != 0) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+        }
+
+        /* TODO: Unregister log functions? */
     }
 
     return status;

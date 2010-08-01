@@ -37,6 +37,8 @@ r_status_t r_state_init(r_state_t *rs, const char *argv0)
         rs->argv0 = argv0;
         rs->done = R_FALSE;
 
+        rs->log_file = NULL;
+
         rs->video_mode_set = R_FALSE;
         rs->default_font_path = NULL;
         rs->pixels_to_coordinates = NULL;

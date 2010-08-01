@@ -38,6 +38,9 @@ typedef struct _r_state
     /* Exit the application if this is R_TRUE */
     r_boolean_t                     done;
 
+    /* Log file */
+    void                            *log_file;
+
     /* Video parameters */
     r_boolean_t                     video_mode_set;
     const char                      *default_font_path;

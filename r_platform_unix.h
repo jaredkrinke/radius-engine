@@ -32,6 +32,8 @@ THE SOFTWARE.
 #include "r_string.h"
 #include "r_file_system.h"
 
+const char *r_platform_newline = "\n";
+
 r_status_t r_platform_create_directory(r_state_t *rs, const char *dir)
 {
     r_status_t status = (rs != NULL && dir != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;

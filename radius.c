@@ -73,77 +73,84 @@ static int radius_execute_internal(const char *argv0, const char *application_na
 
             if (R_SUCCEEDED(status))
             {
-                status = r_script_start(rs);
+                status = r_log_file_start(rs, application_name);
 
                 if (R_SUCCEEDED(status))
                 {
-                    /* Add file system script functions */
-                    status = r_file_system_setup_script(rs);
-                }
-
-                if (R_SUCCEEDED(status))
-                {
-                    status = r_video_start(rs, default_font_path);
+                    status = r_script_start(rs);
 
                     if (R_SUCCEEDED(status))
                     {
-                        status = r_audio_start(rs);
+                        /* Add file system script functions */
+                        status = r_file_system_setup_script(rs);
+                    }
+
+                    if (R_SUCCEEDED(status))
+                    {
+                        status = r_video_start(rs, default_font_path);
 
                         if (R_SUCCEEDED(status))
                         {
-                            status = r_event_start(rs);
+                            status = r_audio_start(rs);
 
                             if (R_SUCCEEDED(status))
                             {
-                                lua_State *ls = rs->script_state;
-
-                                lua_pushliteral(ls, "require");
-                                lua_rawget(ls, LUA_GLOBALSINDEX);
-                                lua_pushstring(ls, script_path);
-                                status = (lua_pcall(ls, 1, 0, 0) == 0) ? R_SUCCESS : RS_F_INVALID_ARGUMENT;
+                                status = r_event_start(rs);
 
                                 if (R_SUCCEEDED(status))
                                 {
-                                    status = R_SCRIPT_SET_ERROR_CONTEXT(rs, l_panic);
+                                    lua_State *ls = rs->script_state;
+
+                                    lua_pushliteral(ls, "require");
+                                    lua_rawget(ls, LUA_GLOBALSINDEX);
+                                    lua_pushstring(ls, script_path);
+                                    status = (lua_pcall(ls, 1, 0, 0) == 0) ? R_SUCCESS : RS_F_INVALID_ARGUMENT;
 
                                     if (R_SUCCEEDED(status))
                                     {
-                                        /* Main event loop */
-                                        r_event_loop(rs);
+                                        status = R_SCRIPT_SET_ERROR_CONTEXT(rs, l_panic);
+
+                                        if (R_SUCCEEDED(status))
+                                        {
+                                            /* Main event loop */
+                                            r_event_loop(rs);
+                                        }
                                     }
+                                    else
+                                    {
+                                        r_log_error(rs, lua_tostring(ls, -1));
+                                        lua_pop(ls, 1);
+                                    }
+
+                                    r_event_end(rs);
                                 }
                                 else
                                 {
-                                    r_log_error(rs, lua_tostring(ls, -1));
-                                    lua_pop(ls, 1);
+                                    r_log_error(rs, "Could not initialize event library");
                                 }
 
-                                r_event_end(rs);
+                                r_audio_end(rs);
                             }
                             else
                             {
-                                r_log_error(rs, "Could not initialize event library");
+                                r_log_error(rs, "Could not initialize audio library");
                             }
 
-                            r_audio_end(rs);
+                            r_video_end(rs);
                         }
                         else
                         {
-                            r_log_error(rs, "Could not initialize audio library");
+                            r_log_error(rs, "Could not initialize video library");
                         }
 
-                        r_video_end(rs);
+                        r_script_end(rs);
                     }
                     else
                     {
-                        r_log_error(rs, "Could not initialize video library");
+                        r_log_error(rs, "Could not initialize scripting engine");
                     }
 
-                    r_script_end(rs);
-                }
-                else
-                {
-                    r_log_error(rs, "Could not initialize scripting engine");
+                    r_log_file_end(rs);
                 }
 
                 r_file_system_end(rs);

@@ -25,8 +25,7 @@ THE SOFTWARE.
 
 #include "r_state.h"
 
-/* TODO: Should this be platform-specific? */
-#define R_FILE_SYSTEM_MAX_PATH_LENGTH   260
+#define R_FILE_SYSTEM_MAX_PATH_LENGTH   256
 
 extern r_status_t r_file_system_start(r_state_t *rs, const char *data_dir, const char *user_dir);
 extern r_status_t r_file_system_setup_script(r_state_t *rs);

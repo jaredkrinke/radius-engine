@@ -26,6 +26,7 @@ THE SOFTWARE.
 #include "r_file_internal.h"
 #include "r_log.h"
 #include "r_assert.h"
+#include "r_platform.h"
 
 r_status_t r_file_internal_init(r_state_t *rs, r_file_internal_t *file)
 {
@@ -90,12 +91,9 @@ r_status_t r_file_internal_write(r_state_t *rs, r_file_internal_t *file, const c
 
             if (R_SUCCEEDED(status))
             {
-                /* TODO: Allow custom newline sequence (or at least platform default) */
-                const char new_line[] = "\r\n";
-                unsigned int new_line_length = R_ARRAY_SIZE(new_line) - 1;
+                unsigned int new_line_length = (unsigned int)strlen(r_platform_newline);
 
-                bytes_written = (unsigned int)PHYSFS_write(file_handle, (const void*)new_line, sizeof(char), new_line_length);
-
+                bytes_written = (unsigned int)PHYSFS_write(file_handle, (const void*)r_platform_newline, sizeof(char), new_line_length);
                 status = (bytes_written == new_line_length) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
 
                 if (R_SUCCEEDED(status))

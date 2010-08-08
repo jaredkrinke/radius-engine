@@ -3,6 +3,10 @@
 * r_defs.hn: Incremented version
 * configure.in: Incremented version
 
+* r_file_internal.c (r_file_internal_write): Use platform newline for files
+
+* r_file_system.h: Decreased max path length to 256 (including NULL) for Linux
+
 2010-08-01 deraj@users.sourceforge.net
 
 * r_audio_clip_cache.c (l_Audio_play): Audio.play persistently caches sounds

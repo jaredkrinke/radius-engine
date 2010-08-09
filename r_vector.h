@@ -35,8 +35,7 @@ typedef r_real_t r_vector2d_t[2];
 typedef r_real_t r_vector2d_homogeneous_t[3];
 
 /* Convert 2D homogeneous coordinates back to a normal 2D vector */
-/* TODO: Vector conversion should be inline (also, the first parameter should be const pointer) */
-extern void r_vector2d_from_homogeneous(r_vector2d_homogeneous_t *v_h, r_vector2d_t *v);
+extern R_INLINE void r_vector2d_from_homogeneous(const r_vector2d_homogeneous_t *v_h, r_vector2d_t *v);
 
 #endif
 

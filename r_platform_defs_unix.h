@@ -1,3 +1,6 @@
+#ifndef __R_PLATFORM_DEFS_UNIX_H
+#define __R_PLATFORM_DEFS_UNIX_H
+
 /*
 Copyright 2010 Jared Krinke.
 
@@ -20,20 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include "r_vector.h"
+#define R_INLINE    inline
 
-void r_vector2d_from_homogeneous(const r_vector2d_homogeneous_t *v_h, r_vector2d_t *v)
-{
-    /* TODO: This unnecessary branch here is probably bad for performance */
-    if ((*v_h)[2] == (r_real_t)1)
-    {
-        (*v)[0] = (*v_h)[0];
-        (*v)[1] = (*v_h)[1];
-    }
-    else
-    {
-        (*v)[0] = (*v_h)[0] / (*v_h)[2];
-        (*v)[1] = (*v_h)[1] / (*v_h)[2];
-    }
-}
+#endif
 

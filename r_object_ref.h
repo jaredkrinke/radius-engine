@@ -42,8 +42,7 @@ typedef struct
     } value;
 } r_object_ref_t;
 
-/* TODO: inline */
-extern void r_object_ref_init(r_object_ref_t *object_ref);
+extern R_INLINE void r_object_ref_init(r_object_ref_t *object_ref);
 
 extern r_status_t r_object_ref_clear(r_state_t *rs, r_object_t *object, r_object_ref_t *object_ref);
 

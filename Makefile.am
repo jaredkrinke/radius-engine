@@ -50,7 +50,9 @@ libradius_engine_a_SOURCES = \
                              r_object_ref.h \
                              r_platform.c \
                              r_platform.h \
+                             r_platform_defs.h \
                              r_platform_unix.h \
+                             r_platform_defs_unix.h \
                              r_resource_cache.c \
                              r_resource_cache.h \
                              r_script.c \
@@ -59,7 +61,8 @@ libradius_engine_a_SOURCES = \
                              r_state.c \
                              r_state.h \
                              r_string.c \
-                             r_string.h r_string_buffer.h \
+                             r_string.h \
+                             r_string_buffer.h \
                              r_string_buffer.c \
                              r_vector.c \
                              r_vector.h \
@@ -71,7 +74,8 @@ libradius_engine_a_SOURCES = \
                              radius.c \
                              radius.h
 
-dist_noinst_HEADERS = r_platform_windows.h
+dist_noinst_HEADERS = r_platform_defs_windows.h \
+                      r_platform_windows.h
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = radius-engine.pc

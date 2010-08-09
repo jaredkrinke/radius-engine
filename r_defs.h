@@ -122,5 +122,7 @@ typedef float r_real_t;
 #define R_PLATFORM_UNIX
 #endif
 
+#include "r_platform_defs.h"
+
 #endif
 

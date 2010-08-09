@@ -201,8 +201,7 @@ void r_video_end(r_state_t *rs)
     }
 }
 
-/* TODO: inline */
-static void r_video_push_mode_table(lua_State *ls, unsigned int width, unsigned int height)
+static R_INLINE void r_video_push_mode_table(lua_State *ls, unsigned int width, unsigned int height)
 {
     lua_newtable(ls);
 
@@ -424,8 +423,7 @@ r_status_t r_video_setup(r_state_t *rs)
     return status;
 }
 
-/* TODO: inline */
-static void r_video_color_blend(r_color_t *color_base, const r_color_t *color)
+static R_INLINE void r_video_color_blend(r_color_t *color_base, const r_color_t *color)
 {
     GLfloat values[4];
 

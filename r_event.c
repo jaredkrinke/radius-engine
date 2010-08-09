@@ -347,7 +347,6 @@ static r_status_t r_event_handle_event(r_state_t *rs, r_layer_t *layer, SDL_Even
     return status;
 }
 
-/* TODO: inline */
 void r_event_get_time_difference(unsigned int t1, unsigned int t2, unsigned int *difference_ms)
 {
     if (t2 >= t1)

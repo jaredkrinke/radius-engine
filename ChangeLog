@@ -7,6 +7,20 @@
 
 * r_file_system.h: Decreased max path length to 256 (including NULL) for Linux
 
+* r_platform_defs.h: Added platform definition files
+* Makefile.am: Added all three platform definition files
+* r_defs.h: Include platform definitions (e.g. R_INLINE)
+
+* r_platform_defs_windows.h: Defined R_INLINE
+* r_platform_defs_unix.h: Defined R_INLINE
+
+* r_event.h (r_event_get_time_difference): Inlined
+* r_matrix.h: Inlined transformation functions
+* r_object_ref.h (r_object_ref_init): Inlined
+* r_vector.h (r_vector2d_from_homogeneous): Inlined, first parameter const
+* r_vector.c (r_vector2d_from_homogeneous): Inlined, first parameter const
+* r_video.c (r_video_color_blend): Inlined
+
 2010-08-01 deraj@users.sourceforge.net
 
 * r_audio_clip_cache.c (l_Audio_play): Audio.play persistently caches sounds

@@ -34,6 +34,19 @@ THE SOFTWARE.
 #include "r_layer_stack.h"
 #include "r_audio.h"
 
+static R_INLINE r_status_t r_event_get_current_time(unsigned int *current_time_ms)
+{
+    r_status_t status = (current_time_ms != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        *current_time_ms = (unsigned int)(SDL_GetTicks() % R_REAL_EXACT_INTEGER_MAX);
+    }
+
+    return status;
+}
+
 /* Initialize event support */
 r_status_t r_event_start(r_state_t *rs)
 {
@@ -53,19 +66,6 @@ r_status_t r_event_start(r_state_t *rs)
 void r_event_end(r_state_t *rs)
 {
     SDL_EnableUNICODE(0);
-}
-
-r_status_t r_event_get_current_time(unsigned int *current_time_ms)
-{
-    r_status_t status = (current_time_ms != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-    R_ASSERT(R_SUCCEEDED(status));
-
-    if (R_SUCCEEDED(status))
-    {
-        *current_time_ms = (unsigned int)(SDL_GetTicks() % R_REAL_EXACT_INTEGER_MAX);
-    }
-
-    return status;
 }
 
 static r_status_t r_event_pixels_to_coordinates(r_state_t *rs, int x, int y, r_vector2d_t *v_prime)

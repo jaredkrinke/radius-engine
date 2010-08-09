@@ -28,8 +28,7 @@ THE SOFTWARE.
 #include "r_zlist.h"
 #include "r_script.h"
 
-/* TODO: Inline */
-static r_status_t r_zlist_sort_insert(r_state_t *rs, r_object_list_t *object_list, int insert_index)
+static R_INLINE r_status_t r_zlist_sort_insert(r_state_t *rs, r_object_list_t *object_list, int insert_index)
 {
     /* Insert an item into the already-ordered sublist preceding the item */
     int compare_index = insert_index - 1;

@@ -234,8 +234,7 @@ static int l_random(lua_State *ls)
     return 1;
 }
 
-/* TODO: Inline, probably */
-static int l_mathFunction(lua_State *ls, r_script_math_function_t f)
+static R_INLINE int l_mathFunction(lua_State *ls, r_script_math_function_t f)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;

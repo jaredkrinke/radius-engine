@@ -27,9 +27,13 @@ THE SOFTWARE.
 #include "r_object_ref.h"
 
 /* Macros for verifying script stack invariants from C code */
-/* TODO: These should only be in debug builds */
+#ifdef R_DEBUG
 #define R_SCRIPT_ENTER()        int __r_script_enter_base_index = lua_gettop(rs->script_state);
 #define R_SCRIPT_EXIT(delta)    { int __r_script_exit_base_index = lua_gettop(rs->script_state); R_ASSERT(__r_script_exit_base_index == __r_script_enter_base_index + (delta)); }
+#else
+#define R_SCRIPT_ENTER()
+#define R_SCRIPT_EXIT(delta)
+#endif
 
 /* Script environment data */
 /* TODO: Instead of using a string key, use the lua_State's pointer as the key! Or a reference */

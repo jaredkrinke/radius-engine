@@ -35,11 +35,6 @@ extern r_status_t r_event_start(r_state_t *rs);
 /* Deinitialize event state */
 extern void r_event_end(r_state_t *rs);
 
-/* TODO: Move to a separate file? */
-/* Convenience function for getting the current time.
- * Note: returns part of value that may be exactly represented by r_real_t */
-extern r_status_t r_event_get_current_time(unsigned int *current_time_ms);
-
 extern R_INLINE void r_event_get_time_difference(unsigned int t1, unsigned int t2, unsigned int *difference_ms);
 
 /* Main event loop */

@@ -20,6 +20,13 @@
 * r_vector.h (r_vector2d_from_homogeneous): Inlined, first parameter const
 * r_vector.c (r_vector2d_from_homogeneous): Inlined, first parameter const
 * r_video.c (r_video_color_blend): Inlined
+* r_script_lib.c (l_mathFunction): Inlined
+* r_zlist.c (r_zlist_sort_insert): Inlined
+
+* r_event.h: r_event_get_current_time is no longer global
+* r_event.c (r_event_get_current_time): Inlined
+
+* r_script.h: R_SCRIPT_ENTER/EXIT now do nothing on release builds
 
 2010-08-01 deraj@users.sourceforge.net
 

@@ -38,7 +38,7 @@ typedef r_list_t r_audio_clip_instance_list_t;
 typedef enum
 {
     R_AUDIO_CLIP_TYPE_CACHED,
-    /* TODO: R_AUDIO_CLIP_TYPE_ON_DEMAND, */
+    R_AUDIO_CLIP_TYPE_ON_DEMAND,
     R_AUDIO_CLIP_TYPE_MAX
 } r_audio_clip_type_t;
 
@@ -55,7 +55,10 @@ typedef struct
             unsigned int    samples;
         } cached;
 
-        /* TODO: On-demand */
+        struct
+        {
+            char *path;
+        } on_demand;
     } data;
 } r_audio_clip_data_t;
 
@@ -78,7 +81,16 @@ typedef struct
             Uint32 position;
         } cached;
 
-        /* TODO: On-demand */
+        struct
+        {
+            Sound_Sample    *sample;
+            Sint16          *buffers[2];
+            r_boolean_t     buffer_ready[2];
+            unsigned int    buffer_index;
+            Uint32          buffer_position;
+            Uint32          buffer_position_max;
+            r_boolean_t     fully_decoded;
+        } on_demand;
     } state;
 } r_audio_clip_instance_t;
 

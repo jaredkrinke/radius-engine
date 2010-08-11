@@ -37,6 +37,7 @@ THE SOFTWARE.
 #define R_AUDIO_BYTES_PER_SAMPLE    2
 #define R_AUDIO_CHANNELS            2
 #define R_AUDIO_BUFFER_LENGTH       2048
+/* TODO #define R_AUDIO_DECODE_BUFFER_SIZE  262144 */
 #define R_AUDIO_DECODE_BUFFER_SIZE  32768
 
 /* PhysicsFS SDL_RWops implementation */
@@ -164,6 +165,10 @@ static void r_audio_clip_data_free_internal(r_state_t *rs, r_audio_clip_data_t *
         Sound_FreeSample(audio_clip_data->data.cached.sample);
         break;
 
+    case R_AUDIO_CLIP_TYPE_ON_DEMAND:
+        free(audio_clip_data->data.on_demand.path);
+        break;
+
     default:
         /* Ignore free of an empty audio clip */
         break;
@@ -207,7 +212,7 @@ static r_status_t r_audio_clip_manager_end(r_state_t *rs)
     return r_list_cleanup(rs, &r_audio_clip_manager.audio_clip_data, &r_audio_clip_data_list_def);
 }
 
-r_status_t r_audio_clip_manager_load(r_state_t *rs, const char *audio_clip_path, r_audio_clip_data_handle_t *handle)
+static r_status_t r_audio_allocate_sample(r_state_t *rs, const char *audio_clip_path, Sound_Sample **sample_out)
 {
     SDL_RWops *context = NULL;
     r_status_t status = r_file_alloc_rwops(rs, audio_clip_path, R_FALSE, &context);
@@ -224,49 +229,104 @@ r_status_t r_audio_clip_manager_load(r_state_t *rs, const char *audio_clip_path,
         }
 
         /* Sound_NewSample takes ownership of context */
+        /* TODO: Try to allocate less than 256k or 512k, if possible for each sound effect */
         sample = Sound_NewSample(context, extension, &audio_info, R_AUDIO_DECODE_BUFFER_SIZE);
-
         status = (sample != NULL) ? R_SUCCESS : RA_F_DECODE_ERROR;
 
         if (R_SUCCEEDED(status))
         {
-            unsigned int samples = Sound_DecodeAll(sample);
-
-            status = (samples > 0) ? R_SUCCESS : RA_F_DECODE_ERROR;
-
-            if (R_SUCCEEDED(status))
-            {
-                /* Create the new clip */
-                r_audio_clip_data_t audio_clip_data;
-
-                audio_clip_data.ref_count = 1;
-                audio_clip_data.type = R_AUDIO_CLIP_TYPE_CACHED;
-
-                audio_clip_data.data.cached.sample = sample;
-                audio_clip_data.data.cached.samples = samples;
-
-                /* Append the clip to the list */
-                SDL_LockAudio();
-                status = r_list_add(rs, &r_audio_clip_manager.audio_clip_data, (void*)&audio_clip_data, &r_audio_clip_data_list_def);
-
-                if (R_SUCCEEDED(status))
-                {
-                    /* TODO: Get the next available index--don't just keep appending */
-                    handle->id = r_audio_clip_manager.audio_clip_data.count - 1;
-                    handle->data = r_list_get_index(rs, &r_audio_clip_manager.audio_clip_data, handle->id, &r_audio_clip_data_list_def);
-                }
-
-                SDL_UnlockAudio();
-            }
-
-            if (R_FAILED(status))
-            {
-                Sound_FreeSample(sample);
-            }
+            *sample_out = sample;
         }
         else
         {
             r_log_error_format(rs, "Error loading %s: %s", audio_clip_path, Sound_GetError());
+        }
+    }
+
+    return status;
+}
+
+r_status_t r_audio_clip_manager_load(r_state_t *rs, const char *audio_clip_path, r_audio_clip_data_handle_t *handle)
+{
+    Sound_Sample *sample = NULL;
+    r_status_t status = r_audio_allocate_sample(rs, audio_clip_path, &sample);
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Decode the clip and decide whether to use a cached or on-demand clip */
+        unsigned int samples = Sound_Decode(sample);
+        r_audio_clip_data_t audio_clip_data;
+
+        audio_clip_data.type = R_AUDIO_CLIP_TYPE_MAX;
+
+        if (samples <= sample->buffer_size && (sample->flags & SOUND_SAMPLEFLAG_EOF) != 0)
+        {
+            /* The entire clip was decoded, so use the cached clip type */
+            audio_clip_data.ref_count = 1;
+            audio_clip_data.type = R_AUDIO_CLIP_TYPE_CACHED;
+
+            audio_clip_data.data.cached.sample = sample;
+            audio_clip_data.data.cached.samples = samples;
+            sample = NULL;
+        }
+        else if (samples == sample->buffer_size)
+        {
+            /* The clip is larger than the default buffer, so use the on-demand clip type */
+            int path_length             = strlen(audio_clip_path);
+            char *audio_clip_path_copy  = malloc((path_length + 1) * sizeof(char));
+
+            status = (audio_clip_path_copy != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+            if (R_SUCCEEDED(status))
+            {
+                /* Free sample because each instance will use its own copy */
+                /* TODO: Is it possible to pass this sample to the first instance to avoid loading twice? */
+                Sound_FreeSample(sample);
+                sample = NULL;
+
+                strncpy(audio_clip_path_copy, audio_clip_path, path_length + 1);
+
+                /* Set up on-demand clip data */
+                audio_clip_data.ref_count = 1;
+                audio_clip_data.type = R_AUDIO_CLIP_TYPE_ON_DEMAND;
+
+                audio_clip_data.data.on_demand.path = audio_clip_path_copy;
+            }
+        }
+        else
+        {
+            status = RA_F_DECODE_ERROR;
+            r_log_error_format(rs, "Error decoding %s: %s", audio_clip_path, Sound_GetError());
+        }
+
+        if (R_SUCCEEDED(status))
+        {
+            /* Append the clip to the list */
+            SDL_LockAudio();
+            status = r_list_add(rs, &r_audio_clip_manager.audio_clip_data, (void*)&audio_clip_data, &r_audio_clip_data_list_def);
+
+            if (R_SUCCEEDED(status))
+            {
+                /* TODO: Get the next available index--don't just keep appending */
+                handle->id = r_audio_clip_manager.audio_clip_data.count - 1;
+                handle->data = r_list_get_index(rs, &r_audio_clip_manager.audio_clip_data, handle->id, &r_audio_clip_data_list_def);
+            }
+
+            SDL_UnlockAudio();
+        }
+
+        if (R_FAILED(status))
+        {
+            /* Clean up any allocations on error */
+            if (sample != NULL)
+            {
+                Sound_FreeSample(sample);
+            }
+
+            if (audio_clip_data.type != R_AUDIO_CLIP_TYPE_MAX)
+            {
+                r_audio_clip_data_free_internal(rs, &audio_clip_data);
+            }
         }
     }
 
@@ -348,6 +408,20 @@ static void r_audio_clip_instance_free(r_state_t *rs, void *item)
 {
     r_audio_clip_instance_t *clip_instance = (r_audio_clip_instance_t*)item;
 
+    switch (clip_instance->clip_handle.data->type)
+    {
+    case R_AUDIO_CLIP_TYPE_CACHED:
+        /* No instance data needs to be freed */
+        break;
+
+    case R_AUDIO_CLIP_TYPE_ON_DEMAND:
+        /* TODO: Cancel any ongoing/scheduled tasks or ensure that they don't write somehow... */
+        Sound_FreeSample(clip_instance->state.on_demand.sample);
+        free(clip_instance->state.on_demand.buffers[0]);
+        free(clip_instance->state.on_demand.buffers[1]);
+        break;
+    }
+
     r_audio_clip_manager_release_handle_internal(rs, &clip_instance->clip_handle);
 }
 
@@ -403,7 +477,57 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
             switch (clip_instance.clip_handle.data->type)
             {
             case R_AUDIO_CLIP_TYPE_CACHED:
+                /* Start at the beginning of the clip */
                 clip_instance.state.cached.position = 0;
+                break;
+
+            case R_AUDIO_CLIP_TYPE_ON_DEMAND:
+                /* Allocate a new sample for use in decoding on demand */
+                {
+                    Sound_Sample *sample = NULL;
+
+                    status = r_audio_allocate_sample(rs, clip_handle->data->data.on_demand.path, &sample);
+
+                    if (R_SUCCEEDED(status))
+                    {
+                        Sint16 *buffers[2] = { NULL, NULL };
+
+                        buffers[0] = malloc(R_AUDIO_BUFFER_LENGTH);
+                        buffers[1] = malloc(R_AUDIO_BUFFER_LENGTH);
+                        status = (buffers[0] != NULL && buffers[1] != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+                        if (R_SUCCEEDED(status))
+                        {
+                            /* Fill in on-demand clip fields */
+                            clip_instance.state.on_demand.sample                = sample;
+                            clip_instance.state.on_demand.buffers[0]            = buffers[0];
+                            clip_instance.state.on_demand.buffers[1]            = buffers[1];
+                            clip_instance.state.on_demand.buffer_ready[0]       = R_FALSE;
+                            clip_instance.state.on_demand.buffer_ready[1]       = R_FALSE;
+                            clip_instance.state.on_demand.buffer_index          = 0;
+                            clip_instance.state.on_demand.buffer_position       = 0;
+                            clip_instance.state.on_demand.buffer_position_max   = 0;
+                            clip_instance.state.on_demand.fully_decoded         = R_FALSE;;
+
+                            /* TODO: Schedule tasks */
+                        }
+
+                        if (R_FAILED(status))
+                        {
+                            Sound_FreeSample(sample);
+
+                            if (buffers[0] != NULL)
+                            {
+                                free(buffers[0]);
+                            }
+
+                            if (buffers[1] != NULL)
+                            {
+                                free(buffers[1]);
+                            }
+                        }
+                    }
+                }
                 break;
 
             default:
@@ -450,6 +574,14 @@ static r_status_t r_audio_clear_internal(r_state_t *rs)
     return status;
 }
 
+static R_INLINE void r_audio_mix_channel_frame(int global_volume, int channel, Sint16 *sample, const Sint16 *clip_frame, unsigned char volume, unsigned char position)
+{
+    /* TODO: Some of these calculations can be skipped if position is min, zero, max or volume is max */
+    const int fade_factor = ((int)R_AUDIO_POSITION_MAX) + ((channel == 0) ? -1 : 1) * position;
+
+    *sample += ((int)clip_frame[channel]) * global_volume / 256 * (((int)volume) + 1) / 256 * fade_factor / 256;
+}
+
 static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
 {
     const r_state_t *rs = (const r_state_t*)data;
@@ -493,10 +625,7 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
                                 /* TODO: Check for clipping and avoid it */
                                 if (clip_instances[i].volume > 0)
                                 {
-                                    /* TODO: Some of these calculations can be skipped if position is min, zero, max or volume is max */
-                                    const int fade_factor = ((int)R_AUDIO_POSITION_MAX) + ((channel == 0) ? -1 : 1) * clip_instances[i].position;
-
-                                    sample += ((int)clip_frame[channel]) * global_volume / 256 * (((int)clip_instances[i].volume) + 1) / 256 * fade_factor / 256;
+                                    r_audio_mix_channel_frame(global_volume, channel, &sample, clip_frame, clip_instances[i].volume, clip_instances[i].position);
 
                                     /* Update clip instance's position if this is the last channel */
                                     if (channel == (R_AUDIO_CHANNELS - 1))
@@ -509,6 +638,48 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
                                 if (clip_instances[i].state.cached.position >= clip_instances[i].clip_handle.data->data.cached.samples)
                                 {
                                     clip_instances[i].volume = 0;
+                                }
+                            }
+                            break;
+
+                        case R_AUDIO_CLIP_TYPE_ON_DEMAND:
+                            {
+                                r_audio_clip_instance_t *clip_instance = &clip_instances[i];
+                                const unsigned int buffer_index = clip_instance->state.on_demand.buffer_index;
+
+                                if (clip_instance->state.on_demand.buffer_ready[buffer_index])
+                                {
+                                    const r_audio_clip_data_t *data = clip_instance->clip_handle.data;
+                                    const Sint16 *clip_frame = (Sint16*)&((unsigned char*)clip_instance->state.on_demand.buffers[buffer_index])[clip_instance->state.on_demand.buffer_position];
+
+                                    if (clip_instance->volume > 0)
+                                    {
+                                        r_audio_mix_channel_frame(global_volume, channel, &sample, clip_frame, clip_instance->volume, clip_instance->position);
+
+                                        /* Update clip instance's position if this is the last channel */
+                                        if (channel == (R_AUDIO_CHANNELS - 1))
+                                        {
+                                            clip_instance->state.on_demand.buffer_position += R_AUDIO_BYTES_PER_SAMPLE * R_AUDIO_CHANNELS;
+                                        }
+                                    }
+
+                                    if (clip_instance->state.on_demand.fully_decoded
+                                        && clip_instance->state.on_demand.buffer_ready[(buffer_index + 1) % 2]
+                                        && clip_instance->state.on_demand.buffer_position >= clip_instance->state.on_demand.buffer_position_max)
+                                    {
+                                        /* The entire clip has completed */
+                                        clip_instance->volume = 0;
+
+                                        /* TODO: Looping should be supported, but this would require changing the condition above and scheduling decoding the beginning after decoding the last section */
+                                    }
+                                    else if (clip_instance->state.on_demand.buffer_position >= R_AUDIO_DECODE_BUFFER_SIZE)
+                                    {
+                                        /* End of a buffer has been reached, swap buffers and schedule decoding */
+                                        clip_instance->state.on_demand.buffer_ready[buffer_index] = R_FALSE;
+                                        clip_instance->state.on_demand.buffer_index = (buffer_index + 1) % 2;
+                                        clip_instance->state.on_demand.buffer_position = 0;
+                                        /* TODO: Schedule decoding of next block */
+                                    }
                                 }
                             }
                             break;

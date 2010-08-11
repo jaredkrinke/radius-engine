@@ -84,6 +84,7 @@ typedef struct
         struct
         {
             Sound_Sample    *sample;
+            /* TODO: Three buffers are needed for looping cases */
             Sint16          *buffers[2];
             r_boolean_t     buffer_ready[2];
             unsigned int    buffer_index;

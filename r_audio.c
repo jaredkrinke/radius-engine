@@ -696,6 +696,7 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
 
             /* Remove completed clips (volume = 0) */
             /* TODO: This should queue all delets and do them in a loop */
+            /* TODO: This should not happen on the audio callback because it may need to wait for decoding tasks to cancel or complete */
             for (i = 0; i < audio_state->clip_instances.count && R_SUCCEEDED(status); ++i)
             {
                 r_audio_clip_instance_t *clip_instance = &((r_audio_clip_instance_t*)audio_state->clip_instances.items)[i];

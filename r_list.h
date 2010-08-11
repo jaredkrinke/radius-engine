@@ -46,8 +46,10 @@ typedef struct
     r_list_item_copy_t  item_copy;
 } r_list_def_t;
 
+/* TODO: These functions should either not take r_state_t* or should be robust to it being NULL so they can be used on other threads--also consider making logging functions thread safe... */
 extern r_status_t r_list_add(r_state_t *rs, r_list_t *list, void *item, const r_list_def_t *list_def);
-extern void *r_list_get_index(r_state_t *rs, r_list_t *list, unsigned int index, const r_list_def_t *list_def);
+extern R_INLINE void *r_list_get_index(r_state_t *rs, r_list_t *list, unsigned int index, const r_list_def_t *list_def);
+extern R_INLINE unsigned int r_list_get_count(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def);
 extern r_status_t r_list_remove_index(r_state_t *rs, r_list_t *list, unsigned int index, const r_list_def_t *list_def);
 extern r_status_t r_list_clear(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def);
 

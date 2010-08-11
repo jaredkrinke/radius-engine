@@ -86,6 +86,11 @@ void *r_list_get_index(r_state_t *rs, r_list_t *list, unsigned int index, const 
     return R_SUCCEEDED(status) ? R_LIST_ITEM(list_def, list->items, index) : NULL;
 }
 
+unsigned int r_list_get_count(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def)
+{
+    return list->count;
+}
+
 r_status_t r_list_remove_index(r_state_t *rs, r_list_t *list, unsigned int index, const r_list_def_t *list_def)
 {
     /* Ensure the index is valid */

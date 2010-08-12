@@ -74,8 +74,11 @@ typedef enum {
     /* Audio status codes */
     R_FACILITY_AUDIO        = 0x04000000,
 
+    RA_S_FULLY_DECODED      = 0x04000001,
+
     RA_F_INVALID_POINTER    = 0x84004003,
     RA_F_DECODE_ERROR       = 0x84000101,
+    RA_F_DECODE_PENDING     = 0x84000102,
     R_F_AUDIO_FAILURE       = 0x84004005,
 
     R_F_INVALID             = 0x8100ffff

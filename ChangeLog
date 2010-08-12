@@ -1,11 +1,24 @@
 2010-08-11 deraj@users.sourceforge.net
 
 * r_audio.c (r_audio_clip_manager_t, r_audio_clip_manager_start,
-  r_audio_clip_manager_end): Added lock to protect clip handles
+    r_audio_clip_manager_end): Added lock to protect clip handles
 
 * r_audio.c (r_audio_clip_manager_load,
-  r_audio_clip_manager_duplicate_handle_internal,
-  r_audio_clip_manager_release_handle_internal): Protected handle ref counts
+    r_audio_clip_manager_duplicate_handle_internal,
+    r_audio_clip_manager_release_handle_internal): Protected handle ref counts
+
+* r_audio.h (r_audio_clip_instance_t): Added ref-counting for clip instances
+* r_audio.c (r_audio_clip_instance_release, r_audio_clip_instance_add_ref,
+    r_audio_state_queue_clip_internal): Ref-counting for clip instances
+
+* r_audio.c (r_audio_start, r_audio_end): Start/stop decoder
+
+* r_state.h: Added audio_decoder field
+* r_state.c: Initialize audio_decoder
+
+* r_defs.h: Added new audio decoding error codes
+
+* r_audio_decoder.c: Implemented decoding task processing
 
 2010-08-10 deraj@users.sourceforge.net
 

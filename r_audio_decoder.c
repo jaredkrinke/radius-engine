@@ -39,12 +39,16 @@ static void r_audio_decoder_task_null(r_state_t *rs, void *item)
     r_audio_decoder_task_t *task = (r_audio_decoder_task_t*)item;
 
     task->clip_instance = NULL;
-    task->status = NULL;
+    task->buffer        = NULL;
+    task->status        = NULL;
 }
 
 static void r_audio_decoder_task_free(r_state_t *rs, void *item)
 {
-    /* TODO: Should this free the clip instance? Probably not, but it's worth thinking if that helps anything... */
+    r_audio_decoder_task_t *task = (r_audio_decoder_task_t*)item;
+
+    /* TODO: This will actually need rs to not be NULL eventually... */
+    r_audio_clip_instance_release(rs, task->clip_instance);
 }
 
 static void r_audio_decoder_task_copy(r_state_t *rs, void *to, const void *from)
@@ -163,13 +167,58 @@ static int r_audio_decoder_thread(void *data)
                 if (R_SUCCEEDED(status) && !done)
                 {
                     /* Process the task */
-                    /* TODO */
+                    Sound_Sample *sample = task.clip_instance->state.on_demand.sample;
+                    Uint32 bytes_decoded = Sound_Decode(task.clip_instance->state.on_demand.sample);
+
+                    status = (Sound_Decode(sample) == sample->buffer_size || (sample->flags & SOUND_SAMPLEFLAG_EOF) != 0) ? R_SUCCESS : RA_F_DECODE_ERROR;
+
+                    if (R_SUCCEEDED(status))
+                    {
+                        SDL_LockAudio();
+                        status = r_audio_decoder_lock(decoder);
+
+                        if (R_SUCCEEDED(status))
+                        {
+                            if (R_SUCCEEDED(status))
+                            {
+                                /* Copy decoded sound to the destination buffer */
+                                memcpy(task.buffer, sample->buffer, sample->buffer_size);
+                            }
+
+                            /* Propagate status */
+                            if (R_SUCCEEDED(status))
+                            {
+                                if ((sample->flags & SOUND_SAMPLEFLAG_EOF) != 0)
+                                {
+                                    *(task.status) = RA_S_FULLY_DECODED;
+                                }
+                                else
+                                {
+                                    *(task.status) = R_SUCCESS;
+                                }
+                            }
+                            else
+                            {
+                                *(task.status) = status;
+                            }
+
+                            r_audio_decoder_unlock(decoder);
+                        }
+
+                        SDL_UnlockAudio();
+                    }
+
+                    /* Release clip instance reference */
+                    /* TODO: rs should not be NULL! */
+                    r_audio_clip_instance_release(NULL, task.clip_instance);
                 }
             }
         }
     } while (!done && R_SUCCEEDED(status));
 
-    /* TODO: Cleanup list? Or just forget it? */
+    /* Cleanup the rest of the tasks */
+    /* TODO: rs */
+    r_audio_decoder_task_list_cleanup(NULL, &decoder->tasks);
 
     return (int)status;
 }

@@ -32,6 +32,8 @@ THE SOFTWARE.
 #define R_AUDIO_POSITION_MIN                ((char)0x80)
 #define R_AUDIO_POSITION_MAX                ((char)0x7f)
 #define R_AUDIO_CLIP_DATA_HANDLE_INVALID    0xffffffff
+/* TODO #define R_AUDIO_DECODE_BUFFER_SIZE  262144 */
+#define R_AUDIO_DECODE_BUFFER_SIZE  32768
 
 typedef r_list_t r_audio_clip_instance_list_t;
 
@@ -64,6 +66,7 @@ typedef struct
 
 typedef struct
 {
+    /* TODO: Is id actually necessary? I don't see why this is needed... */
     unsigned int                id;
     const r_audio_clip_data_t   *data;
 } r_audio_clip_data_handle_t;
@@ -71,6 +74,7 @@ typedef struct
 typedef struct
 {
     r_audio_clip_data_handle_t  clip_handle;
+    int                         ref_count;
     unsigned char               volume;
     char                        position;
 
@@ -86,11 +90,10 @@ typedef struct
             Sound_Sample    *sample;
             /* TODO: Three buffers are needed for looping cases */
             Sint16          *buffers[2];
-            r_boolean_t     buffer_ready[2];
+            r_status_t      buffer_status[2];
+            unsigned int    buffer_bytes[2];
             unsigned int    buffer_index;
             Uint32          buffer_position;
-            Uint32          buffer_position_max;
-            r_boolean_t     fully_decoded;
         } on_demand;
     } state;
 } r_audio_clip_instance_t;
@@ -106,6 +109,8 @@ extern r_status_t r_audio_clip_manager_load(r_state_t *rs, const char *audio_cli
 extern void r_audio_clip_manager_null_handle(r_state_t *rs, r_audio_clip_data_handle_t *handle);
 extern r_status_t r_audio_clip_manager_duplicate_handle(r_state_t *rs, r_audio_clip_data_handle_t *to, const r_audio_clip_data_handle_t *from);
 extern r_status_t r_audio_clip_manager_release_handle(r_state_t *rs, r_audio_clip_data_handle_t *handle);
+extern r_status_t r_audio_clip_instance_release(r_state_t *rs, r_audio_clip_instance_t *clip_instance);
+extern r_status_t r_audio_clip_instance_add_ref(r_state_t *rs, r_audio_clip_instance_t *clip_instance);
 
 /* Audio states */
 extern r_status_t r_audio_state_init(r_state_t *rs, r_audio_state_t *audio_state);

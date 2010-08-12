@@ -32,7 +32,9 @@ THE SOFTWARE.
 typedef struct
 {
     r_audio_clip_instance_t *clip_instance;
+    Sint16                  *buffer;
     r_status_t              *status;
+    unsigned int            *bytes_decoded;
 } r_audio_decoder_task_t;
 
 typedef r_list_t r_audio_decoder_task_list_t;

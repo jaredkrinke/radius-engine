@@ -31,14 +31,13 @@ THE SOFTWARE.
 #include "r_list.h"
 #include "r_audio.h"
 #include "r_audio_clip_cache.h"
+#include "r_audio_decoder.h"
 
 #define R_AUDIO_FREQUENCY           44100
 #define R_AUDIO_FORMAT              AUDIO_S16SYS
 #define R_AUDIO_BYTES_PER_SAMPLE    2
 #define R_AUDIO_CHANNELS            2
 #define R_AUDIO_BUFFER_LENGTH       2048
-/* TODO #define R_AUDIO_DECODE_BUFFER_SIZE  262144 */
-#define R_AUDIO_DECODE_BUFFER_SIZE  32768
 
 /* PhysicsFS SDL_RWops implementation */
 static int internal_seek(struct SDL_RWops *context, int offset, int origin)
@@ -439,34 +438,65 @@ r_status_t r_audio_clip_manager_release_handle(r_state_t *rs, r_audio_clip_data_
     return status;
 }
 
+r_status_t r_audio_clip_instance_release(r_state_t *rs, r_audio_clip_instance_t *clip_instance)
+{
+    r_status_t status = (SDL_LockMutex(r_audio_clip_manager.lock) == 0) ? R_SUCCESS : R_FAILURE;
+
+    if (R_SUCCEEDED(status))
+    {
+        clip_instance->ref_count = clip_instance->ref_count - 1;
+
+        if (clip_instance->ref_count <= 0)
+        {
+            switch (clip_instance->clip_handle.data->type)
+            {
+            case R_AUDIO_CLIP_TYPE_CACHED:
+                /* No instance data needs to be freed */
+                break;
+
+            case R_AUDIO_CLIP_TYPE_ON_DEMAND:
+                /* TODO: Cancel any ongoing/scheduled tasks or ensure that they don't write somehow... */
+                Sound_FreeSample(clip_instance->state.on_demand.sample);
+                free(clip_instance->state.on_demand.buffers[0]);
+                free(clip_instance->state.on_demand.buffers[1]);
+                break;
+            }
+
+            r_audio_clip_manager_release_handle_internal(rs, &clip_instance->clip_handle);
+        }
+
+        SDL_UnlockMutex(r_audio_clip_manager.lock);
+    }
+
+    return status;
+}
+
+r_status_t r_audio_clip_instance_add_ref(r_state_t *rs, r_audio_clip_instance_t *clip_instance)
+{
+    r_status_t status = (SDL_LockMutex(r_audio_clip_manager.lock) == 0) ? R_SUCCESS : R_FAILURE;
+
+    if (R_SUCCEEDED(status))
+    {
+        clip_instance->ref_count = clip_instance->ref_count + 1;
+        SDL_UnlockMutex(r_audio_clip_manager.lock);
+    }
+
+    return status;
+}
+
 /* Audio clip instance list data type */
 static void r_audio_clip_instance_null(r_state_t *rs, void *item)
 {
     r_audio_clip_instance_t *clip_instance = (r_audio_clip_instance_t*)item;
 
+    clip_instance->ref_count = 0;
     clip_instance->clip_handle.id = 0;
     clip_instance->clip_handle.data = NULL;
 }
 
 static void r_audio_clip_instance_free(r_state_t *rs, void *item)
 {
-    r_audio_clip_instance_t *clip_instance = (r_audio_clip_instance_t*)item;
-
-    switch (clip_instance->clip_handle.data->type)
-    {
-    case R_AUDIO_CLIP_TYPE_CACHED:
-        /* No instance data needs to be freed */
-        break;
-
-    case R_AUDIO_CLIP_TYPE_ON_DEMAND:
-        /* TODO: Cancel any ongoing/scheduled tasks or ensure that they don't write somehow... */
-        Sound_FreeSample(clip_instance->state.on_demand.sample);
-        free(clip_instance->state.on_demand.buffers[0]);
-        free(clip_instance->state.on_demand.buffers[1]);
-        break;
-    }
-
-    r_audio_clip_manager_release_handle_internal(rs, &clip_instance->clip_handle);
+    r_audio_clip_instance_release(rs, (r_audio_clip_instance_t*)item);
 }
 
 static void r_audio_clip_instance_copy(r_state_t *rs, void *to, const void *from)
@@ -515,6 +545,7 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
 
         if (R_SUCCEEDED(status))
         {
+            clip_instance.ref_count = 1;
             clip_instance.volume = volume;
             clip_instance.position = position;
 
@@ -546,12 +577,12 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
                             clip_instance.state.on_demand.sample                = sample;
                             clip_instance.state.on_demand.buffers[0]            = buffers[0];
                             clip_instance.state.on_demand.buffers[1]            = buffers[1];
-                            clip_instance.state.on_demand.buffer_ready[0]       = R_FALSE;
-                            clip_instance.state.on_demand.buffer_ready[1]       = R_FALSE;
+                            clip_instance.state.on_demand.buffer_status[0]      = RA_F_DECODE_PENDING;
+                            clip_instance.state.on_demand.buffer_status[1]      = RA_F_DECODE_PENDING;
+                            clip_instance.state.on_demand.buffer_bytes[0]       = 0;
+                            clip_instance.state.on_demand.buffer_bytes[1]       = 0;
                             clip_instance.state.on_demand.buffer_index          = 0;
                             clip_instance.state.on_demand.buffer_position       = 0;
-                            clip_instance.state.on_demand.buffer_position_max   = 0;
-                            clip_instance.state.on_demand.fully_decoded         = R_FALSE;;
 
                             /* TODO: Schedule tasks */
                         }
@@ -579,7 +610,10 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
                 break;
             }
 
-            status = r_audio_clip_instance_list_add(rs, &audio_state->clip_instances, &clip_instance);
+            if (R_SUCCEEDED(status))
+            {
+                status = r_audio_clip_instance_list_add(rs, &audio_state->clip_instances, &clip_instance);
+            }
         }
     }
 
@@ -691,7 +725,7 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
                                 r_audio_clip_instance_t *clip_instance = &clip_instances[i];
                                 const unsigned int buffer_index = clip_instance->state.on_demand.buffer_index;
 
-                                if (clip_instance->state.on_demand.buffer_ready[buffer_index])
+                                if (R_SUCCEEDED(clip_instance->state.on_demand.buffer_status[buffer_index]))
                                 {
                                     const r_audio_clip_data_t *data = clip_instance->clip_handle.data;
                                     const Sint16 *clip_frame = (Sint16*)&((unsigned char*)clip_instance->state.on_demand.buffers[buffer_index])[clip_instance->state.on_demand.buffer_position];
@@ -707,22 +741,23 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
                                         }
                                     }
 
-                                    if (clip_instance->state.on_demand.fully_decoded
-                                        && clip_instance->state.on_demand.buffer_ready[(buffer_index + 1) % 2]
-                                        && clip_instance->state.on_demand.buffer_position >= clip_instance->state.on_demand.buffer_position_max)
+                                    if (clip_instance->state.on_demand.buffer_position >= clip_instance->state.on_demand.buffer_bytes[buffer_index])
                                     {
-                                        /* The entire clip has completed */
-                                        clip_instance->volume = 0;
+                                        if (clip_instance->state.on_demand.buffer_status[buffer_index] == RA_S_FULLY_DECODED)
+                                        {
+                                            /* The entire clip has completed */
+                                            clip_instance->volume = 0;
 
-                                        /* TODO: Looping should be supported, but this would require changing the condition above and scheduling decoding the beginning after decoding the last section */
-                                    }
-                                    else if (clip_instance->state.on_demand.buffer_position >= R_AUDIO_DECODE_BUFFER_SIZE)
-                                    {
-                                        /* End of a buffer has been reached, swap buffers and schedule decoding */
-                                        clip_instance->state.on_demand.buffer_ready[buffer_index] = R_FALSE;
-                                        clip_instance->state.on_demand.buffer_index = (buffer_index + 1) % 2;
-                                        clip_instance->state.on_demand.buffer_position = 0;
-                                        /* TODO: Schedule decoding of next block */
+                                            /* TODO: Looping should be supported, but this would require changing the condition above and scheduling decoding the beginning after decoding the last section */
+                                        }
+                                        else
+                                        {
+                                            /* End of a buffer has been reached, swap buffers and schedule decoding */
+                                            clip_instance->state.on_demand.buffer_status[buffer_index] = RA_F_DECODE_PENDING;
+                                            clip_instance->state.on_demand.buffer_index = (buffer_index + 1) % 2;
+                                            clip_instance->state.on_demand.buffer_position = 0;
+                                            /* TODO: Schedule decoding of next block */
+                                        }
                                     }
                                 }
                             }
@@ -801,25 +836,47 @@ r_status_t r_audio_start(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        status = r_audio_clip_manager_start(rs);
-    }
+        r_audio_decoder_t *decoder = (r_audio_decoder_t*)malloc(sizeof(r_audio_decoder_t));
 
-    if (R_SUCCEEDED(status))
-    {
-        status = (Sound_Init() != 0) ? R_SUCCESS : R_F_AUDIO_FAILURE;
+        status = (decoder != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
 
         if (R_SUCCEEDED(status))
         {
-            status = r_audio_clip_cache_start(rs);
+            status = r_audio_clip_manager_start(rs);
+
+            if (R_SUCCEEDED(status))
+            {
+                status = (Sound_Init() != 0) ? R_SUCCESS : R_F_AUDIO_FAILURE;
+
+                if (R_SUCCEEDED(status))
+                {
+                    status = r_audio_clip_cache_start(rs);
+
+                    if (R_SUCCEEDED(status))
+                    {
+                        status = r_audio_decoder_start(rs, decoder);
+                    }
+
+                    if (R_SUCCEEDED(status))
+                    {
+                        rs->audio_decoder = (void*)decoder;
+                    }
+
+                    if (R_FAILED(status))
+                    {
+                        Sound_Quit();
+                    }
+                }
+                else
+                {
+                    r_log_error_format(rs, "Error initializing sound decoding library: %s", Sound_GetError());
+                }
+            }
 
             if (R_FAILED(status))
             {
-                Sound_Quit();
+                free(decoder);
             }
-        }
-        else
-        {
-            r_log_error_format(rs, "Error initializing sound decoding library: %s", Sound_GetError());
         }
     }
 
@@ -830,6 +887,11 @@ void r_audio_end(r_state_t *rs)
 {
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        status = r_audio_decoder_stop(rs, (r_audio_decoder_t*)rs->audio_decoder);
+    }
 
     if (R_SUCCEEDED(status))
     {

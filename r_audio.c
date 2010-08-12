@@ -197,18 +197,41 @@ r_list_def_t r_audio_clip_data_list_def = { sizeof(r_audio_clip_data_t), r_audio
 
 typedef struct
 {
-    r_list_t audio_clip_data;
+    SDL_mutex   *lock;
+    r_list_t    audio_clip_data;
 } r_audio_clip_manager_t;
 
+/* TODO: This should be stored in r_state_t... */
 r_audio_clip_manager_t r_audio_clip_manager;
 
 static r_status_t r_audio_clip_manager_start(r_state_t *rs)
 {
-    return r_list_init(rs, &r_audio_clip_manager.audio_clip_data, &r_audio_clip_data_list_def);
+    SDL_mutex *lock = SDL_CreateMutex();
+    r_status_t status = (lock != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+    if (R_SUCCEEDED(status))
+    {
+        status = r_list_init(rs, &r_audio_clip_manager.audio_clip_data, &r_audio_clip_data_list_def);
+
+        if (R_SUCCEEDED(status))
+        {
+            r_audio_clip_manager.lock = lock;
+        }
+
+        if (R_FAILED(status))
+        {
+            SDL_DestroyMutex(lock);
+        }
+    }
+
+    return status;
 }
 
 static r_status_t r_audio_clip_manager_end(r_state_t *rs)
 {
+    SDL_DestroyMutex(r_audio_clip_manager.lock);
+    r_audio_clip_manager.lock = NULL;
+
     return r_list_cleanup(rs, &r_audio_clip_manager.audio_clip_data, &r_audio_clip_data_list_def);
 }
 
@@ -303,13 +326,20 @@ r_status_t r_audio_clip_manager_load(r_state_t *rs, const char *audio_clip_path,
         {
             /* Append the clip to the list */
             SDL_LockAudio();
-            status = r_list_add(rs, &r_audio_clip_manager.audio_clip_data, (void*)&audio_clip_data, &r_audio_clip_data_list_def);
+            status = (SDL_LockMutex(r_audio_clip_manager.lock) == 0) ? R_SUCCESS : R_FAILURE;
 
             if (R_SUCCEEDED(status))
             {
-                /* TODO: Get the next available index--don't just keep appending */
-                handle->id = r_audio_clip_manager.audio_clip_data.count - 1;
-                handle->data = r_list_get_index(rs, &r_audio_clip_manager.audio_clip_data, handle->id, &r_audio_clip_data_list_def);
+                status = r_list_add(rs, &r_audio_clip_manager.audio_clip_data, (void*)&audio_clip_data, &r_audio_clip_data_list_def);
+
+                if (R_SUCCEEDED(status))
+                {
+                    /* TODO: Get the next available index--don't just keep appending */
+                    handle->id = r_audio_clip_manager.audio_clip_data.count - 1;
+                    handle->data = r_list_get_index(rs, &r_audio_clip_manager.audio_clip_data, handle->id, &r_audio_clip_data_list_def);
+                }
+
+                SDL_UnlockMutex(r_audio_clip_manager.lock);
             }
 
             SDL_UnlockAudio();
@@ -346,9 +376,16 @@ static r_status_t r_audio_clip_manager_duplicate_handle_internal(r_state_t *rs, 
 
     if (R_SUCCEEDED(status))
     {
-        audio_clip_data->ref_count += 1;
-        to->id = from->id;
-        to->data = from->data;
+        status = (SDL_LockMutex(r_audio_clip_manager.lock) == 0) ? R_SUCCESS : R_FAILURE;
+
+        if (R_SUCCEEDED(status))
+        {
+            audio_clip_data->ref_count += 1;
+            to->id = from->id;
+            to->data = from->data;
+
+            SDL_UnlockMutex(r_audio_clip_manager.lock);
+        }
     }
 
     return status;
@@ -373,11 +410,18 @@ r_status_t r_audio_clip_manager_release_handle_internal(r_state_t *rs, r_audio_c
 
     if (R_SUCCEEDED(status))
     {
-        audio_clip_data->ref_count -= 1;
+        status = (SDL_LockMutex(r_audio_clip_manager.lock) == 0) ? R_SUCCESS : R_FAILURE;
 
-        if (audio_clip_data->ref_count <= 0)
+        if (R_SUCCEEDED(status))
         {
-            r_audio_clip_data_free_internal(rs, audio_clip_data);
+            audio_clip_data->ref_count -= 1;
+
+            if (audio_clip_data->ref_count <= 0)
+            {
+                r_audio_clip_data_free_internal(rs, audio_clip_data);
+            }
+
+            SDL_UnlockMutex(r_audio_clip_manager.lock);
         }
     }
 

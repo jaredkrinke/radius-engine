@@ -1,3 +1,12 @@
+2010-08-11 deraj@users.sourceforge.net
+
+* r_audio.c (r_audio_clip_manager_t, r_audio_clip_manager_start,
+  r_audio_clip_manager_end): Added lock to protect clip handles
+
+* r_audio.c (r_audio_clip_manager_load,
+  r_audio_clip_manager_duplicate_handle_internal,
+  r_audio_clip_manager_release_handle_internal): Protected handle ref counts
+
 2010-08-10 deraj@users.sourceforge.net
 
 * r_list.c (r_list_get_count): Added list count getter

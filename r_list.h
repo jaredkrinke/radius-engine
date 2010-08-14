@@ -52,6 +52,7 @@ extern R_INLINE void *r_list_get_index(r_state_t *rs, r_list_t *list, unsigned i
 extern R_INLINE unsigned int r_list_get_count(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def);
 extern r_status_t r_list_remove_index(r_state_t *rs, r_list_t *list, unsigned int index, const r_list_def_t *list_def);
 extern r_status_t r_list_clear(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def);
+extern r_status_t r_list_steal_index(r_state_t *rs, r_list_t *list, unsigned int index, void *item_out, const r_list_def_t *list_def);
 
 extern r_status_t r_list_init(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def);
 extern r_status_t r_list_cleanup(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def);

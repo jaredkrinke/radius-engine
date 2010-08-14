@@ -1,3 +1,22 @@
+2010-08-13 deraj@users.sourceforge.net
+
+* r_audio.c: Clip instances are now stored in an array of pointers (bug fix)
+* r_audio.c: Miscellaneous fixes for on-demand clips
+
+* r_list.h: Added r_list_steal_index
+* r_list.c: r_list_steal_index implementation
+
+* r_audio_decoder.c: Take ownership of clip instance reference from list
+* r_audio_decoder.c: Shortcut decoding task if no decoding is necessary
+
+2010-08-12 deraj@users.sourceforge.net
+
+* r_audio_decoder.c: Decoder thread now takes r_state_t as its user data
+
+* r_audio_decoder.c (r_audio_decoder_schedule_task): Added scheduling
+
+* r_audio.c (r_audio_start): Moved decoder ownership to r_audio_decoder_start
+
 2010-08-11 deraj@users.sourceforge.net
 
 * r_audio.c (r_audio_clip_manager_t, r_audio_clip_manager_start,

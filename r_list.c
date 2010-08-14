@@ -31,6 +31,36 @@ THE SOFTWARE.
 
 #define R_LIST_ITEM(list_def, items, index) ((void*)&(((char*)items)[(index) * (list_def)->item_size]))
 
+static r_status_t r_list_remove_index_internal(r_state_t *rs, r_list_t *list, unsigned int index, r_boolean_t free_item, const r_list_def_t *list_def)
+{
+    r_status_t status = R_SUCCESS;
+    unsigned int i;
+
+    /* Clear the reference (or just nullify it if taking ownership) */
+    if (free_item)
+    {
+        list_def->item_free(rs, R_LIST_ITEM(list_def, list->items, index));
+    }
+    else
+    {
+        list_def->item_null(rs, R_LIST_ITEM(list_def, list->items, index));
+    }
+
+    /* Shift down remaining items */
+    for (i = index; i < list->count - 1; ++i)
+    {
+        list_def->item_copy(rs, R_LIST_ITEM(list_def, list->items, i), R_LIST_ITEM(list_def, list->items, i + 1));
+    }
+
+    /* Make sure any trailing reference is NULL */
+    list_def->item_null(rs, R_LIST_ITEM(list_def, list->items, list->count - 1));
+
+    /* Decrement count */
+    list->count = list->count - 1;
+
+    return status;
+}
+
 /* Note: This takes ownership of the object */
 r_status_t r_list_add(r_state_t *rs, r_list_t *list, void *item, const r_list_def_t *list_def)
 {
@@ -98,25 +128,7 @@ r_status_t r_list_remove_index(r_state_t *rs, r_list_t *list, unsigned int index
 
     if (R_SUCCEEDED(status))
     {
-        /* Clear the reference */
-        list_def->item_free(rs, R_LIST_ITEM(list_def, list->items, index));
-
-        if (R_SUCCEEDED(status))
-        {
-            /* Shift down remaining items */
-            unsigned int i;
-
-            for (i = index; i < list->count - 1; ++i)
-            {
-                list_def->item_copy(rs, R_LIST_ITEM(list_def, list->items, i), R_LIST_ITEM(list_def, list->items, i + 1));
-            }
-
-            /* Make sure any trailing reference is NULL */
-            list_def->item_null(rs, R_LIST_ITEM(list_def, list->items, list->count - 1));
-
-            /* Decrement count */
-            list->count = list->count - 1;
-        }
+        status = r_list_remove_index_internal(rs, list, index, R_TRUE, list_def);
     }
 
     return status;
@@ -134,6 +146,21 @@ r_status_t r_list_clear(r_state_t *rs, r_list_t *list, const r_list_def_t *list_
     }
 
     list->count = 0;
+
+    return status;
+}
+
+/* Caller takes ownership of the object that is removed from the list */
+r_status_t r_list_steal_index(r_state_t *rs, r_list_t *list, unsigned int index, void *item_out, const r_list_def_t *list_def)
+{
+    /* Ensure the index is valid */
+    r_status_t status = (index >= 0 && index < list->count) ? R_SUCCESS : R_F_INVALID_INDEX;
+
+    if (R_SUCCEEDED(status))
+    {
+        list_def->item_copy(rs, item_out, R_LIST_ITEM(list_def, list->items, index));
+        status = r_list_remove_index_internal(rs, list, index, R_FALSE, list_def);
+    }
 
     return status;
 }

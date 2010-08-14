@@ -32,10 +32,10 @@ THE SOFTWARE.
 #define R_AUDIO_POSITION_MIN                ((char)0x80)
 #define R_AUDIO_POSITION_MAX                ((char)0x7f)
 #define R_AUDIO_CLIP_DATA_HANDLE_INVALID    0xffffffff
-/* TODO #define R_AUDIO_DECODE_BUFFER_SIZE  262144 */
-#define R_AUDIO_DECODE_BUFFER_SIZE  32768
+#define R_AUDIO_DECODE_BUFFER_SIZE          262144
+#define R_AUDIO_CLIP_ON_DEMAND_BUFFERS      3
 
-typedef r_list_t r_audio_clip_instance_list_t;
+typedef r_list_t r_audio_clip_instance_ptr_list_t;
 
 typedef enum
 {
@@ -88,10 +88,9 @@ typedef struct
         struct
         {
             Sound_Sample    *sample;
-            /* TODO: Three buffers are needed for looping cases */
-            Sint16          *buffers[2];
-            r_status_t      buffer_status[2];
-            unsigned int    buffer_bytes[2];
+            Sint16          *buffers[R_AUDIO_CLIP_ON_DEMAND_BUFFERS];
+            r_status_t      buffer_status[R_AUDIO_CLIP_ON_DEMAND_BUFFERS];
+            unsigned int    buffer_bytes[R_AUDIO_CLIP_ON_DEMAND_BUFFERS];
             unsigned int    buffer_index;
             Uint32          buffer_position;
         } on_demand;
@@ -100,7 +99,7 @@ typedef struct
 
 typedef struct
 {
-    r_audio_clip_instance_list_t    clip_instances;
+    r_audio_clip_instance_ptr_list_t clip_instances;
     /* TODO: Music */
 } r_audio_state_t;
 

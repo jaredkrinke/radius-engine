@@ -537,6 +537,11 @@ static r_status_t r_audio_clip_instance_ptr_list_cleanup(r_state_t *rs, r_audio_
     return r_list_cleanup(rs, (r_list_t*)list, &r_audio_clip_instance_ptr_list_def);
 }
 
+static r_audio_clip_instance_t *r_audio_clip_instance_ptr_list_get_index(r_state_t *rs, r_audio_clip_instance_ptr_list_t *list, unsigned int index)
+{
+    return (r_audio_clip_instance_t*)r_list_get_index(rs, (r_list_t*)list, index, &r_audio_clip_instance_ptr_list_def);
+}
+
 static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state_t *audio_state, const r_audio_clip_data_handle_t *clip_handle, unsigned char volume, char position)
 {
     r_status_t status = (rs != NULL && audio_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -554,6 +559,7 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
 
             if (R_SUCCEEDED(status))
             {
+                clip_instance->id = audio_state->next_clip_instance_id++;
                 clip_instance->ref_count = 1;
                 clip_instance->volume = volume;
                 clip_instance->position = position;
@@ -853,6 +859,9 @@ r_status_t r_audio_state_init(r_state_t *rs, r_audio_state_t *audio_state)
 
     if (R_SUCCEEDED(status))
     {
+        audio_state->next_clip_instance_id = 1;
+        audio_state->music_id = 0;
+
         status = r_audio_clip_instance_ptr_list_init(rs, &audio_state->clip_instances);
     }
 
@@ -1058,6 +1067,79 @@ r_status_t r_audio_clear(r_state_t *rs)
 
         {
             status = r_audio_clear_internal(rs);
+        }
+
+        SDL_UnlockAudio();
+    }
+
+    return status;
+}
+
+r_status_t r_audio_music_play(r_state_t *rs, const r_audio_clip_data_handle_t *clip_handle)
+{
+    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        SDL_LockAudio();
+
+        {
+            r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
+
+            /* Only do any work if there's an active audio state */
+            if (audio_state != NULL)
+            {
+                /* TODO: Check for music already being played? */
+                /* Note: this function should only be called from one thread */
+                int clip_instance_id = audio_state->next_clip_instance_id;
+
+                /* TODO: Music volume? */
+                status = r_audio_state_queue_clip_internal(rs, audio_state, clip_handle, R_AUDIO_VOLUME_MAX, 0);
+
+                if (R_SUCCEEDED(status))
+                {
+                    audio_state->music_id = clip_instance_id;
+                }
+            }
+        }
+
+        SDL_UnlockAudio();
+    }
+
+    return status;
+}
+
+r_status_t r_audio_music_stop(r_state_t *rs)
+{
+    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        SDL_LockAudio();
+
+        {
+            r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
+
+            /* Only do any work if there's an active audio state */
+            if (audio_state != NULL && audio_state->music_id != 0)
+            {
+                /* Find the music clip instance and remove it */
+                unsigned int i;
+
+                for (i = 0; i < audio_state->clip_instances.count; ++i)
+                {
+                    r_audio_clip_instance_t *clip_instance = r_audio_clip_instance_ptr_list_get_index(rs, &audio_state->clip_instances, i);
+
+                    if (clip_instance->id == audio_state->music_id)
+                    {
+                        r_audio_clip_instance_ptr_list_remove_index(rs, &audio_state->clip_instances, i);
+                        audio_state->music_id = 0;
+                        break;
+                    }
+                }
+            }
         }
 
         SDL_UnlockAudio();

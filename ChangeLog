@@ -9,6 +9,13 @@
 * r_audio_decoder.h: Added r_audio_decoder_schedule_seek_task
 * r_audio_decoder.c: Implemented decoder seek tasks
 
+* r_audio.h: Added IDs to clip instances
+* r_audio.c: Auto-incrementing clip instance IDs
+
+* r_audio.h: Added music play/stop functions
+* r_audio.c: Implemented music play/stop
+* r_audio_clip_cache.c: Added Audio.Music.play/stop
+
 2010-08-13 deraj@users.sourceforge.net
 
 * r_audio.c: Clip instances are now stored in an array of pointers (bug fix)

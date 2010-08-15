@@ -1,3 +1,9 @@
+2010-08-15 deraj@users.sourceforge.net
+
+* r_defs.h: Added RA_F_CANT_SEEK
+* r_audio_decoder.h: Moved task definition to implementation file
+* r_audio_decoder.c: Moved task definition to implementation file
+
 2010-08-13 deraj@users.sourceforge.net
 
 * r_audio.c: Clip instances are now stored in an array of pointers (bug fix)

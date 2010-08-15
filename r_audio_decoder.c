@@ -29,6 +29,26 @@ THE SOFTWARE.
 
 #define R_AUDIO_DECODER_QUEUE_POLLING_PERIOD_MS 1000
 
+typedef struct
+{
+    r_audio_clip_instance_t *clip_instance;
+    Sint16                  *buffer;
+    r_status_t              *status;
+    unsigned int            *bytes_decoded;
+} r_audio_decoder_task_t;
+
+typedef r_list_t r_audio_decoder_task_list_t;
+
+typedef struct
+{
+    SDL_Thread                  *thread;
+    SDL_mutex                   *lock;
+
+    r_boolean_t                 done;
+    SDL_sem                     *semaphore;
+    r_audio_decoder_task_list_t tasks;
+} r_audio_decoder_t;
+
 static void r_audio_decoder_task_copy_internal(void *to, const void *from)
 {
     memcpy(to, from, sizeof(r_audio_decoder_task_t));
@@ -332,7 +352,7 @@ r_status_t r_audio_decoder_stop(r_state_t *rs)
     return status;
 }
 
-r_status_t r_audio_decoder_schedule_task(r_state_t *rs, r_boolean_t lock_audio, r_audio_clip_instance_t *clip_instance, Sint16 *buffer, r_status_t *task_status, unsigned int *bytes_decoded)
+r_status_t r_audio_decoder_schedule_decode_task(r_state_t *rs, r_boolean_t lock_audio, r_audio_clip_instance_t *clip_instance, Sint16 *buffer, r_status_t *task_status, unsigned int *bytes_decoded)
 {
     r_audio_decoder_t *decoder = (r_audio_decoder_t*)rs->audio_decoder;
     r_status_t status = (rs != NULL && decoder != NULL && clip_instance != NULL && buffer != NULL && task_status != NULL && bytes_decoded != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;

@@ -607,12 +607,12 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
                                 /* Schedule decoding tasks for each buffer */
                                 for (i = 0; i < R_AUDIO_CLIP_ON_DEMAND_BUFFERS && R_SUCCEEDED(status); ++i)
                                 {
-                                    status = r_audio_decoder_schedule_task(rs,
-                                                                           R_TRUE,
-                                                                           clip_instance,
-                                                                           clip_instance->state.on_demand.buffers[i],
-                                                                           &clip_instance->state.on_demand.buffer_status[i],
-                                                                           &clip_instance->state.on_demand.buffer_bytes[i]);
+                                    status = r_audio_decoder_schedule_decode_task(rs,
+                                                                                  R_TRUE,
+                                                                                  clip_instance,
+                                                                                  clip_instance->state.on_demand.buffers[i],
+                                                                                  &clip_instance->state.on_demand.buffer_status[i],
+                                                                                  &clip_instance->state.on_demand.buffer_bytes[i]);
                                 }
                             }
 
@@ -798,12 +798,12 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
                                             clip_instance->state.on_demand.buffer_position = 0;
 
                                             /* Schedule decoding of next block */
-                                            status = r_audio_decoder_schedule_task(rs,
-                                                                                   R_FALSE,
-                                                                                   clip_instance,
-                                                                                   clip_instance->state.on_demand.buffers[next_buffer_index],
-                                                                                   &clip_instance->state.on_demand.buffer_status[next_buffer_index],
-                                                                                   &clip_instance->state.on_demand.buffer_bytes[next_buffer_index]);
+                                            status = r_audio_decoder_schedule_decode_task(rs,
+                                                                                          R_FALSE,
+                                                                                          clip_instance,
+                                                                                          clip_instance->state.on_demand.buffers[next_buffer_index],
+                                                                                          &clip_instance->state.on_demand.buffer_status[next_buffer_index],
+                                                                                          &clip_instance->state.on_demand.buffer_bytes[next_buffer_index]);
                                         }
                                     }
                                 }

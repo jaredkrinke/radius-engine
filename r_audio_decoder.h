@@ -29,28 +29,8 @@ THE SOFTWARE.
 #include "r_list.h"
 #include "r_audio.h"
 
-typedef struct
-{
-    r_audio_clip_instance_t *clip_instance;
-    Sint16                  *buffer;
-    r_status_t              *status;
-    unsigned int            *bytes_decoded;
-} r_audio_decoder_task_t;
-
-typedef r_list_t r_audio_decoder_task_list_t;
-
-typedef struct
-{
-    SDL_Thread                  *thread;
-    SDL_mutex                   *lock;
-
-    r_boolean_t                 done;
-    SDL_sem                     *semaphore;
-    r_audio_decoder_task_list_t tasks;
-} r_audio_decoder_t;
-
 extern r_status_t r_audio_decoder_start(r_state_t *rs);
 extern r_status_t r_audio_decoder_stop(r_state_t *rs);
-extern r_status_t r_audio_decoder_schedule_task(r_state_t *rs, r_boolean_t lock_audio, r_audio_clip_instance_t *clip_instance, Sint16 *buffer, r_status_t *task_status, unsigned int *bytes_decoded);
+extern r_status_t r_audio_decoder_schedule_decode_task(r_state_t *rs, r_boolean_t lock_audio, r_audio_clip_instance_t *clip_instance, Sint16 *buffer, r_status_t *task_status, unsigned int *bytes_decoded);
 
 #endif

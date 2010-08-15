@@ -1,8 +1,13 @@
 2010-08-15 deraj@users.sourceforge.net
 
-* r_defs.h: Added RA_F_CANT_SEEK
+* r_defs.h: Added RA_F_CANT_SEEK, RA_F_SEEK_ERROR
 * r_audio_decoder.h: Moved task definition to implementation file
 * r_audio_decoder.c: Moved task definition to implementation file
+
+* r_audio_decoder.c: Support for multiple decoder task types
+
+* r_audio_decoder.h: Added r_audio_decoder_schedule_seek_task
+* r_audio_decoder.c: Implemented decoder seek tasks
 
 2010-08-13 deraj@users.sourceforge.net
 

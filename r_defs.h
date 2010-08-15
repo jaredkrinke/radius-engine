@@ -80,6 +80,7 @@ typedef enum {
     RA_F_DECODE_ERROR       = 0x84000101,
     RA_F_DECODE_PENDING     = 0x84000102,
     RA_F_CANT_SEEK          = 0x84000103,
+    RA_F_SEEK_ERROR         = 0x84000104,
     R_F_AUDIO_FAILURE       = 0x84004005,
 
     R_F_INVALID             = 0x8100ffff

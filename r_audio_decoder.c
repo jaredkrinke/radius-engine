@@ -29,12 +29,32 @@ THE SOFTWARE.
 
 #define R_AUDIO_DECODER_QUEUE_POLLING_PERIOD_MS 1000
 
+typedef enum
+{
+    R_AUDIO_DECODER_TASK_TYPE_DECODE = 0,
+    R_AUDIO_DECODER_TASK_TYPE_SEEK,
+    R_AUDIO_DECODER_TASK_TYPE_INVALID,
+} r_audio_decoder_task_type_t;
+
 typedef struct
 {
-    r_audio_clip_instance_t *clip_instance;
-    Sint16                  *buffer;
-    r_status_t              *status;
-    unsigned int            *bytes_decoded;
+    r_audio_decoder_task_type_t type;
+    r_audio_clip_instance_t     *clip_instance;
+
+    union
+    {
+        struct
+        {
+            Sint16          *buffer;
+            r_status_t      *status;
+            unsigned int    *bytes_decoded;
+        } decode;
+
+        struct
+        {
+            unsigned int ms;
+        } seek;
+    } data;
 } r_audio_decoder_task_t;
 
 typedef r_list_t r_audio_decoder_task_list_t;
@@ -58,16 +78,28 @@ static void r_audio_decoder_task_null(r_state_t *rs, void *item)
 {
     r_audio_decoder_task_t *task = (r_audio_decoder_task_t*)item;
 
+    task->type = R_AUDIO_DECODER_TASK_TYPE_INVALID;
     task->clip_instance = NULL;
-    task->buffer        = NULL;
-    task->status        = NULL;
+
+    task->data.decode.buffer = NULL;
+    task->data.decode.status = NULL;
 }
 
 static void r_audio_decoder_task_free(r_state_t *rs, void *item)
 {
     r_audio_decoder_task_t *task = (r_audio_decoder_task_t*)item;
 
-    r_audio_clip_instance_release(rs, task->clip_instance);
+    switch (task->type)
+    {
+    case R_AUDIO_DECODER_TASK_TYPE_DECODE:
+    case R_AUDIO_DECODER_TASK_TYPE_SEEK:
+        r_audio_clip_instance_release(rs, task->clip_instance);
+        break;
+
+    default:
+        R_ASSERT(0);
+        break;
+    }
 }
 
 static void r_audio_decoder_task_copy(r_state_t *rs, void *to, const void *from)
@@ -132,6 +164,214 @@ static r_status_t r_audio_decoder_unlock(r_audio_decoder_t *decoder)
     return (SDL_UnlockMutex(decoder->lock) == 0) ? R_SUCCESS : R_FAILURE;
 }
 
+static r_status_t r_audio_decoder_schedule_task_internal(r_state_t *rs, r_audio_decoder_t *decoder, r_boolean_t lock_audio, r_boolean_t lock_decoder, r_audio_decoder_task_t *task)
+{
+    r_status_t status = r_audio_clip_instance_add_ref(rs, task->clip_instance);
+
+    if (R_SUCCEEDED(status))
+    {
+        if (lock_audio)
+        {
+            SDL_LockAudio();
+        }
+
+        if (lock_decoder)
+        {
+            status = r_audio_decoder_lock(decoder);
+        }
+
+        if (R_SUCCEEDED(status))
+        {
+            /* Queue the task */
+            status = r_audio_decoder_task_list_add(rs, &decoder->tasks, (void*)task);
+
+            if (R_SUCCEEDED(status))
+            {
+                status = (SDL_SemPost(decoder->semaphore) == 0) ? R_SUCCESS : R_FAILURE;
+            }
+
+            if (lock_decoder)
+            {
+                r_audio_decoder_unlock(decoder);
+            }
+        }
+
+        if (lock_audio)
+        {
+            SDL_UnlockAudio();
+        }
+
+        if (R_FAILED(status))
+        {
+            /* On failure, the clip instance reference is not needed because no task was scheduled */
+            r_audio_clip_instance_release(rs, task->clip_instance);
+        }
+    }
+
+    return status;
+}
+
+static r_status_t r_audio_decoder_schedule_decode_task_internal(r_state_t *rs,
+                                                                r_boolean_t lock_audio,
+                                                                r_boolean_t lock_decoder,
+                                                                r_audio_clip_instance_t *clip_instance,
+                                                                Sint16 *buffer,
+                                                                r_status_t *task_status,
+                                                                unsigned int *bytes_decoded)
+{
+    r_audio_decoder_t *decoder = (r_audio_decoder_t*)rs->audio_decoder;
+    r_status_t status = (rs != NULL && decoder != NULL && clip_instance != NULL && buffer != NULL && task_status != NULL && bytes_decoded != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        r_audio_decoder_task_t task;
+
+        task.type                       = R_AUDIO_DECODER_TASK_TYPE_DECODE;
+        task.clip_instance              = clip_instance;
+        task.data.decode.buffer         = buffer;
+        task.data.decode.status         = task_status;
+        task.data.decode.bytes_decoded  = bytes_decoded;
+
+        status = r_audio_decoder_schedule_task_internal(rs, decoder, lock_audio, lock_decoder, &task);
+    }
+
+    return status;
+}
+
+/* Note: this is called on the decoder thread */
+static r_status_t r_audio_decoder_process_task(r_state_t *rs, r_audio_decoder_t *decoder, r_audio_decoder_task_t *task)
+{
+    r_status_t status = R_SUCCESS;
+
+    switch (task->type)
+    {
+    case R_AUDIO_DECODER_TASK_TYPE_DECODE:
+        {
+            Sound_Sample *sample = task->clip_instance->state.on_demand.sample;
+            r_boolean_t decoded = R_FALSE;
+            Uint32 bytes_decoded = 0;
+
+            /* Check to see if decoding should be done or not */
+            if ((sample->flags & (SOUND_SAMPLEFLAG_EOF | SOUND_SAMPLEFLAG_ERROR)) == 0)
+            {
+                bytes_decoded = Sound_Decode(task->clip_instance->state.on_demand.sample);
+                status = (bytes_decoded == sample->buffer_size || (sample->flags & SOUND_SAMPLEFLAG_EOF) != 0) ? R_SUCCESS : RA_F_DECODE_ERROR;
+                decoded = R_TRUE;
+            }
+
+            if (R_SUCCEEDED(status))
+            {
+                SDL_LockAudio();
+                status = r_audio_decoder_lock(decoder);
+
+                if (R_SUCCEEDED(status))
+                {
+                    if (R_SUCCEEDED(status) && decoded)
+                    {
+                        /* Copy decoded sound to the destination buffer */
+                        memcpy(task->data.decode.buffer, sample->buffer, sample->buffer_size);
+
+                        /* Clear any extra space in the buffer */
+                        if (bytes_decoded < sample->buffer_size)
+                        {
+                            char *end = &((char*)task->data.decode.buffer)[bytes_decoded];
+
+                            memset(task->data.decode.buffer, 0, sample->buffer_size - bytes_decoded);
+                        }
+                    }
+
+                    /* Propagate status */
+                    if (R_SUCCEEDED(status))
+                    {
+                        *(task->data.decode.bytes_decoded) = bytes_decoded;
+
+                        if (!decoded || (sample->flags & SOUND_SAMPLEFLAG_EOF) != 0)
+                        {
+                            *(task->data.decode.status) = RA_S_FULLY_DECODED;
+                        }
+                        else
+                        {
+                            *(task->data.decode.status) = R_SUCCESS;
+                        }
+                    }
+                    else
+                    {
+                        *(task->data.decode.status) = status;
+                    }
+
+                    r_audio_decoder_unlock(decoder);
+                }
+
+                SDL_UnlockAudio();
+            }
+        }
+        break;
+
+    case R_AUDIO_DECODER_TASK_TYPE_SEEK:
+        {
+            /* Seek or rewind */
+            Sound_Sample *sample = task->clip_instance->state.on_demand.sample;
+
+            if (task->data.seek.ms == 0)
+            {
+                status = (Sound_Rewind(sample) != 0) ? R_SUCCESS : RA_F_DECODE_ERROR;
+            }
+            else
+            {
+                status = ((sample->flags & SOUND_SAMPLEFLAG_CANSEEK) != 0) ? R_SUCCESS : RA_F_CANT_SEEK;
+
+                if (R_SUCCEEDED(status))
+                {
+                    status = (Sound_Seek(sample, task->data.seek.ms) != 0) ? R_SUCCESS : RA_F_SEEK_ERROR;
+                }
+            }
+
+            if (R_SUCCEEDED(status))
+            {
+                /* Invalidate buffers, schedule decoding tasks */
+                SDL_LockAudio();
+                status = r_audio_decoder_lock(decoder);
+
+                if (R_SUCCEEDED(status))
+                {
+                    int i;
+
+                    for (i = 0; i < R_AUDIO_CLIP_ON_DEMAND_BUFFERS && R_SUCCEEDED(status); ++i)
+                    {
+                        task->clip_instance->state.on_demand.buffer_status[i] = RA_F_DECODE_PENDING;
+                        status = r_audio_decoder_schedule_decode_task_internal(rs,
+                                                                               R_FALSE,
+                                                                               R_FALSE,
+                                                                               task->clip_instance,
+                                                                               task->clip_instance->state.on_demand.buffers[i],
+                                                                               &task->clip_instance->state.on_demand.buffer_status[i],
+                                                                               &task->clip_instance->state.on_demand.buffer_bytes[i]);
+                    }
+
+                    if (R_SUCCEEDED(status))
+                    {
+                        /* Move to the first buffer immediately */
+                        task->clip_instance->state.on_demand.buffer_index = 0;
+                        task->clip_instance->state.on_demand.buffer_position = 0;
+                    }
+
+                    r_audio_decoder_unlock(decoder);
+                }
+
+                SDL_UnlockAudio();
+            }
+        }
+        break;
+
+    default:
+        R_ASSERT(0);
+    }
+
+    return status;
+}
+
 static int r_audio_decoder_thread(void *data)
 {
     r_state_t *rs = (r_state_t*)data;
@@ -161,6 +401,7 @@ static int r_audio_decoder_thread(void *data)
             {
                 /* Pull a task off of the queue */
                 r_audio_decoder_task_t task;
+                r_boolean_t task_found = R_FALSE;
 
                 status = r_audio_decoder_lock(decoder);
 
@@ -169,75 +410,24 @@ static int r_audio_decoder_thread(void *data)
                     if (r_audio_decoder_task_list_get_count_internal(rs, &decoder->tasks) > 0)
                     {
                         status = r_audio_decoder_task_list_steal_index(rs, &decoder->tasks, 0, &task);
+                        task_found = R_TRUE;
                         done = decoder->done;
                     }
 
                     r_audio_decoder_unlock(decoder);
                 }
 
-                if (R_SUCCEEDED(status) && !done)
+                if (R_SUCCEEDED(status) && task_found)
                 {
-                    /* Process the task */
-                    Sound_Sample *sample = task.clip_instance->state.on_demand.sample;
-                    r_boolean_t decoded = R_FALSE;
-                    Uint32 bytes_decoded = 0;
-
-                    /* Check to see if decoding should be done or not */
-                    if ((sample->flags & (SOUND_SAMPLEFLAG_EOF | SOUND_SAMPLEFLAG_ERROR)) == 0)
+                    /* Process the task, if necessary */
+                    if (!done)
                     {
-                        bytes_decoded = Sound_Decode(task.clip_instance->state.on_demand.sample);
-                        status = (bytes_decoded == sample->buffer_size || (sample->flags & SOUND_SAMPLEFLAG_EOF) != 0) ? R_SUCCESS : RA_F_DECODE_ERROR;
-                        decoded = R_TRUE;
+                        /* Note: tasks propagate status appropriately and one failed task should not end the decoder thread, so ignore return value */
+                        r_audio_decoder_process_task(rs, decoder, &task);
                     }
 
-                    if (R_SUCCEEDED(status))
-                    {
-                        SDL_LockAudio();
-                        status = r_audio_decoder_lock(decoder);
-
-                        if (R_SUCCEEDED(status))
-                        {
-                            if (R_SUCCEEDED(status) && decoded)
-                            {
-                                /* Copy decoded sound to the destination buffer */
-                                memcpy(task.buffer, sample->buffer, sample->buffer_size);
-
-                                /* Clear any extra space in the buffer */
-                                if (bytes_decoded < sample->buffer_size)
-                                {
-                                    char *end = &((char*)task.buffer)[bytes_decoded];
-
-                                    memset(task.buffer, 0, sample->buffer_size - bytes_decoded);
-                                }
-                            }
-
-                            /* Propagate status */
-                            if (R_SUCCEEDED(status))
-                            {
-                                *(task.bytes_decoded) = bytes_decoded;
-
-                                if (!decoded || (sample->flags & SOUND_SAMPLEFLAG_EOF) != 0)
-                                {
-                                    *(task.status) = RA_S_FULLY_DECODED;
-                                }
-                                else
-                                {
-                                    *(task.status) = R_SUCCESS;
-                                }
-                            }
-                            else
-                            {
-                                *(task.status) = status;
-                            }
-
-                            r_audio_decoder_unlock(decoder);
-                        }
-
-                        SDL_UnlockAudio();
-                    }
-
-                    /* Release clip instance reference */
-                    r_audio_clip_instance_release(rs, task.clip_instance);
+                    /* Free the task now that it's been processed */
+                    r_audio_decoder_task_free(rs, &task);
                 }
             }
         }
@@ -354,51 +544,25 @@ r_status_t r_audio_decoder_stop(r_state_t *rs)
 
 r_status_t r_audio_decoder_schedule_decode_task(r_state_t *rs, r_boolean_t lock_audio, r_audio_clip_instance_t *clip_instance, Sint16 *buffer, r_status_t *task_status, unsigned int *bytes_decoded)
 {
+    return r_audio_decoder_schedule_decode_task_internal(rs, lock_audio, R_TRUE, clip_instance, buffer, task_status, bytes_decoded);
+}
+
+r_status_t r_audio_decoder_schedule_seek_task(r_state_t *rs, r_audio_clip_instance_t *clip_instance, unsigned int ms)
+{
     r_audio_decoder_t *decoder = (r_audio_decoder_t*)rs->audio_decoder;
-    r_status_t status = (rs != NULL && decoder != NULL && clip_instance != NULL && buffer != NULL && task_status != NULL && bytes_decoded != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    r_status_t status = (rs != NULL && decoder != NULL && clip_instance != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
 
     R_ASSERT(R_SUCCEEDED(status));
 
     if (R_SUCCEEDED(status))
     {
-        /* Add another reference to the clip instance */
-        status = r_audio_clip_instance_add_ref(rs, clip_instance);
+        r_audio_decoder_task_t task;
 
-        if (R_SUCCEEDED(status))
-        {
-            if (lock_audio)
-            {
-                SDL_LockAudio();
-            }
+        task.type           = R_AUDIO_DECODER_TASK_TYPE_SEEK;
+        task.clip_instance  = clip_instance;
+        task.data.seek.ms   = ms;
 
-            status = r_audio_decoder_lock(decoder);
-
-            if (R_SUCCEEDED(status))
-            {
-                /* Queue the task */
-                r_audio_decoder_task_t task = { clip_instance, buffer, task_status, bytes_decoded };
-
-                status = r_audio_decoder_task_list_add(rs, &decoder->tasks, (void*)&task);
-
-                if (R_SUCCEEDED(status))
-                {
-                    status = (SDL_SemPost(decoder->semaphore) == 0) ? R_SUCCESS : R_FAILURE;
-                }
-
-                r_audio_decoder_unlock(decoder);
-            }
-
-            if (lock_audio)
-            {
-                SDL_UnlockAudio();
-            }
-
-            if (R_FAILED(status))
-            {
-                /* On failure, the clip instance reference is not needed because no task was scheduled */
-                r_audio_clip_instance_release(rs, clip_instance);
-            }
-        }
+        status = r_audio_decoder_schedule_task_internal(rs, decoder, R_TRUE, R_TRUE, &task);
     }
 
     return status;

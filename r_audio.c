@@ -38,7 +38,7 @@ THE SOFTWARE.
 #define R_AUDIO_FORMAT              AUDIO_S16SYS
 #define R_AUDIO_BYTES_PER_SAMPLE    2
 #define R_AUDIO_CHANNELS            2
-#define R_AUDIO_BUFFER_LENGTH       2048
+#define R_AUDIO_BUFFER_LENGTH       2048 /* TODO: I'm hearing occasional skipping... */
 
 /* PhysicsFS SDL_RWops implementation */
 static int internal_seek(struct SDL_RWops *context, int offset, int origin)
@@ -396,6 +396,7 @@ r_status_t r_audio_clip_manager_duplicate_handle(r_state_t *rs, r_audio_clip_dat
 {
     r_status_t status = R_SUCCESS;
 
+    /* TODO: Is this lock necessary? The internal function does some synchronization... */
     SDL_LockAudio();
     status = r_audio_clip_manager_duplicate_handle_internal(rs, to, from);
     SDL_UnlockAudio();
@@ -433,6 +434,7 @@ r_status_t r_audio_clip_manager_release_handle(r_state_t *rs, r_audio_clip_data_
 {
     r_status_t status = R_SUCCESS;
 
+    /* TODO: Is this lock necessary? The internal function does some synchronization... */
     SDL_LockAudio();
     status = r_audio_clip_manager_release_handle_internal(rs, handle);
     SDL_UnlockAudio();
@@ -450,6 +452,8 @@ r_status_t r_audio_clip_instance_release(r_state_t *rs, r_audio_clip_instance_t 
 
         if (clip_instance->ref_count <= 0)
         {
+            SDL_UnlockMutex(r_audio_clip_manager.lock);
+
             switch (clip_instance->clip_handle.data->type)
             {
             case R_AUDIO_CLIP_TYPE_CACHED:
@@ -466,8 +470,10 @@ r_status_t r_audio_clip_instance_release(r_state_t *rs, r_audio_clip_instance_t 
             r_audio_clip_manager_release_handle_internal(rs, &clip_instance->clip_handle);
             free(clip_instance);
         }
-
-        SDL_UnlockMutex(r_audio_clip_manager.lock);
+        else
+        {
+            SDL_UnlockMutex(r_audio_clip_manager.lock);
+        }
     }
 
     return status;
@@ -537,9 +543,9 @@ static r_status_t r_audio_clip_instance_ptr_list_cleanup(r_state_t *rs, r_audio_
     return r_list_cleanup(rs, (r_list_t*)list, &r_audio_clip_instance_ptr_list_def);
 }
 
-static r_audio_clip_instance_t *r_audio_clip_instance_ptr_list_get_index(r_state_t *rs, r_audio_clip_instance_ptr_list_t *list, unsigned int index)
+static r_audio_clip_instance_t **r_audio_clip_instance_ptr_list_get_index(r_state_t *rs, r_audio_clip_instance_ptr_list_t *list, unsigned int index)
 {
-    return (r_audio_clip_instance_t*)r_list_get_index(rs, (r_list_t*)list, index, &r_audio_clip_instance_ptr_list_def);
+    return (r_audio_clip_instance_t**)r_list_get_index(rs, (r_list_t*)list, index, &r_audio_clip_instance_ptr_list_def);
 }
 
 static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state_t *audio_state, const r_audio_clip_data_handle_t *clip_handle, unsigned char volume, char position)
@@ -1130,7 +1136,7 @@ r_status_t r_audio_music_stop(r_state_t *rs)
 
                 for (i = 0; i < audio_state->clip_instances.count; ++i)
                 {
-                    r_audio_clip_instance_t *clip_instance = r_audio_clip_instance_ptr_list_get_index(rs, &audio_state->clip_instances, i);
+                    r_audio_clip_instance_t *clip_instance = *(r_audio_clip_instance_ptr_list_get_index(rs, &audio_state->clip_instances, i));
 
                     if (clip_instance->id == audio_state->music_id)
                     {

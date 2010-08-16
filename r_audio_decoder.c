@@ -185,14 +185,14 @@ static r_status_t r_audio_decoder_schedule_task_internal(r_state_t *rs, r_audio_
             /* Queue the task */
             status = r_audio_decoder_task_list_add(rs, &decoder->tasks, (void*)task);
 
-            if (R_SUCCEEDED(status))
-            {
-                status = (SDL_SemPost(decoder->semaphore) == 0) ? R_SUCCESS : R_FAILURE;
-            }
-
             if (lock_decoder)
             {
                 r_audio_decoder_unlock(decoder);
+            }
+
+            if (R_SUCCEEDED(status))
+            {
+                status = (SDL_SemPost(decoder->semaphore) == 0) ? R_SUCCESS : R_FAILURE;
             }
         }
 
@@ -263,48 +263,39 @@ static r_status_t r_audio_decoder_process_task(r_state_t *rs, r_audio_decoder_t 
 
             if (R_SUCCEEDED(status))
             {
-                SDL_LockAudio();
-                status = r_audio_decoder_lock(decoder);
+                /* Note: no locks are taken here, so other threads should not manipulate this data */
+                if (decoded)
+                {
+                    /* Copy decoded sound to the destination buffer */
+                    memcpy(task->data.decode.buffer, sample->buffer, sample->buffer_size);
 
+                    /* Clear any extra space in the buffer */
+                    if (bytes_decoded < sample->buffer_size)
+                    {
+                        char *end = &((char*)task->data.decode.buffer)[bytes_decoded];
+
+                        memset(task->data.decode.buffer, 0, sample->buffer_size - bytes_decoded);
+                    }
+                }
+
+                /* Propagate status */
                 if (R_SUCCEEDED(status))
                 {
-                    if (R_SUCCEEDED(status) && decoded)
+                    *(task->data.decode.bytes_decoded) = bytes_decoded;
+
+                    if (!decoded || (sample->flags & SOUND_SAMPLEFLAG_EOF) != 0)
                     {
-                        /* Copy decoded sound to the destination buffer */
-                        memcpy(task->data.decode.buffer, sample->buffer, sample->buffer_size);
-
-                        /* Clear any extra space in the buffer */
-                        if (bytes_decoded < sample->buffer_size)
-                        {
-                            char *end = &((char*)task->data.decode.buffer)[bytes_decoded];
-
-                            memset(task->data.decode.buffer, 0, sample->buffer_size - bytes_decoded);
-                        }
-                    }
-
-                    /* Propagate status */
-                    if (R_SUCCEEDED(status))
-                    {
-                        *(task->data.decode.bytes_decoded) = bytes_decoded;
-
-                        if (!decoded || (sample->flags & SOUND_SAMPLEFLAG_EOF) != 0)
-                        {
-                            *(task->data.decode.status) = RA_S_FULLY_DECODED;
-                        }
-                        else
-                        {
-                            *(task->data.decode.status) = R_SUCCESS;
-                        }
+                        *(task->data.decode.status) = RA_S_FULLY_DECODED;
                     }
                     else
                     {
-                        *(task->data.decode.status) = status;
+                        *(task->data.decode.status) = R_SUCCESS;
                     }
-
-                    r_audio_decoder_unlock(decoder);
                 }
-
-                SDL_UnlockAudio();
+                else
+                {
+                    *(task->data.decode.status) = status;
+                }
             }
         }
         break;

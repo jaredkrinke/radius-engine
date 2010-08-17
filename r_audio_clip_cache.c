@@ -36,7 +36,7 @@ static r_status_t r_audio_clip_init(r_state_t *rs, r_object_t *object)
 {
     r_audio_clip_t *audio_clip = (r_audio_clip_t*)object;
 
-    r_audio_clip_manager_null_handle(rs, &audio_clip->clip_handle);
+    audio_clip->clip_data = NULL;
 
     return R_SUCCESS;
 }
@@ -44,11 +44,11 @@ static r_status_t r_audio_clip_init(r_state_t *rs, r_object_t *object)
 static r_status_t r_audio_clip_cleanup(r_state_t *rs, r_object_t *object)
 {
     r_audio_clip_t *audio_clip = (r_audio_clip_t*)object;
-    r_status_t status = R_SUCCESS;
+    r_status_t status = r_audio_clip_data_release(rs, audio_clip->clip_data);
 
-    if (audio_clip->clip_handle.id != R_AUDIO_CLIP_DATA_HANDLE_INVALID)
+    if (R_SUCCEEDED(status))
     {
-        status = r_audio_clip_manager_release_handle(rs, &audio_clip->clip_handle);
+        audio_clip->clip_data = NULL;
     }
 
     return status;
@@ -58,7 +58,7 @@ static r_status_t r_audio_cache_load(r_state_t *rs, const char *resource_path, r
 {
     r_audio_clip_t *audio_clip = (r_audio_clip_t*)object;
 
-    return r_audio_clip_manager_load(rs, resource_path, &audio_clip->clip_handle);
+    return r_audio_clip_manager_load(rs, resource_path, &audio_clip->clip_data);
 }
 
 r_object_header_t r_audio_clip_header = { R_OBJECT_TYPE_AUDIO_CLIP, sizeof(r_audio_clip_t), R_FALSE, r_audio_clip_fields, r_audio_clip_init, NULL, r_audio_clip_cleanup };
@@ -72,7 +72,7 @@ static r_status_t r_audio_clip_cache_retrieve(r_state_t *rs, const char* audio_c
 
     if (R_FAILED(status))
     {
-        r_audio_clip_manager_null_handle(rs, &audio_clip->clip_handle);
+        audio_clip->clip_data = NULL;
     }
 
     return status;
@@ -85,7 +85,7 @@ static r_status_t r_audio_clip_cache_process(r_state_t *rs, r_resource_cache_pro
 
 static r_status_t r_audio_clip_cache_release(r_state_t *rs, const char *audio_clip_path, r_object_t *object)
 {
-    return r_audio_clip_manager_release_handle(rs, &((r_audio_clip_t*)object)->clip_handle);
+    return r_audio_clip_data_release(rs, ((r_audio_clip_t*)object)->clip_data);
 }
 
 static r_status_t r_audio_clip_cache_release_all(r_state_t *rs)
@@ -195,7 +195,7 @@ static int l_Audio_play(lua_State *ls)
                     position = (char)(R_CLAMP(f, -1.0, 1.0) * R_AUDIO_POSITION_MAX);
                 }
 
-                status = r_audio_queue_clip(rs, &audio_clip.clip_handle, volume, position);
+                status = r_audio_queue_clip(rs, audio_clip.clip_data, volume, position);
             }
         }
     }
@@ -253,7 +253,7 @@ static int l_Audio_Music_play(lua_State *ls)
 
             if (R_SUCCEEDED(status))
             {
-                status = r_audio_music_play(rs, &audio_clip.clip_handle);
+                status = r_audio_music_play(rs, audio_clip.clip_data);
             }
         }
     }

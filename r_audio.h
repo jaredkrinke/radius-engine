@@ -71,18 +71,11 @@ typedef struct
 
 typedef struct
 {
-    /* TODO: Is id actually necessary? I don't see why this is needed... */
-    unsigned int                id;
-    const r_audio_clip_data_t   *data;
-} r_audio_clip_data_handle_t;
-
-typedef struct
-{
-    unsigned int                id;
-    r_audio_clip_data_handle_t  clip_handle;
-    int                         ref_count;
-    unsigned char               volume;
-    char                        position;
+    unsigned int        id;
+    r_audio_clip_data_t *clip_data;
+    int                  ref_count;
+    unsigned char        volume;
+    char                 position;
 
     union
     {
@@ -120,10 +113,10 @@ extern void r_audio_end(r_state_t *rs);
 
 extern r_status_t r_audio_set_volume(r_state_t *rs, unsigned char volume);
 extern r_status_t r_audio_set_current_state(r_state_t *rs, r_audio_state_t *audio_state);
-extern r_status_t r_audio_queue_clip(r_state_t *rs, const r_audio_clip_data_handle_t *clip_handle, unsigned char volume, char position);
+extern r_status_t r_audio_queue_clip(r_state_t *rs, r_audio_clip_data_t *clip_data, unsigned char volume, char position);
 extern r_status_t r_audio_clear(r_state_t *rs);
 
-extern r_status_t r_audio_music_play(r_state_t *rs, const r_audio_clip_data_handle_t *clip_handle);
+extern r_status_t r_audio_music_play(r_state_t *rs, r_audio_clip_data_t *clip_data);
 extern r_status_t r_audio_music_stop(r_state_t *rs);
 
 #endif

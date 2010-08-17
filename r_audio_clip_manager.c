@@ -177,45 +177,27 @@ static void r_audio_clip_data_free_internal(r_state_t *rs, r_audio_clip_data_t *
     r_audio_clip_data_null_internal(rs, (void*)audio_clip_data);
 }
 
-static void r_audio_clip_data_null(r_state_t *rs, void *item)
+static void r_audio_clip_data_ptr_null(r_state_t *rs, void *item)
 {
-    r_audio_clip_data_null_internal(rs, (r_audio_clip_data_t*)item);
+    r_audio_clip_data_t **clip_data = (r_audio_clip_data_t**)item;
+
+    clip_data = NULL;
 }
 
-static void r_audio_clip_data_free(r_state_t *rs, void *item)
+static void r_audio_clip_data_ptr_free(r_state_t *rs, void *item)
 {
-    r_audio_clip_data_free_internal(rs, (r_audio_clip_data_t*)item);
+    r_audio_clip_data_t **clip_data = (r_audio_clip_data_t**)item;
+
+    r_audio_clip_data_release(rs, *clip_data);
 }
 
-static void r_audio_clip_data_copy(r_state_t *rs, void *to, const void *from)
+static void r_audio_clip_data_ptr_copy(r_state_t *rs, void *to, const void *from)
 {
-    /* Simple byte copy */
+    /* Shallow copy */
     memcpy(to, from, sizeof(r_audio_clip_data_t));
 }
 
-r_list_def_t r_audio_clip_data_list_def = { sizeof(r_audio_clip_data_t), r_audio_clip_data_null, r_audio_clip_data_free, r_audio_clip_data_copy };
-
-static r_status_t r_audio_clip_manager_duplicate_handle_internal(r_state_t *rs, r_audio_clip_data_handle_t *to, const r_audio_clip_data_handle_t *from)
-{
-    r_audio_clip_data_t *audio_clip_data  = r_list_get_index(rs, &r_audio_clip_manager.audio_clip_data, from->id, &r_audio_clip_data_list_def);
-    r_status_t status = (audio_clip_data != NULL) ? R_SUCCESS : R_F_INVALID_INDEX;
-
-    if (R_SUCCEEDED(status))
-    {
-        status = (SDL_LockMutex(r_audio_clip_manager.lock) == 0) ? R_SUCCESS : R_FAILURE;
-
-        if (R_SUCCEEDED(status))
-        {
-            audio_clip_data->ref_count += 1;
-            to->id = from->id;
-            to->data = from->data;
-
-            SDL_UnlockMutex(r_audio_clip_manager.lock);
-        }
-    }
-
-    return status;
-}
+r_list_def_t r_audio_clip_data_ptr_list_def = { sizeof(r_audio_clip_data_t), r_audio_clip_data_ptr_null, r_audio_clip_data_ptr_free, r_audio_clip_data_ptr_copy };
 
 r_status_t r_audio_clip_manager_start(r_state_t *rs)
 {
@@ -224,7 +206,7 @@ r_status_t r_audio_clip_manager_start(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        status = r_list_init(rs, &r_audio_clip_manager.audio_clip_data, &r_audio_clip_data_list_def);
+        status = r_list_init(rs, &r_audio_clip_manager.audio_clip_data, &r_audio_clip_data_ptr_list_def);
 
         if (R_SUCCEEDED(status))
         {
@@ -245,7 +227,7 @@ r_status_t r_audio_clip_manager_end(r_state_t *rs)
     SDL_DestroyMutex(r_audio_clip_manager.lock);
     r_audio_clip_manager.lock = NULL;
 
-    return r_list_cleanup(rs, &r_audio_clip_manager.audio_clip_data, &r_audio_clip_data_list_def);
+    return r_list_cleanup(rs, &r_audio_clip_manager.audio_clip_data, &r_audio_clip_data_ptr_list_def);
 }
 
 r_status_t r_audio_allocate_sample(r_state_t *rs, const char *audio_clip_path, Uint32 buffer_size, Sound_Sample **sample_out)
@@ -282,124 +264,118 @@ r_status_t r_audio_allocate_sample(r_state_t *rs, const char *audio_clip_path, U
     return status;
 }
 
-r_status_t r_audio_clip_manager_load(r_state_t *rs, const char *audio_clip_path, r_audio_clip_data_handle_t *handle)
+r_status_t r_audio_clip_manager_load(r_state_t *rs, const char *audio_clip_path, r_audio_clip_data_t **clip_data_out)
 {
     Sound_Sample *sample = NULL;
     r_status_t status = r_audio_allocate_sample(rs, audio_clip_path, R_AUDIO_CACHED_MAX_SIZE, &sample);
 
     if (R_SUCCEEDED(status))
     {
-        /* Decode the clip and decide whether to use a cached or on-demand clip */
-        unsigned int samples = Sound_Decode(sample);
-        r_audio_clip_data_t audio_clip_data;
+        r_audio_clip_data_t *clip_data = (r_audio_clip_data_t*)malloc(sizeof(r_audio_clip_data_t));
 
-        audio_clip_data.type = R_AUDIO_CLIP_TYPE_MAX;
-
-        if (samples <= sample->buffer_size && (sample->flags & SOUND_SAMPLEFLAG_EOF) != 0)
-        {
-            /* The entire clip was decoded, so use the cached clip type */
-            audio_clip_data.ref_count = 1;
-            audio_clip_data.type = R_AUDIO_CLIP_TYPE_CACHED;
-
-            audio_clip_data.data.cached.sample = sample;
-            audio_clip_data.data.cached.samples = samples;
-            sample = NULL;
-        }
-        else if (samples == sample->buffer_size)
-        {
-            /* The clip is larger than the default buffer, so use the on-demand clip type */
-            int path_length             = strlen(audio_clip_path);
-            char *audio_clip_path_copy  = malloc((path_length + 1) * sizeof(char));
-
-            status = (audio_clip_path_copy != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
-
-            if (R_SUCCEEDED(status))
-            {
-                /* Free sample because each instance will use its own copy */
-                /* TODO: Is it possible to pass this sample to the first instance to avoid loading twice? */
-                Sound_FreeSample(sample);
-                sample = NULL;
-
-                strncpy(audio_clip_path_copy, audio_clip_path, path_length + 1);
-
-                /* Set up on-demand clip data */
-                audio_clip_data.ref_count = 1;
-                audio_clip_data.type = R_AUDIO_CLIP_TYPE_ON_DEMAND;
-
-                audio_clip_data.data.on_demand.path = audio_clip_path_copy;
-            }
-        }
-        else
-        {
-            status = RA_F_DECODE_ERROR;
-            r_log_error_format(rs, "Error decoding %s: %s", audio_clip_path, Sound_GetError());
-        }
+        status = (clip_data != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
 
         if (R_SUCCEEDED(status))
         {
-            /* Append the clip to the list */
-            SDL_LockAudio();
-            status = (SDL_LockMutex(r_audio_clip_manager.lock) == 0) ? R_SUCCESS : R_FAILURE;
+            /* Decode the clip and decide whether to use a cached or on-demand clip */
+            unsigned int samples = Sound_Decode(sample);
 
-            if (R_SUCCEEDED(status))
+            clip_data->type = R_AUDIO_CLIP_TYPE_MAX;
+
+            if (samples <= sample->buffer_size && (sample->flags & SOUND_SAMPLEFLAG_EOF) != 0)
             {
-                status = r_list_add(rs, &r_audio_clip_manager.audio_clip_data, (void*)&audio_clip_data, &r_audio_clip_data_list_def);
+                /* The entire clip was decoded, so use the cached clip type */
+                clip_data->ref_count = 1;
+                clip_data->type = R_AUDIO_CLIP_TYPE_CACHED;
+
+                clip_data->data.cached.sample = sample;
+                clip_data->data.cached.samples = samples;
+                sample = NULL;
+            }
+            else if (samples == sample->buffer_size)
+            {
+                /* The clip is larger than the default buffer, so use the on-demand clip type */
+                int path_length             = strlen(audio_clip_path);
+                char *audio_clip_path_copy  = malloc((path_length + 1) * sizeof(char));
+
+                status = (audio_clip_path_copy != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
 
                 if (R_SUCCEEDED(status))
                 {
-                    /* TODO: Get the next available index--don't just keep appending */
-                    /* TODO: This won't work when the values move as the array is re-allocated when it grows! */
-                    handle->id = r_audio_clip_manager.audio_clip_data.count - 1;
-                    handle->data = r_list_get_index(rs, &r_audio_clip_manager.audio_clip_data, handle->id, &r_audio_clip_data_list_def);
-                }
+                    /* Free sample because each instance will use its own copy */
+                    /* TODO: Is it possible to pass this sample to the first instance to avoid loading twice? */
+                    Sound_FreeSample(sample);
+                    sample = NULL;
 
-                SDL_UnlockMutex(r_audio_clip_manager.lock);
+                    strncpy(audio_clip_path_copy, audio_clip_path, path_length + 1);
+
+                    /* Set up on-demand clip data */
+                    clip_data->ref_count = 1;
+                    clip_data->type = R_AUDIO_CLIP_TYPE_ON_DEMAND;
+
+                    clip_data->data.on_demand.path = audio_clip_path_copy;
+                }
+            }
+            else
+            {
+                status = RA_F_DECODE_ERROR;
+                r_log_error_format(rs, "Error decoding %s: %s", audio_clip_path, Sound_GetError());
             }
 
-            SDL_UnlockAudio();
+            if (R_SUCCEEDED(status))
+            {
+                /* Append the clip to the list */
+                SDL_LockAudio();
+                status = (SDL_LockMutex(r_audio_clip_manager.lock) == 0) ? R_SUCCESS : R_FAILURE;
+
+                if (R_SUCCEEDED(status))
+                {
+                    status = r_list_add(rs, &r_audio_clip_manager.audio_clip_data, (void*)clip_data, &r_audio_clip_data_ptr_list_def);
+
+                    if (R_SUCCEEDED(status))
+                    {
+                        *clip_data_out = clip_data;
+                    }
+
+                    SDL_UnlockMutex(r_audio_clip_manager.lock);
+                }
+
+                SDL_UnlockAudio();
+            }
+
+            if (R_FAILED(status))
+            {
+                free(clip_data);
+            }
         }
 
         if (R_FAILED(status))
         {
-            /* Clean up any allocations on error */
-            if (sample != NULL)
-            {
-                Sound_FreeSample(sample);
-            }
-
-            if (audio_clip_data.type != R_AUDIO_CLIP_TYPE_MAX)
-            {
-                r_audio_clip_data_free_internal(rs, &audio_clip_data);
-            }
+            Sound_FreeSample(sample);
         }
     }
 
     return status;
 }
 
-void r_audio_clip_manager_null_handle(r_state_t *rs, r_audio_clip_data_handle_t *handle)
+r_status_t r_audio_clip_data_add_ref(r_state_t *rs, r_audio_clip_data_t *clip_data)
 {
-    handle->id = R_AUDIO_CLIP_DATA_HANDLE_INVALID;
-    handle->data = NULL;
-}
+    r_status_t status = (SDL_LockMutex(r_audio_clip_manager.lock) == 0) ? R_SUCCESS : R_FAILURE;
 
-r_status_t r_audio_clip_manager_duplicate_handle(r_state_t *rs, r_audio_clip_data_handle_t *to, const r_audio_clip_data_handle_t *from)
-{
-    r_status_t status = R_SUCCESS;
+    if (R_SUCCEEDED(status))
+    {
+        clip_data->ref_count += 1;
 
-    /* TODO: Is this lock necessary? The internal function does some synchronization... */
-    SDL_LockAudio();
-    status = r_audio_clip_manager_duplicate_handle_internal(rs, to, from);
-    SDL_UnlockAudio();
+        SDL_UnlockMutex(r_audio_clip_manager.lock);
+    }
 
     return status;
 }
 
-r_status_t r_audio_clip_manager_release_handle_internal(r_state_t *rs, r_audio_clip_data_handle_t *handle)
+r_status_t r_audio_clip_data_release(r_state_t *rs, r_audio_clip_data_t *clip_data)
 {
     /* Note that audio clip finalizers generally execute after the audio clip manager has already freed all clips (so this first step fails) */
-    r_audio_clip_data_t *audio_clip_data  = r_list_get_index(rs, &r_audio_clip_manager.audio_clip_data, handle->id, &r_audio_clip_data_list_def);
-    r_status_t status = (audio_clip_data != NULL) ? R_SUCCESS : R_F_INVALID_INDEX;
+    r_status_t status = (clip_data != NULL) ? R_SUCCESS : R_F_INVALID_INDEX;
 
     if (R_SUCCEEDED(status))
     {
@@ -407,28 +383,16 @@ r_status_t r_audio_clip_manager_release_handle_internal(r_state_t *rs, r_audio_c
 
         if (R_SUCCEEDED(status))
         {
-            audio_clip_data->ref_count -= 1;
+            clip_data->ref_count -= 1;
 
-            if (audio_clip_data->ref_count <= 0)
+            if (clip_data->ref_count <= 0)
             {
-                r_audio_clip_data_free_internal(rs, audio_clip_data);
+                r_audio_clip_data_free_internal(rs, clip_data);
             }
 
             SDL_UnlockMutex(r_audio_clip_manager.lock);
         }
     }
-
-    return status;
-}
-
-r_status_t r_audio_clip_manager_release_handle(r_state_t *rs, r_audio_clip_data_handle_t *handle)
-{
-    r_status_t status = R_SUCCESS;
-
-    /* TODO: Is this lock necessary? The internal function does some synchronization... */
-    SDL_LockAudio();
-    status = r_audio_clip_manager_release_handle_internal(rs, handle);
-    SDL_UnlockAudio();
 
     return status;
 }
@@ -445,7 +409,7 @@ r_status_t r_audio_clip_instance_release(r_state_t *rs, r_audio_clip_instance_t 
         {
             SDL_UnlockMutex(r_audio_clip_manager.lock);
 
-            switch (clip_instance->clip_handle.data->type)
+            switch (clip_instance->clip_data->type)
             {
             case R_AUDIO_CLIP_TYPE_CACHED:
                 /* No instance data needs to be freed */
@@ -458,7 +422,7 @@ r_status_t r_audio_clip_instance_release(r_state_t *rs, r_audio_clip_instance_t 
                 break;
             }
 
-            r_audio_clip_manager_release_handle_internal(rs, &clip_instance->clip_handle);
+            r_audio_clip_data_release(rs, clip_instance->clip_data);
             free(clip_instance);
         }
         else

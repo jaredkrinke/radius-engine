@@ -29,8 +29,8 @@ THE SOFTWARE.
 
 typedef struct
 {
-    r_object_t                  object;
-    r_audio_clip_data_handle_t  clip_handle;
+    r_object_t          object;
+    r_audio_clip_data_t *clip_data;
 } r_audio_clip_t;
 
 extern r_status_t r_audio_clip_cache_start(r_state_t *rs);

@@ -93,7 +93,7 @@ static r_audio_clip_instance_t **r_audio_clip_instance_ptr_list_get_index(r_stat
     return (r_audio_clip_instance_t**)r_list_get_index(rs, (r_list_t*)list, index, &r_audio_clip_instance_ptr_list_def);
 }
 
-static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state_t *audio_state, const r_audio_clip_data_handle_t *clip_handle, unsigned char volume, char position)
+static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state_t *audio_state, r_audio_clip_data_t *clip_data, unsigned char volume, char position)
 {
     r_status_t status = (rs != NULL && audio_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -106,16 +106,17 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
 
         if (R_SUCCEEDED(status))
         {
-            status = r_audio_clip_manager_duplicate_handle(rs, &clip_instance->clip_handle, clip_handle);
+            status = r_audio_clip_data_add_ref(rs, clip_data);
 
             if (R_SUCCEEDED(status))
             {
                 clip_instance->id = audio_state->next_clip_instance_id++;
+                clip_instance->clip_data = clip_data;
                 clip_instance->ref_count = 1;
                 clip_instance->volume = volume;
                 clip_instance->position = position;
 
-                switch (clip_instance->clip_handle.data->type)
+                switch (clip_instance->clip_data->type)
                 {
                 case R_AUDIO_CLIP_TYPE_CACHED:
                     /* Start at the beginning of the clip */
@@ -127,7 +128,7 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
                     {
                         Sound_Sample *sample = NULL;
 
-                        status = r_audio_allocate_sample(rs, clip_handle->data->data.on_demand.path, R_AUDIO_ON_DEMAND_BUFFER_SIZE, &sample);
+                        status = r_audio_allocate_sample(rs, clip_data->data.on_demand.path, R_AUDIO_ON_DEMAND_BUFFER_SIZE, &sample);
 
                         if (R_SUCCEEDED(status))
                         {
@@ -201,7 +202,7 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
 
                 if (R_FAILED(status))
                 {
-                    r_audio_clip_manager_release_handle(rs, &clip_instance->clip_handle);
+                    r_audio_clip_data_release(rs, clip_data);
                 }
             }
 
@@ -287,11 +288,11 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
                     /* Mix all clip instances */
                     for (i = 0; i < audio_state->clip_instances.count; ++i)
                     {
-                        switch (clip_instances[i]->clip_handle.data->type)
+                        switch (clip_instances[i]->clip_data->type)
                         {
                         case R_AUDIO_CLIP_TYPE_CACHED:
                             {
-                                const r_audio_clip_data_t *data = clip_instances[i]->clip_handle.data;
+                                const r_audio_clip_data_t *data = clip_instances[i]->clip_data;
                                 const Sint16 *clip_frame = (Sint16*)&((unsigned char*)data->data.cached.sample->buffer)[clip_instances[i]->state.cached.position];
 
                                 /* TODO: Most effects should probably be mono (and positioning does the rest...) */
@@ -308,7 +309,7 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
                                 }
 
                                 /* Set volume to zero once the clip has completed */
-                                if (clip_instances[i]->state.cached.position >= clip_instances[i]->clip_handle.data->data.cached.samples)
+                                if (clip_instances[i]->state.cached.position >= clip_instances[i]->clip_data->data.cached.samples)
                                 {
                                     clip_instances[i]->volume = 0;
                                 }
@@ -322,7 +323,7 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
 
                                 if (R_SUCCEEDED(clip_instance->state.on_demand.buffer_status[buffer_index]))
                                 {
-                                    const r_audio_clip_data_t *data = clip_instance->clip_handle.data;
+                                    const r_audio_clip_data_t *data = clip_instance->clip_data;
                                     const Sint16 *clip_frame = (Sint16*)&((unsigned char*)clip_instance->state.on_demand.buffers[buffer_index])[clip_instance->state.on_demand.buffer_position];
 
                                     if (clip_instance->volume > 0)
@@ -583,7 +584,7 @@ r_status_t r_audio_set_current_state(r_state_t *rs, r_audio_state_t *audio_state
     return status;
 }
 
-r_status_t r_audio_queue_clip(r_state_t *rs, const r_audio_clip_data_handle_t *clip_handle, unsigned char volume, char position)
+r_status_t r_audio_queue_clip(r_state_t *rs, r_audio_clip_data_t *clip_data, unsigned char volume, char position)
 {
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -598,7 +599,7 @@ r_status_t r_audio_queue_clip(r_state_t *rs, const r_audio_clip_data_handle_t *c
             /* Only do any work if there's an active audio state */
             if (audio_state != NULL)
             {
-                status = r_audio_state_queue_clip_internal(rs, audio_state, clip_handle, volume, position);
+                status = r_audio_state_queue_clip_internal(rs, audio_state, clip_data, volume, position);
             }
         }
 
@@ -627,7 +628,7 @@ r_status_t r_audio_clear(r_state_t *rs)
     return status;
 }
 
-r_status_t r_audio_music_play(r_state_t *rs, const r_audio_clip_data_handle_t *clip_handle)
+r_status_t r_audio_music_play(r_state_t *rs, r_audio_clip_data_t *clip_data)
 {
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -647,7 +648,7 @@ r_status_t r_audio_music_play(r_state_t *rs, const r_audio_clip_data_handle_t *c
                 int clip_instance_id = audio_state->next_clip_instance_id;
 
                 /* TODO: Music volume? */
-                status = r_audio_state_queue_clip_internal(rs, audio_state, clip_handle, R_AUDIO_VOLUME_MAX, 0);
+                status = r_audio_state_queue_clip_internal(rs, audio_state, clip_data, R_AUDIO_VOLUME_MAX, 0);
 
                 if (R_SUCCEEDED(status))
                 {

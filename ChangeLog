@@ -14,6 +14,13 @@
 * r_audio.c: Removed audio clip manager
 * Makefile.am: Added r_audio_clip_manager.h, r_audio_clip_manager.c
 
+* r_audio.h: Replaced r_audio_clip_handle_t with a ref-counted data pointer
+* r_audio.c: Use ref-counted r_audio_clip_data pointer instead of handle
+* r_audio_clip_manager.h: Audio clip data pointer functions
+* r_audio_clip_manager.c: Use clip data pointer list to keep track of data
+* r_audio_clip_cache.h: Store a clip data pointer instead of handle
+* r_audio_clip_cache.c: Use clip data pointer instead of handle
+
 2010-08-15 deraj@users.sourceforge.net
 
 * r_defs.h: Added RA_F_CANT_SEEK, RA_F_SEEK_ERROR

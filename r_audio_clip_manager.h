@@ -35,12 +35,12 @@ extern r_status_t r_audio_clip_manager_start(r_state_t *rs);
 extern r_status_t r_audio_clip_manager_end(r_state_t *rs);
 
 extern r_status_t r_audio_allocate_sample(r_state_t *rs, const char *audio_clip_path, Uint32 buffer_size, Sound_Sample **sample_out);
-extern r_status_t r_audio_clip_manager_load(r_state_t *rs, const char *audio_clip_path, r_audio_clip_data_handle_t *handle);
-extern void r_audio_clip_manager_null_handle(r_state_t *rs, r_audio_clip_data_handle_t *handle);
-extern r_status_t r_audio_clip_manager_duplicate_handle(r_state_t *rs, r_audio_clip_data_handle_t *to, const r_audio_clip_data_handle_t *from);
-extern r_status_t r_audio_clip_manager_release_handle(r_state_t *rs, r_audio_clip_data_handle_t *handle);
+extern r_status_t r_audio_clip_manager_load(r_state_t *rs, const char *audio_clip_path, r_audio_clip_data_t **clip_data);
 
-extern r_status_t r_audio_clip_instance_release(r_state_t *rs, r_audio_clip_instance_t *clip_instance);
+extern r_status_t r_audio_clip_data_add_ref(r_state_t *rs, r_audio_clip_data_t *clip_data);
+extern r_status_t r_audio_clip_data_release(r_state_t *rs, r_audio_clip_data_t *clip_data);
+
 extern r_status_t r_audio_clip_instance_add_ref(r_state_t *rs, r_audio_clip_instance_t *clip_instance);
+extern r_status_t r_audio_clip_instance_release(r_state_t *rs, r_audio_clip_instance_t *clip_instance);
 
 #endif

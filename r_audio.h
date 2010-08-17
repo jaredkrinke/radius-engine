@@ -32,7 +32,8 @@ THE SOFTWARE.
 #define R_AUDIO_POSITION_MIN                ((char)0x80)
 #define R_AUDIO_POSITION_MAX                ((char)0x7f)
 #define R_AUDIO_CLIP_DATA_HANDLE_INVALID    0xffffffff
-#define R_AUDIO_DECODE_BUFFER_SIZE          262144
+#define R_AUDIO_ON_DEMAND_BUFFER_SIZE       131072
+#define R_AUDIO_CACHED_MAX_SIZE             R_AUDIO_ON_DEMAND_BUFFER_SIZE * 2
 #define R_AUDIO_CLIP_ON_DEMAND_BUFFERS      3
 
 typedef r_list_t r_audio_clip_instance_ptr_list_t;

@@ -3,6 +3,11 @@
 * r_audio_callback.c: Fixed scheduling of next on-demand clip decode task
     (previously only one buffer was used, leading to occasional skipping)
 
+* r_audio.h: Tweaked cached/on-demand buffer sizes so that the longest cached
+    clip is a little less than 6 seconds, but on-demand clips have three
+    buffers that total about 9 seconds
+* r_audio.c (r_audio_allocate_sample): Pass in desired buffer size
+
 2010-08-15 deraj@users.sourceforge.net
 
 * r_defs.h: Added RA_F_CANT_SEEK, RA_F_SEEK_ERROR

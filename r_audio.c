@@ -235,7 +235,7 @@ static r_status_t r_audio_clip_manager_end(r_state_t *rs)
     return r_list_cleanup(rs, &r_audio_clip_manager.audio_clip_data, &r_audio_clip_data_list_def);
 }
 
-static r_status_t r_audio_allocate_sample(r_state_t *rs, const char *audio_clip_path, Sound_Sample **sample_out)
+static r_status_t r_audio_allocate_sample(r_state_t *rs, const char *audio_clip_path, Uint32 buffer_size, Sound_Sample **sample_out)
 {
     SDL_RWops *context = NULL;
     r_status_t status = r_file_alloc_rwops(rs, audio_clip_path, R_FALSE, &context);
@@ -253,7 +253,7 @@ static r_status_t r_audio_allocate_sample(r_state_t *rs, const char *audio_clip_
 
         /* Sound_NewSample takes ownership of context */
         /* TODO: Try to allocate less than 256k or 512k, if possible for each sound effect */
-        sample = Sound_NewSample(context, extension, &audio_info, R_AUDIO_DECODE_BUFFER_SIZE);
+        sample = Sound_NewSample(context, extension, &audio_info, buffer_size);
         status = (sample != NULL) ? R_SUCCESS : RA_F_DECODE_ERROR;
 
         if (R_SUCCEEDED(status))
@@ -272,7 +272,7 @@ static r_status_t r_audio_allocate_sample(r_state_t *rs, const char *audio_clip_
 r_status_t r_audio_clip_manager_load(r_state_t *rs, const char *audio_clip_path, r_audio_clip_data_handle_t *handle)
 {
     Sound_Sample *sample = NULL;
-    r_status_t status = r_audio_allocate_sample(rs, audio_clip_path, &sample);
+    r_status_t status = r_audio_allocate_sample(rs, audio_clip_path, R_AUDIO_CACHED_MAX_SIZE, &sample);
 
     if (R_SUCCEEDED(status))
     {
@@ -582,7 +582,7 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
                     {
                         Sound_Sample *sample = NULL;
 
-                        status = r_audio_allocate_sample(rs, clip_handle->data->data.on_demand.path, &sample);
+                        status = r_audio_allocate_sample(rs, clip_handle->data->data.on_demand.path, R_AUDIO_ON_DEMAND_BUFFER_SIZE, &sample);
 
                         if (R_SUCCEEDED(status))
                         {
@@ -598,7 +598,7 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
                             /* Allocate buffers */
                             for (i = 0; i < R_AUDIO_CLIP_ON_DEMAND_BUFFERS && R_SUCCEEDED(status); ++i)
                             {
-                                buffers[i] = malloc(R_AUDIO_DECODE_BUFFER_SIZE);
+                                buffers[i] = malloc(R_AUDIO_ON_DEMAND_BUFFER_SIZE);
                                 status = (buffers[i] != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
                             }
 

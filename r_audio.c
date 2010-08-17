@@ -38,7 +38,7 @@ THE SOFTWARE.
 #define R_AUDIO_FORMAT              AUDIO_S16SYS
 #define R_AUDIO_BYTES_PER_SAMPLE    2
 #define R_AUDIO_CHANNELS            2
-#define R_AUDIO_BUFFER_LENGTH       2048 /* TODO: I'm hearing occasional skipping... */
+#define R_AUDIO_BUFFER_LENGTH       2048
 
 /* PhysicsFS SDL_RWops implementation */
 static int internal_seek(struct SDL_RWops *context, int offset, int origin)
@@ -805,17 +805,18 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
                                             /* End of a buffer has been reached, swap buffers and schedule decoding */
                                             const unsigned int next_buffer_index = (buffer_index + 1) % R_AUDIO_CLIP_ON_DEMAND_BUFFERS;
 
-                                            clip_instance->state.on_demand.buffer_status[buffer_index] = RA_F_DECODE_PENDING;
                                             clip_instance->state.on_demand.buffer_index = next_buffer_index;
                                             clip_instance->state.on_demand.buffer_position = 0;
+
+                                            clip_instance->state.on_demand.buffer_status[buffer_index] = RA_F_DECODE_PENDING;
 
                                             /* Schedule decoding of next block */
                                             status = r_audio_decoder_schedule_decode_task(rs,
                                                                                           R_FALSE,
                                                                                           clip_instance,
-                                                                                          clip_instance->state.on_demand.buffers[next_buffer_index],
-                                                                                          &clip_instance->state.on_demand.buffer_status[next_buffer_index],
-                                                                                          &clip_instance->state.on_demand.buffer_bytes[next_buffer_index]);
+                                                                                          clip_instance->state.on_demand.buffers[buffer_index],
+                                                                                          &clip_instance->state.on_demand.buffer_status[buffer_index],
+                                                                                          &clip_instance->state.on_demand.buffer_bytes[buffer_index]);
                                         }
                                     }
                                 }

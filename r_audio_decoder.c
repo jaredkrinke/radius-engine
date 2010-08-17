@@ -26,6 +26,7 @@ THE SOFTWARE.
 
 #include "r_assert.h"
 #include "r_audio_decoder.h"
+#include "r_audio_clip_manager.h"
 
 #define R_AUDIO_DECODER_QUEUE_POLLING_PERIOD_MS 1000
 

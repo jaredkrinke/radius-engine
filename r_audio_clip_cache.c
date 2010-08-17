@@ -26,6 +26,7 @@ THE SOFTWARE.
 #include "r_assert.h"
 #include "r_log.h"
 #include "r_resource_cache.h"
+#include "r_audio_clip_manager.h"
 #include "r_audio_clip_cache.h"
 #include "r_script.h"
 

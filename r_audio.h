@@ -28,10 +28,14 @@ THE SOFTWARE.
 
 #include "r_list.h"
 
+#define R_AUDIO_FREQUENCY                   44100
+#define R_AUDIO_FORMAT                      AUDIO_S16SYS
+#define R_AUDIO_BYTES_PER_SAMPLE            2
+#define R_AUDIO_CHANNELS                    2
+
 #define R_AUDIO_VOLUME_MAX                  0xff
 #define R_AUDIO_POSITION_MIN                ((char)0x80)
 #define R_AUDIO_POSITION_MAX                ((char)0x7f)
-#define R_AUDIO_CLIP_DATA_HANDLE_INVALID    0xffffffff
 #define R_AUDIO_ON_DEMAND_BUFFER_SIZE       131072
 #define R_AUDIO_CACHED_MAX_SIZE             R_AUDIO_ON_DEMAND_BUFFER_SIZE * 2
 #define R_AUDIO_CLIP_ON_DEMAND_BUFFERS      3
@@ -105,14 +109,6 @@ typedef struct
     unsigned int                        next_clip_instance_id;
     unsigned int                        music_id;
 } r_audio_state_t;
-
-/* Audio clip management */
-extern r_status_t r_audio_clip_manager_load(r_state_t *rs, const char *audio_clip_path, r_audio_clip_data_handle_t *handle);
-extern void r_audio_clip_manager_null_handle(r_state_t *rs, r_audio_clip_data_handle_t *handle);
-extern r_status_t r_audio_clip_manager_duplicate_handle(r_state_t *rs, r_audio_clip_data_handle_t *to, const r_audio_clip_data_handle_t *from);
-extern r_status_t r_audio_clip_manager_release_handle(r_state_t *rs, r_audio_clip_data_handle_t *handle);
-extern r_status_t r_audio_clip_instance_release(r_state_t *rs, r_audio_clip_instance_t *clip_instance);
-extern r_status_t r_audio_clip_instance_add_ref(r_state_t *rs, r_audio_clip_instance_t *clip_instance);
 
 /* Audio states */
 extern r_status_t r_audio_state_init(r_state_t *rs, r_audio_state_t *audio_state);

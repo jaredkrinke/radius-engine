@@ -7,6 +7,8 @@ libradius_engine_a_SOURCES = \
                              r_audio.h \
                              r_audio_clip_cache.c \
                              r_audio_clip_cache.h \
+                             r_audio_clip_manager.c \
+                             r_audio_clip_manager.h \
                              r_audio_decoder.h \
                              r_audio_decoder.c \
                              r_color.c \

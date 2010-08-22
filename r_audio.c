@@ -93,7 +93,7 @@ static r_audio_clip_instance_t **r_audio_clip_instance_ptr_list_get_index(r_stat
     return (r_audio_clip_instance_t**)r_list_get_index(rs, (r_list_t*)list, index, &r_audio_clip_instance_ptr_list_def);
 }
 
-static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state_t *audio_state, r_audio_clip_data_t *clip_data, unsigned char volume, char position)
+static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state_t *audio_state, r_audio_clip_data_t *clip_data, unsigned char volume, char position, r_audio_clip_instance_flags_t flags)
 {
     r_status_t status = (rs != NULL && audio_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -115,6 +115,7 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
                 clip_instance->ref_count = 1;
                 clip_instance->volume = volume;
                 clip_instance->position = position;
+                clip_instance->flags = flags;
 
                 switch (clip_instance->clip_data->type)
                 {
@@ -381,10 +382,19 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
                                     }
                                 }
 
-                                /* Set volume to zero once the clip has completed */
+                                /* Check for end of clip */
                                 if (clip_instances[i]->state.cached.position >= clip_instances[i]->clip_data->data.cached.samples)
                                 {
-                                    clip_instances[i]->volume = 0;
+                                    if ((clip_instances[i]->flags & R_AUDIO_CLIP_INSTANCE_FLAGS_LOOP) != 0)
+                                    {
+                                        /* Loop the clip by resetting position */
+                                        clip_instances[i]->state.cached.position = 0;
+                                    }
+                                    else
+                                    {
+                                        /* Not looping; set volume to zero */
+                                        clip_instances[i]->volume = 0;
+                                    }
                                 }
                             }
                             break;
@@ -412,12 +422,11 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
 
                                     if (clip_instance->state.on_demand.buffer_position >= clip_instance->state.on_demand.buffer_bytes[buffer_index])
                                     {
-                                        if (clip_instance->state.on_demand.buffer_status[buffer_index] == RA_S_FULLY_DECODED)
+                                        if (clip_instance->state.on_demand.buffer_status[buffer_index] == RA_S_FULLY_DECODED
+                                            && (clip_instance->flags & R_AUDIO_CLIP_INSTANCE_FLAGS_LOOP) == 0)
                                         {
-                                            /* The entire clip has completed */
+                                            /* The entire clip has completed and the clip should not be looped */
                                             clip_instance->volume = 0;
-
-                                            /* TODO: Looping should be supported, but this would require changing the condition above and scheduling decoding the beginning after decoding the last section */
                                         }
                                         else
                                         {
@@ -680,7 +689,7 @@ r_status_t r_audio_queue_clip(r_state_t *rs, r_audio_clip_data_t *clip_data, uns
             /* Only do any work if there's an active audio state */
             if (audio_state != NULL)
             {
-                status = r_audio_state_queue_clip_internal(rs, audio_state, clip_data, volume, position);
+                status = r_audio_state_queue_clip_internal(rs, audio_state, clip_data, volume, position, R_AUDIO_CLIP_INSTANCE_FLAGS_NONE);
             }
         }
 
@@ -709,7 +718,7 @@ r_status_t r_audio_clear(r_state_t *rs)
     return status;
 }
 
-r_status_t r_audio_music_play(r_state_t *rs, r_audio_clip_data_t *clip_data)
+r_status_t r_audio_music_play(r_state_t *rs, r_audio_clip_data_t *clip_data, r_boolean_t loop)
 {
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -729,7 +738,7 @@ r_status_t r_audio_music_play(r_state_t *rs, r_audio_clip_data_t *clip_data)
                 /* Note: this function should only be called from one thread */
                 int clip_instance_id = audio_state->next_clip_instance_id;
 
-                status = r_audio_state_queue_clip_internal(rs, audio_state, clip_data, rs->audio_music_volume, 0);
+                status = r_audio_state_queue_clip_internal(rs, audio_state, clip_data, rs->audio_music_volume, 0, loop ? R_AUDIO_CLIP_INSTANCE_FLAGS_LOOP : R_AUDIO_CLIP_INSTANCE_FLAGS_NONE);
 
                 if (R_SUCCEEDED(status))
                 {

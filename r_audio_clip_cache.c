@@ -261,10 +261,11 @@ static int l_Audio_Music_play(lua_State *ls)
     if (R_SUCCEEDED(status) && rs->audio_volume > 0)
     {
         const r_script_argument_t expected_arguments[] = {
-            { LUA_TSTRING, 0 }
+            { LUA_TSTRING, 0 },
+            { LUA_TBOOLEAN, 0 }
         };
 
-        status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+        status = r_script_verify_arguments_with_optional(rs, 1, R_ARRAY_SIZE(expected_arguments), expected_arguments);
 
         if (R_SUCCEEDED(status))
         {
@@ -275,7 +276,15 @@ static int l_Audio_Music_play(lua_State *ls)
 
             if (R_SUCCEEDED(status))
             {
-                status = r_audio_music_play(rs, audio_clip.clip_data);
+                int argument_count = lua_gettop(ls);
+                r_boolean_t loop = R_TRUE;
+
+                if (argument_count >= 2)
+                {
+                    loop = (lua_toboolean(ls, 2) != 0) ? R_TRUE : R_FALSE;
+                }
+
+                status = r_audio_music_play(rs, audio_clip.clip_data, loop);
             }
         }
     }

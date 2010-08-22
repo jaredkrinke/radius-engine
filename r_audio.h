@@ -69,13 +69,20 @@ typedef struct
     } data;
 } r_audio_clip_data_t;
 
+typedef enum
+{
+    R_AUDIO_CLIP_INSTANCE_FLAGS_NONE = 0x00000000,
+    R_AUDIO_CLIP_INSTANCE_FLAGS_LOOP = 0x00000001
+} r_audio_clip_instance_flags_t;
+
 typedef struct
 {
-    unsigned int        id;
-    r_audio_clip_data_t *clip_data;
-    int                  ref_count;
-    unsigned char        volume;
-    char                 position;
+    unsigned int                    id;
+    r_audio_clip_data_t             *clip_data;
+    int                             ref_count;
+    unsigned char                   volume;
+    char                            position;
+    r_audio_clip_instance_flags_t   flags;
 
     union
     {
@@ -116,7 +123,7 @@ extern r_status_t r_audio_set_current_state(r_state_t *rs, r_audio_state_t *audi
 extern r_status_t r_audio_queue_clip(r_state_t *rs, r_audio_clip_data_t *clip_data, unsigned char volume, char position);
 extern r_status_t r_audio_clear(r_state_t *rs);
 
-extern r_status_t r_audio_music_play(r_state_t *rs, r_audio_clip_data_t *clip_data);
+extern r_status_t r_audio_music_play(r_state_t *rs, r_audio_clip_data_t *clip_data, r_boolean_t loop);
 extern r_status_t r_audio_music_stop(r_state_t *rs);
 extern r_status_t r_audio_music_set_volume(r_state_t *rs, unsigned char volume);
 

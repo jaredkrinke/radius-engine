@@ -16,6 +16,13 @@
 * r_audio_clip_cache.c: Added Audio.Music.getVolume and Audio.Music.setVolume
 * r_audio_clip_cache.c: Global/music volume now have common get/set helpers
 
+* r_audio.h: Added r_audio_clip_instance_flags_t for looping
+* r_audio.c: Propagate looping flags when creating clip instances
+
+* r_audio_clip_cache.c: l_Audio_Music_play added optional loop argument
+
+* r_audio_decoder.c (r_audio_decoder_process_task): Rewind for looping
+
 2010-08-16 deraj@users.sourceforge.net
 
 * r_audio_callback.c: Fixed scheduling of next on-demand clip decode task

@@ -254,12 +254,48 @@ static r_status_t r_audio_decoder_process_task(r_state_t *rs, r_audio_decoder_t 
             r_boolean_t decoded = R_FALSE;
             Uint32 bytes_decoded = 0;
 
-            /* Check to see if decoding should be done or not */
-            if ((sample->flags & (SOUND_SAMPLEFLAG_EOF | SOUND_SAMPLEFLAG_ERROR)) == 0)
+            /* Ensure there hasn't been an error while using the sample */
+            if ((sample->flags & SOUND_SAMPLEFLAG_ERROR) == 0)
             {
-                bytes_decoded = Sound_Decode(task->clip_instance->state.on_demand.sample);
-                status = (bytes_decoded == sample->buffer_size || (sample->flags & SOUND_SAMPLEFLAG_EOF) != 0) ? R_SUCCESS : RA_F_DECODE_ERROR;
-                decoded = R_TRUE;
+                r_boolean_t decode = R_FALSE;
+
+                if ((task->clip_instance->flags & R_AUDIO_CLIP_INSTANCE_FLAGS_LOOP) != 0)
+                {
+                    /* Looping: rewind if necessary, but always decode */
+                    if ((sample->flags & SOUND_SAMPLEFLAG_EOF) != 0)
+                    {
+                        status = (Sound_Rewind(sample) != 0) ? R_SUCCESS : RA_F_DECODE_ERROR;
+                    }
+
+                    decode = R_TRUE;
+                }
+                else
+                {
+                    /* Not looping, so EOF determines whether or not to decode */
+                    decode = ((sample->flags & SOUND_SAMPLEFLAG_EOF) == 0) ? R_TRUE : R_FALSE;
+                }
+
+                /* Check to see if decoding should be done or not */
+                if (R_SUCCEEDED(status))
+                {
+                    if (decode)
+                    {
+                        /* Some decoders set EAGAIN in case decoding may be slow, but we're already on a separate thread, so just keep decoding */
+                        while (bytes_decoded < sample->buffer_size && R_SUCCEEDED(status))
+                        {
+                            bytes_decoded += Sound_Decode(task->clip_instance->state.on_demand.sample);
+                            status = (bytes_decoded == sample->buffer_size || (sample->flags & (SOUND_SAMPLEFLAG_EOF | SOUND_SAMPLEFLAG_EAGAIN)) != 0) ? R_SUCCESS : RA_F_DECODE_ERROR;
+
+                            /* If EOF is set or EAGAIN is not set, stop decoding */
+                            if ((sample->flags & SOUND_SAMPLEFLAG_EOF) != 0 || (sample->flags & SOUND_SAMPLEFLAG_EAGAIN) == 0)
+                            {
+                                break;
+                            }
+                        }
+
+                        decoded = R_TRUE;
+                    }
+                }
             }
 
             if (R_SUCCEEDED(status))
@@ -268,15 +304,7 @@ static r_status_t r_audio_decoder_process_task(r_state_t *rs, r_audio_decoder_t 
                 if (decoded)
                 {
                     /* Copy decoded sound to the destination buffer */
-                    memcpy(task->data.decode.buffer, sample->buffer, sample->buffer_size);
-
-                    /* Clear any extra space in the buffer */
-                    if (bytes_decoded < sample->buffer_size)
-                    {
-                        char *end = &((char*)task->data.decode.buffer)[bytes_decoded];
-
-                        memset(task->data.decode.buffer, 0, sample->buffer_size - bytes_decoded);
-                    }
+                    memcpy(task->data.decode.buffer, sample->buffer, bytes_decoded);
                 }
 
                 /* Propagate status */
@@ -293,10 +321,11 @@ static r_status_t r_audio_decoder_process_task(r_state_t *rs, r_audio_decoder_t 
                         *(task->data.decode.status) = R_SUCCESS;
                     }
                 }
-                else
-                {
-                    *(task->data.decode.status) = status;
-                }
+            }
+
+            if (R_FAILED(status))
+            {
+                *(task->data.decode.status) = status;
             }
         }
         break;

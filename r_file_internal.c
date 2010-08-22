@@ -119,6 +119,7 @@ r_status_t r_file_internal_close(r_state_t *rs, r_file_internal_t *file)
         if (R_SUCCEEDED(status))
         {
             status = (PHYSFS_close((PHYSFS_file*)file->data) != 0) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+            file->state = R_FILE_STATE_CLOSED;
         }
     }
 

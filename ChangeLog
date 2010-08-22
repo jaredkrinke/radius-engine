@@ -1,3 +1,8 @@
+2010-08-22 deraj@users.sourceforge.net
+
+* r_file_internal.c (r_file_internal_close): Files are now only closed once
+    (fixing a possible heap corruption issue)
+
 2010-08-21 deraj@users.sourceforge.net
 
 * r_audio.c (r_audio_music_play): Ensure only one music clip plays at a time

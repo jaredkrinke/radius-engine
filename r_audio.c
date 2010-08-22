@@ -286,34 +286,30 @@ static r_status_t r_audio_music_set_volume_internal(r_state_t *rs, unsigned char
     r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
     r_status_t status = R_SUCCESS;
 
-    /* Only do any work if there's an active audio state */
-    if (audio_state != NULL)
+    if (volume != rs->audio_music_volume)
     {
-        if (volume != rs->audio_music_volume)
+        rs->audio_music_volume = volume;
+    }
+
+    /* Check for playing music and adjust volume/stop, as necessary */
+    if (audio_state != NULL && audio_state->music_id != 0)
+    {
+        if (volume <= 0)
         {
-            rs->audio_music_volume = volume;
+            status = r_audio_music_stop_internal(rs);
         }
-
-        /* Check for playing music and adjust volume/stop, as necessary */
-        if (audio_state->music_id != 0)
+        else
         {
-            if (volume <= 0)
+            unsigned int i;
+            
+            for (i = 0; i < audio_state->clip_instances.count; ++i)
             {
-                status = r_audio_music_stop_internal(rs);
-            }
-            else
-            {
-                unsigned int i;
-                
-                for (i = 0; i < audio_state->clip_instances.count; ++i)
-                {
-                    r_audio_clip_instance_t *clip_instance = *(r_audio_clip_instance_ptr_list_get_index(rs, &audio_state->clip_instances, i));
+                r_audio_clip_instance_t *clip_instance = *(r_audio_clip_instance_ptr_list_get_index(rs, &audio_state->clip_instances, i));
 
-                    if (clip_instance->id == audio_state->music_id)
-                    {
-                        clip_instance->volume = rs->audio_music_volume;
-                        break;
-                    }
+                if (clip_instance->id == audio_state->music_id)
+                {
+                    clip_instance->volume = rs->audio_music_volume;
+                    break;
                 }
             }
         }

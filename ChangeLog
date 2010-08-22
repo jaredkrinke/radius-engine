@@ -23,6 +23,11 @@
 
 * r_audio_decoder.c (r_audio_decoder_process_task): Rewind for looping
 
+* r_audio.h: Added r_audio_music_seek
+* r_audio.c (r_audio_music_seek): Music seeking
+* r_audio_clip_cache.c (l_Audio_Music_seek): Music seek function
+* r_audio_clip_decoder.c (r_audio_decoder_schedule_seek_task): Don't lock audio
+
 2010-08-16 deraj@users.sourceforge.net
 
 * r_audio_callback.c: Fixed scheduling of next on-demand clip decode task

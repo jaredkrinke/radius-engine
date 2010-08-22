@@ -126,5 +126,6 @@ extern r_status_t r_audio_clear(r_state_t *rs);
 extern r_status_t r_audio_music_play(r_state_t *rs, r_audio_clip_data_t *clip_data, r_boolean_t loop);
 extern r_status_t r_audio_music_stop(r_state_t *rs);
 extern r_status_t r_audio_music_set_volume(r_state_t *rs, unsigned char volume);
+extern r_status_t r_audio_music_seek(r_state_t *rs, unsigned int ms);
 
 #endif

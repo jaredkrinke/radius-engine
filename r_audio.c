@@ -268,7 +268,7 @@ static r_status_t r_audio_music_stop_internal(r_state_t *rs)
 
             if (clip_instance->id == audio_state->music_id)
             {
-                r_audio_clip_instance_ptr_list_remove_index(rs, &audio_state->clip_instances, i);
+                status = r_audio_clip_instance_ptr_list_remove_index(rs, &audio_state->clip_instances, i);
                 audio_state->music_id = 0;
                 break;
             }
@@ -783,6 +783,43 @@ r_status_t r_audio_music_set_volume(r_state_t *rs, unsigned char volume)
 
         {
             status = r_audio_music_set_volume_internal(rs, volume);
+        }
+
+        SDL_UnlockAudio();
+    }
+
+    return status;
+}
+
+r_status_t r_audio_music_seek(r_state_t *rs, unsigned int ms)
+{
+    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        SDL_LockAudio();
+
+        {
+            r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
+
+            /* Only do any work if there's an active audio state and music is playing */
+            if (audio_state != NULL && audio_state->music_id != 0)
+            {
+                /* Find the music clip instance and schedule a seek */
+                unsigned int i;
+
+                for (i = 0; i < audio_state->clip_instances.count; ++i)
+                {
+                    r_audio_clip_instance_t *clip_instance = *(r_audio_clip_instance_ptr_list_get_index(rs, &audio_state->clip_instances, i));
+
+                    if (clip_instance->id == audio_state->music_id)
+                    {
+                        status = r_audio_decoder_schedule_seek_task(rs, R_FALSE, clip_instance, ms);
+                        break;
+                    }
+                }
+            }
         }
 
         SDL_UnlockAudio();

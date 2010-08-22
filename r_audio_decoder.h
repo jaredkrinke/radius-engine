@@ -32,6 +32,6 @@ THE SOFTWARE.
 extern r_status_t r_audio_decoder_start(r_state_t *rs);
 extern r_status_t r_audio_decoder_stop(r_state_t *rs);
 extern r_status_t r_audio_decoder_schedule_decode_task(r_state_t *rs, r_boolean_t lock_audio, r_audio_clip_instance_t *clip_instance, Sint16 *buffer, r_status_t *task_status, unsigned int *bytes_decoded);
-extern r_status_t r_audio_decoder_schedule_seek_task(r_state_t *rs, r_audio_clip_instance_t *clip_instance, unsigned int ms);
+extern r_status_t r_audio_decoder_schedule_seek_task(r_state_t *rs, r_boolean_t lock_audio, r_audio_clip_instance_t *clip_instance, unsigned int ms);
 
 #endif

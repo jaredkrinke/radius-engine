@@ -568,7 +568,7 @@ r_status_t r_audio_decoder_schedule_decode_task(r_state_t *rs, r_boolean_t lock_
     return r_audio_decoder_schedule_decode_task_internal(rs, lock_audio, R_TRUE, clip_instance, buffer, task_status, bytes_decoded);
 }
 
-r_status_t r_audio_decoder_schedule_seek_task(r_state_t *rs, r_audio_clip_instance_t *clip_instance, unsigned int ms)
+r_status_t r_audio_decoder_schedule_seek_task(r_state_t *rs, r_boolean_t lock_audio, r_audio_clip_instance_t *clip_instance, unsigned int ms)
 {
     r_audio_decoder_t *decoder = (r_audio_decoder_t*)rs->audio_decoder;
     r_status_t status = (rs != NULL && decoder != NULL && clip_instance != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -583,7 +583,7 @@ r_status_t r_audio_decoder_schedule_seek_task(r_state_t *rs, r_audio_clip_instan
         task.clip_instance  = clip_instance;
         task.data.seek.ms   = ms;
 
-        status = r_audio_decoder_schedule_task_internal(rs, decoder, R_TRUE, R_TRUE, &task);
+        status = r_audio_decoder_schedule_task_internal(rs, decoder, lock_audio, R_TRUE, &task);
     }
 
     return status;

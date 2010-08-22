@@ -1,3 +1,21 @@
+2010-08-21 deraj@users.sourceforge.net
+
+* r_audio.c (r_audio_music_play): Ensure only one music clip plays at a time
+
+* r_state.h: Added global music volume
+* r_state.c: Music defaults to max volume (constrained by global max volume)
+
+* r_audio.h: Added r_audio_music_set_volume
+* r_audio.c (r_audio_music_set_volume): Music volume adjustment (current state)
+
+* r_audio.c: Music functions now can be called with/without audio lock
+
+* r_audio.c (r_audio_set_current_state): Ensure music volume is correct when
+    changing audio states
+
+* r_audio_clip_cache.c: Added Audio.Music.getVolume and Audio.Music.setVolume
+* r_audio_clip_cache.c: Global/music volume now have common get/set helpers
+
 2010-08-16 deraj@users.sourceforge.net
 
 * r_audio_callback.c: Fixed scheduling of next on-demand clip decode task

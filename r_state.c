@@ -45,6 +45,7 @@ r_status_t r_state_init(r_state_t *rs, const char *argv0)
 
         rs->audio = NULL;
         rs->audio_volume = 0;
+        rs->audio_music_volume = 255;
         rs->audio_decoder = NULL;
 
         rs->script_state = NULL;

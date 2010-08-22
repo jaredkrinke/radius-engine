@@ -248,6 +248,79 @@ static r_status_t r_audio_clear_internal(r_state_t *rs)
     return status;
 }
 
+/* Must be called with audio lock held */
+/* Success should be returned if they're is no music to stop */
+static r_status_t r_audio_music_stop_internal(r_state_t *rs)
+{
+    r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
+    r_status_t status = R_SUCCESS;
+
+    /* Only do any work if there's an active audio state and music is playing */
+    if (audio_state != NULL && audio_state->music_id != 0)
+    {
+        /* Find the music clip instance and remove it */
+        unsigned int i;
+
+        for (i = 0; i < audio_state->clip_instances.count; ++i)
+        {
+            r_audio_clip_instance_t *clip_instance = *(r_audio_clip_instance_ptr_list_get_index(rs, &audio_state->clip_instances, i));
+
+            if (clip_instance->id == audio_state->music_id)
+            {
+                r_audio_clip_instance_ptr_list_remove_index(rs, &audio_state->clip_instances, i);
+                audio_state->music_id = 0;
+                break;
+            }
+        }
+    }
+
+    return status;
+}
+
+/* Must be called with audio lock held */
+/* Note that setting volume to zero will cancel any playing music */
+/* Also note that this changes the current audio state only */
+static r_status_t r_audio_music_set_volume_internal(r_state_t *rs, unsigned char volume)
+{
+    r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
+    r_status_t status = R_SUCCESS;
+
+    /* Only do any work if there's an active audio state */
+    if (audio_state != NULL)
+    {
+        if (volume != rs->audio_music_volume)
+        {
+            rs->audio_music_volume = volume;
+        }
+
+        /* Check for playing music and adjust volume/stop, as necessary */
+        if (audio_state->music_id != 0)
+        {
+            if (volume <= 0)
+            {
+                status = r_audio_music_stop_internal(rs);
+            }
+            else
+            {
+                unsigned int i;
+                
+                for (i = 0; i < audio_state->clip_instances.count; ++i)
+                {
+                    r_audio_clip_instance_t *clip_instance = *(r_audio_clip_instance_ptr_list_get_index(rs, &audio_state->clip_instances, i));
+
+                    if (clip_instance->id == audio_state->music_id)
+                    {
+                        clip_instance->volume = rs->audio_music_volume;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    return status;
+}
+
 static R_INLINE void r_audio_mix_channel_frame(int global_volume, int channel, Sint16 *sample, const Sint16 *clip_frame, int volume, int position)
 {
     /* TODO: Some of these calculations can be skipped if position is min, zero, max or volume is max */
@@ -270,7 +343,7 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
             /* Mix each frame */
             const unsigned int frames = bytes / (R_AUDIO_BYTES_PER_SAMPLE * R_AUDIO_CHANNELS);
             unsigned int i;
-            int global_volume = (int)(rs->audio_volume + 1);
+            int global_volume = (int)(rs->audio_volume) + 1;
 
             /* TODO: This could certainly be optimized better */
             for (i = 0; i < frames; ++i)
@@ -577,7 +650,15 @@ r_status_t r_audio_set_current_state(r_state_t *rs, r_audio_state_t *audio_state
     if (R_SUCCEEDED(status))
     {
         SDL_LockAudio();
+
         rs->audio = (void*)audio_state;
+
+        /* Make sure music volume is set correctly (e.g. if music was adjusted when this audio state wasn't active) */
+        if (audio_state != NULL && audio_state->music_id != 0)
+        {
+            status = r_audio_music_set_volume_internal(rs, rs->audio_music_volume);
+        }
+
         SDL_UnlockAudio();
     }
 
@@ -640,15 +721,15 @@ r_status_t r_audio_music_play(r_state_t *rs, r_audio_clip_data_t *clip_data)
         {
             r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
 
-            /* Only do any work if there's an active audio state */
-            if (audio_state != NULL)
+            status = r_audio_music_stop_internal(rs);
+
+            /* Only do any work if there's an active audio state and music is not disabled */
+            if (audio_state != NULL && rs->audio_music_volume > 0)
             {
-                /* TODO: Check for music already being played? */
                 /* Note: this function should only be called from one thread */
                 int clip_instance_id = audio_state->next_clip_instance_id;
 
-                /* TODO: Music volume? */
-                status = r_audio_state_queue_clip_internal(rs, audio_state, clip_data, R_AUDIO_VOLUME_MAX, 0);
+                status = r_audio_state_queue_clip_internal(rs, audio_state, clip_data, rs->audio_music_volume, 0);
 
                 if (R_SUCCEEDED(status))
                 {
@@ -673,26 +754,26 @@ r_status_t r_audio_music_stop(r_state_t *rs)
         SDL_LockAudio();
 
         {
-            r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
+            status = r_audio_music_stop_internal(rs);
+        }
 
-            /* Only do any work if there's an active audio state */
-            if (audio_state != NULL && audio_state->music_id != 0)
-            {
-                /* Find the music clip instance and remove it */
-                unsigned int i;
+        SDL_UnlockAudio();
+    }
 
-                for (i = 0; i < audio_state->clip_instances.count; ++i)
-                {
-                    r_audio_clip_instance_t *clip_instance = *(r_audio_clip_instance_ptr_list_get_index(rs, &audio_state->clip_instances, i));
+    return status;
+}
 
-                    if (clip_instance->id == audio_state->music_id)
-                    {
-                        r_audio_clip_instance_ptr_list_remove_index(rs, &audio_state->clip_instances, i);
-                        audio_state->music_id = 0;
-                        break;
-                    }
-                }
-            }
+r_status_t r_audio_music_set_volume(r_state_t *rs, unsigned char volume)
+{
+    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        SDL_LockAudio();
+
+        {
+            status = r_audio_music_set_volume_internal(rs, volume);
         }
 
         SDL_UnlockAudio();

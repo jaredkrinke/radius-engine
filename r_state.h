@@ -51,6 +51,7 @@ typedef struct _r_state
     /* Audio state (note: audio lock must be held when manipulating audio state) */
     void                            *audio;
     unsigned char                   audio_volume;
+    unsigned char                   audio_music_volume;
     void                            *audio_decoder;
 
     /* Script state */

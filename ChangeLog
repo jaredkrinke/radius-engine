@@ -3,6 +3,13 @@
 * r_file_internal.c (r_file_internal_close): Files are now only closed once
     (fixing a possible heap corruption issue)
 
+* r_audio.h: Grouped global audio functions and state functions
+* r_audio.c: Audio state functions now can use either a specific audio state
+    or the default
+* r_audio.c: Audio state internal functions assume audio state is not NULL
+
+* r_audio_clip_cache.c: Renamed music functions and put all on Audio table
+
 2010-08-21 deraj@users.sourceforge.net
 
 * r_audio.c (r_audio_music_play): Ensure only one music clip plays at a time

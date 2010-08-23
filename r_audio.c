@@ -230,34 +230,15 @@ static r_status_t r_audio_state_clear_internal(r_state_t *rs, r_audio_state_t *a
     return status;
 }
 
-static r_status_t r_audio_clear_internal(r_state_t *rs)
-{
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-    R_ASSERT(R_SUCCEEDED(status));
-
-    if (R_SUCCEEDED(status))
-    {
-        r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
-
-        /* Only do any work if there's an active audio state */
-        if (audio_state != NULL)
-        {
-            status = r_audio_state_clear_internal(rs, audio_state);
-        }
-    }
-
-    return status;
-}
-
 /* Must be called with audio lock held */
 /* Success should be returned if they're is no music to stop */
-static r_status_t r_audio_music_stop_internal(r_state_t *rs)
+static r_status_t r_audio_music_stop_internal(r_state_t *rs, r_audio_state_t *audio_state)
 {
-    r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
-    r_status_t status = R_SUCCESS;
+    r_status_t status = (rs != NULL && audio_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
 
-    /* Only do any work if there's an active audio state and music is playing */
-    if (audio_state != NULL && audio_state->music_id != 0)
+    /* Only do any work if music is playing */
+    if (R_SUCCEEDED(status) && audio_state->music_id != 0)
     {
         /* Find the music clip instance and remove it */
         unsigned int i;
@@ -284,7 +265,8 @@ static r_status_t r_audio_music_stop_internal(r_state_t *rs)
 static r_status_t r_audio_music_set_volume_internal(r_state_t *rs, unsigned char volume)
 {
     r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
-    r_status_t status = R_SUCCESS;
+    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
 
     if (volume != rs->audio_music_volume)
     {
@@ -292,11 +274,11 @@ static r_status_t r_audio_music_set_volume_internal(r_state_t *rs, unsigned char
     }
 
     /* Check for playing music and adjust volume/stop, as necessary */
-    if (audio_state != NULL && audio_state->music_id != 0)
+    if (R_SUCCEEDED(status) && audio_state != NULL && audio_state->music_id != 0)
     {
         if (volume <= 0)
         {
-            status = r_audio_music_stop_internal(rs);
+            status = r_audio_music_stop_internal(rs, audio_state);
         }
         else
         {
@@ -639,7 +621,16 @@ r_status_t r_audio_set_volume(r_state_t *rs, unsigned char volume)
             /* TODO: Should some attempt be made to clear all audio states (for all layers) at this point? */
             SDL_PauseAudio(1);
             rs->audio_volume = 0;
-            status = r_audio_clear_internal(rs);
+
+            {
+                r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
+
+                if (audio_state != NULL)
+                {
+                    status = r_audio_state_clear_internal(rs, audio_state);
+                }
+            }
+
             SDL_CloseAudio();
         }
     }
@@ -670,7 +661,22 @@ r_status_t r_audio_set_current_state(r_state_t *rs, r_audio_state_t *audio_state
     return status;
 }
 
-r_status_t r_audio_queue_clip(r_state_t *rs, r_audio_clip_data_t *clip_data, unsigned char volume, char position)
+r_status_t r_audio_music_set_volume(r_state_t *rs, unsigned char volume)
+{
+    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        SDL_LockAudio();
+        status = r_audio_music_set_volume_internal(rs, volume);
+        SDL_UnlockAudio();
+    }
+
+    return status;
+}
+
+r_status_t r_audio_state_queue_clip(r_state_t *rs, r_audio_state_t *audio_state, r_audio_clip_data_t *clip_data, unsigned char volume, char position)
 {
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -679,14 +685,15 @@ r_status_t r_audio_queue_clip(r_state_t *rs, r_audio_clip_data_t *clip_data, uns
     {
         SDL_LockAudio();
 
+        if (audio_state == NULL)
         {
-            r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
+            audio_state = (r_audio_state_t*)rs->audio;
+        }
 
-            /* Only do any work if there's an active audio state */
-            if (audio_state != NULL)
-            {
-                status = r_audio_state_queue_clip_internal(rs, audio_state, clip_data, volume, position, R_AUDIO_CLIP_INSTANCE_FLAGS_NONE);
-            }
+        /* Only do any work if there's an active audio state */
+        if (audio_state != NULL)
+        {
+            status = r_audio_state_queue_clip_internal(rs, audio_state, clip_data, volume, position, R_AUDIO_CLIP_INSTANCE_FLAGS_NONE);
         }
 
         SDL_UnlockAudio();
@@ -695,7 +702,7 @@ r_status_t r_audio_queue_clip(r_state_t *rs, r_audio_clip_data_t *clip_data, uns
     return status;
 }
 
-r_status_t r_audio_clear(r_state_t *rs)
+r_status_t r_audio_state_clear(r_state_t *rs, r_audio_state_t *audio_state)
 {
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -704,8 +711,16 @@ r_status_t r_audio_clear(r_state_t *rs)
     {
         SDL_LockAudio();
 
+
+        if (audio_state == NULL)
         {
-            status = r_audio_clear_internal(rs);
+            audio_state = (r_audio_state_t*)rs->audio;
+        }
+
+        /* Only do any work if there's an active audio state */
+        if (audio_state != NULL)
+        {
+            status = r_audio_state_clear_internal(rs, audio_state);
         }
 
         SDL_UnlockAudio();
@@ -714,7 +729,7 @@ r_status_t r_audio_clear(r_state_t *rs)
     return status;
 }
 
-r_status_t r_audio_music_play(r_state_t *rs, r_audio_clip_data_t *clip_data, r_boolean_t loop)
+r_status_t r_audio_state_music_play(r_state_t *rs, r_audio_state_t *audio_state, r_audio_clip_data_t *clip_data, r_boolean_t loop)
 {
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -723,13 +738,17 @@ r_status_t r_audio_music_play(r_state_t *rs, r_audio_clip_data_t *clip_data, r_b
     {
         SDL_LockAudio();
 
+        if (audio_state == NULL)
         {
-            r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
+            audio_state = (r_audio_state_t*)rs->audio;
+        }
 
-            status = r_audio_music_stop_internal(rs);
+        if (audio_state != NULL)
+        {
+            status = r_audio_music_stop_internal(rs, audio_state);
 
-            /* Only do any work if there's an active audio state and music is not disabled */
-            if (audio_state != NULL && rs->audio_music_volume > 0)
+            /* Only do any work if music is not disabled */
+            if (rs->audio_music_volume > 0)
             {
                 /* Note: this function should only be called from one thread */
                 int clip_instance_id = audio_state->next_clip_instance_id;
@@ -749,7 +768,7 @@ r_status_t r_audio_music_play(r_state_t *rs, r_audio_clip_data_t *clip_data, r_b
     return status;
 }
 
-r_status_t r_audio_music_stop(r_state_t *rs)
+r_status_t r_audio_state_music_stop(r_state_t *rs, r_audio_state_t *audio_state)
 {
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -758,8 +777,14 @@ r_status_t r_audio_music_stop(r_state_t *rs)
     {
         SDL_LockAudio();
 
+        if (audio_state == NULL)
         {
-            status = r_audio_music_stop_internal(rs);
+            audio_state = (r_audio_state_t*)rs->audio;
+        }
+
+        if (audio_state != NULL)
+        {
+            status = r_audio_music_stop_internal(rs, audio_state);
         }
 
         SDL_UnlockAudio();
@@ -768,7 +793,7 @@ r_status_t r_audio_music_stop(r_state_t *rs)
     return status;
 }
 
-r_status_t r_audio_music_set_volume(r_state_t *rs, unsigned char volume)
+r_status_t r_audio_state_music_seek(r_state_t *rs, r_audio_state_t *audio_state, unsigned int ms)
 {
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -777,43 +802,25 @@ r_status_t r_audio_music_set_volume(r_state_t *rs, unsigned char volume)
     {
         SDL_LockAudio();
 
+        if (audio_state == NULL)
         {
-            status = r_audio_music_set_volume_internal(rs, volume);
+            audio_state = (r_audio_state_t*)rs->audio;
         }
 
-        SDL_UnlockAudio();
-    }
-
-    return status;
-}
-
-r_status_t r_audio_music_seek(r_state_t *rs, unsigned int ms)
-{
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-    R_ASSERT(R_SUCCEEDED(status));
-
-    if (R_SUCCEEDED(status))
-    {
-        SDL_LockAudio();
-
+        /* Only do any work if there's an active audio state and music is playing */
+        if (audio_state != NULL && audio_state->music_id != 0)
         {
-            r_audio_state_t *audio_state = (r_audio_state_t*)rs->audio;
+            /* Find the music clip instance and schedule a seek */
+            unsigned int i;
 
-            /* Only do any work if there's an active audio state and music is playing */
-            if (audio_state != NULL && audio_state->music_id != 0)
+            for (i = 0; i < audio_state->clip_instances.count; ++i)
             {
-                /* Find the music clip instance and schedule a seek */
-                unsigned int i;
+                r_audio_clip_instance_t *clip_instance = *(r_audio_clip_instance_ptr_list_get_index(rs, &audio_state->clip_instances, i));
 
-                for (i = 0; i < audio_state->clip_instances.count; ++i)
+                if (clip_instance->id == audio_state->music_id)
                 {
-                    r_audio_clip_instance_t *clip_instance = *(r_audio_clip_instance_ptr_list_get_index(rs, &audio_state->clip_instances, i));
-
-                    if (clip_instance->id == audio_state->music_id)
-                    {
-                        status = r_audio_decoder_schedule_seek_task(rs, R_FALSE, clip_instance, ms);
-                        break;
-                    }
+                    status = r_audio_decoder_schedule_seek_task(rs, R_FALSE, clip_instance, ms);
+                    break;
                 }
             }
         }

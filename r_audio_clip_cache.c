@@ -207,7 +207,7 @@ static int l_Audio_play(lua_State *ls)
                     position = (char)(R_CLAMP(f, -1.0, 1.0) * R_AUDIO_POSITION_MAX);
                 }
 
-                status = r_audio_queue_clip(rs, audio_clip.clip_data, volume, position);
+                status = r_audio_state_queue_clip(rs, NULL, audio_clip.clip_data, volume, position);
             }
         }
     }
@@ -215,16 +215,6 @@ static int l_Audio_play(lua_State *ls)
     lua_pop(ls, lua_gettop(ls));
 
     return 0;
-}
-
-static int l_Audio_Music_getVolume(lua_State *ls)
-{
-    return l_Internal_getVolume(ls, offsetof(r_state_t, audio_music_volume));
-}
-
-static int l_Audio_Music_setVolume(lua_State *ls)
-{
-    return l_Internal_setVolume(ls, r_audio_music_set_volume);
 }
 
 static int l_Audio_clear(lua_State *ls)
@@ -241,7 +231,7 @@ static int l_Audio_clear(lua_State *ls)
         if (R_SUCCEEDED(status))
         {
             /* TODO: This should prevent new sounds from being queued for the rest of the frame */
-            status = r_audio_clear(rs);
+            status = r_audio_state_clear(rs, NULL);
         }
     }
 
@@ -250,7 +240,17 @@ static int l_Audio_clear(lua_State *ls)
     return 0;
 }
 
-static int l_Audio_Music_play(lua_State *ls)
+static int l_Audio_getMusicVolume(lua_State *ls)
+{
+    return l_Internal_getVolume(ls, offsetof(r_state_t, audio_music_volume));
+}
+
+static int l_Audio_setMusicVolume(lua_State *ls)
+{
+    return l_Internal_setVolume(ls, r_audio_music_set_volume);
+}
+
+static int l_Audio_playMusic(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -284,7 +284,7 @@ static int l_Audio_Music_play(lua_State *ls)
                     loop = (lua_toboolean(ls, 2) != 0) ? R_TRUE : R_FALSE;
                 }
 
-                status = r_audio_music_play(rs, audio_clip.clip_data, loop);
+                status = r_audio_state_music_play(rs, NULL, audio_clip.clip_data, loop);
             }
         }
     }
@@ -294,7 +294,7 @@ static int l_Audio_Music_play(lua_State *ls)
     return 0;
 }
 
-static int l_Audio_Music_stop(lua_State *ls)
+static int l_Audio_stopMusic(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -308,7 +308,7 @@ static int l_Audio_Music_stop(lua_State *ls)
 
         if (R_SUCCEEDED(status))
         {
-            status = r_audio_music_stop(rs);
+            status = r_audio_state_music_stop(rs, NULL);
         }
     }
 
@@ -317,7 +317,7 @@ static int l_Audio_Music_stop(lua_State *ls)
     return 0;
 }
 
-static int l_Audio_Music_seek(lua_State *ls)
+static int l_Audio_seekMusic(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -337,7 +337,7 @@ static int l_Audio_Music_seek(lua_State *ls)
         {
             unsigned int ms = (unsigned int)lua_tonumber(ls, 1);
 
-            status = r_audio_music_seek(rs, ms);
+            status = r_audio_state_music_seek(rs, NULL, ms);
         }
     }
 
@@ -358,21 +358,16 @@ r_status_t r_audio_clip_cache_start(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        r_script_node_t audio_music_nodes[] = {
-            { "getVolume", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_Music_getVolume },
-            { "setVolume", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_Music_setVolume },
-            { "play",      R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_Music_play },
-            { "stop",      R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_Music_stop },
-            { "seek",      R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_Music_seek },
-            { NULL }
-        };
-
         r_script_node_t audio_nodes[] = {
-            { "Music",     R_SCRIPT_NODE_TYPE_TABLE,    audio_music_nodes, NULL },
-            { "getVolume", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_getVolume },
-            { "setVolume", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_setVolume },
-            { "play",      R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_play },
-            { "clear",     R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_clear },
+            { "getVolume",      R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_getVolume },
+            { "setVolume",      R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_setVolume },
+            { "play",           R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_play },
+            { "clear",          R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_clear },
+            { "getMusicVolume", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_getMusicVolume },
+            { "setMusicVolume", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_setMusicVolume },
+            { "playMusic",      R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_playMusic },
+            { "stopMusic",      R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_stopMusic },
+            { "seekMusic",      R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_seekMusic },
             { NULL }
         };
 

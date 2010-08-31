@@ -29,15 +29,34 @@ THE SOFTWARE.
 #include "r_script.h"
 #include "r_event.h"
 #include "r_audio.h"
+#include "r_audio_clip_cache.h"
+
+/* TODO: These kinds of static variables for global references mean that there can't be more than one instance of the engine running. Fix this and store data in r_state_t. */
+r_object_ref_t r_layer_ref_play         = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_layer_ref_clearAudio   = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_layer_ref_playMusic    = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_layer_ref_stopMusic    = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_layer_ref_seekMusic    = { R_OBJECT_REF_INVALID, { NULL } };
+
+extern r_status_t r_audio_state_queue_clip(r_state_t *rs, r_audio_state_t *audio_state, r_audio_clip_data_t *clip_data, unsigned char volume, char position);
+extern r_status_t r_audio_state_clear(r_state_t *rs, r_audio_state_t *audio_state);
+extern r_status_t r_audio_state_music_play(r_state_t *rs, r_audio_state_t *audio_state, r_audio_clip_data_t *clip_data, r_boolean_t loop);
+extern r_status_t r_audio_state_music_stop(r_state_t *rs, r_audio_state_t *audio_state);
+extern r_status_t r_audio_state_music_seek(r_state_t *rs, r_audio_state_t *audio_state, unsigned int ms);
 
 r_object_field_t r_layer_fields[] = {
-    { "framePeriodMS",      LUA_TNUMBER,   0,                         offsetof(r_layer_t, frame_period_ms),      R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "entities",           LUA_TUSERDATA, R_OBJECT_TYPE_ENTITY_LIST, offsetof(r_layer_t, entities),             R_TRUE, R_OBJECT_INIT_OPTIONAL, r_entity_list_field_init, NULL, NULL, NULL },
-    { "keyPressed",         LUA_TFUNCTION, 0,                         offsetof(r_layer_t, key_pressed),          R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "mouseButtonPressed", LUA_TFUNCTION, 0,                         offsetof(r_layer_t, mouse_button_pressed), R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "mouseMoved",         LUA_TFUNCTION, 0,                         offsetof(r_layer_t, mouse_moved),          R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "errorOccurred",      LUA_TFUNCTION, 0,                         offsetof(r_layer_t, error_occurred),       R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "propagateAudio",     LUA_TBOOLEAN,  0,                         offsetof(r_layer_t, propagate_audio),      R_TRUE, R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "framePeriodMS",      LUA_TNUMBER,   0,                         offsetof(r_layer_t, frame_period_ms),      R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "entities",           LUA_TUSERDATA, R_OBJECT_TYPE_ENTITY_LIST, offsetof(r_layer_t, entities),             R_TRUE,  R_OBJECT_INIT_OPTIONAL, r_entity_list_field_init, NULL, NULL, NULL },
+    { "keyPressed",         LUA_TFUNCTION, 0,                         offsetof(r_layer_t, key_pressed),          R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "mouseButtonPressed", LUA_TFUNCTION, 0,                         offsetof(r_layer_t, mouse_button_pressed), R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "mouseMoved",         LUA_TFUNCTION, 0,                         offsetof(r_layer_t, mouse_moved),          R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "errorOccurred",      LUA_TFUNCTION, 0,                         offsetof(r_layer_t, error_occurred),       R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "propagateAudio",     LUA_TBOOLEAN,  0,                         offsetof(r_layer_t, propagate_audio),      R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "play",               LUA_TFUNCTION, 0,                         0,                                         R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_play, NULL },
+    { "clearAudio",         LUA_TFUNCTION, 0,                         0,                                         R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_clearAudio, NULL },
+    { "playMusic",          LUA_TFUNCTION, 0,                         0,                                         R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_playMusic, NULL },
+    { "stopMusic",          LUA_TFUNCTION, 0,                         0,                                         R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_stopMusic, NULL },
+    { "seekMusic",          LUA_TFUNCTION, 0,                         0,                                         R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_seekMusic, NULL },
     { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
 };
 
@@ -76,6 +95,31 @@ static int l_Layer_new(lua_State *ls)
     return l_Object_new(ls, &r_layer_header);
 }
 
+static int l_Layer_play(lua_State *ls)
+{
+    return l_AudioState_play(ls, R_FALSE);
+}
+
+static int l_Layer_clearAudio(lua_State *ls)
+{
+    return l_AudioState_clearAudio(ls, R_FALSE);
+}
+
+static int l_Layer_playMusic(lua_State *ls)
+{
+    return l_AudioState_playMusic(ls, R_FALSE);
+}
+
+static int l_Layer_stopMusic(lua_State *ls)
+{
+    return l_AudioState_stopMusic(ls, R_FALSE);
+}
+
+static int l_Layer_seekMusic(lua_State *ls)
+{
+    return l_AudioState_seekMusic(ls, R_FALSE);
+}
+
 r_status_t r_layer_setup(r_state_t *rs)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -84,9 +128,17 @@ r_status_t r_layer_setup(r_state_t *rs)
     if (R_SUCCEEDED(status))
     {
         r_script_node_t layer_nodes[] = { { "new", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Layer_new }, { NULL } };
-        r_script_node_t node = { "Layer", R_SCRIPT_NODE_TYPE_TABLE, layer_nodes };
+        r_script_node_root_t roots[] = {
+            { LUA_GLOBALSINDEX, NULL,     { "Layer", R_SCRIPT_NODE_TYPE_TABLE, layer_nodes, NULL } },
+            { 0, &r_layer_ref_play,       { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Layer_play } },
+            { 0, &r_layer_ref_clearAudio, { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Layer_clearAudio } },
+            { 0, &r_layer_ref_playMusic,  { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Layer_playMusic } },
+            { 0, &r_layer_ref_stopMusic,  { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Layer_stopMusic } },
+            { 0, &r_layer_ref_seekMusic,  { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Layer_seekMusic } },
+            { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
+        };
 
-        status = r_script_register_node(rs, &node, LUA_GLOBALSINDEX);
+        status = r_script_register_nodes(rs, roots);
     }
 
     return status;
@@ -115,4 +167,3 @@ r_status_t r_layer_update(r_state_t *rs, r_layer_t *layer, unsigned int current_
 
     return status;
 }
-

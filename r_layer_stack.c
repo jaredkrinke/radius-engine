@@ -181,3 +181,77 @@ r_status_t r_layer_stack_process(r_state_t *rs, r_boolean_t ascending, r_layer_p
 
     return status;
 }
+
+typedef struct
+{
+    r_layer_t       *origin_layer;
+    r_audio_state_t *active_audio_state;
+} r_active_audio_state_data_t;
+
+static r_status_t r_layer_test_active_audio_state(r_state_t *rs, r_layer_t *layer, unsigned int index, void *data)
+{
+    r_active_audio_state_data_t *test_data = (r_active_audio_state_data_t*)data;
+    r_status_t status = R_SUCCESS;
+
+    /* Check for origin layer */
+    if (test_data->origin_layer != NULL)
+    {
+        if (test_data->origin_layer == layer)
+        {
+            /* Origin has been found, now search for active audio state */
+            test_data->origin_layer = NULL;
+        }
+    }
+
+    if (test_data->origin_layer == NULL)
+    {
+        if (!layer->propagate_audio || index == 0)
+        {
+            /* This layer either supplies its own audio or is the bottom layer on the stack */
+            test_data->active_audio_state = &layer->audio_state;
+            status = R_S_STOP_ENUMERATION;
+        }
+    }
+
+    return status;
+}
+
+r_audio_state_t *r_layer_stack_get_active_audio_state(r_state_t *rs)
+{
+    /* Find the layer that will supply audio (i.e. propagate_audio is false or the bottom layer on the stack) */
+    r_audio_state_t *audio_state = NULL;
+    r_active_audio_state_data_t test_data = { NULL, NULL };
+    r_status_t status = r_layer_stack_process(rs, R_FALSE, r_layer_test_active_audio_state, &test_data);
+
+    if (R_SUCCEEDED(status))
+    {
+        audio_state = test_data.active_audio_state;
+    }
+
+    return audio_state;
+}
+
+r_audio_state_t *r_layer_stack_get_active_audio_state_for_layer(r_state_t *rs, r_layer_t *layer)
+{
+    r_audio_state_t *audio_state = NULL;
+
+    if (layer->propagate_audio)
+    {
+        /* Layer propagates audio; attempt to find active audio state (if it is in the layer stack), otherwise return NULL for the currently-active audio state */
+        r_active_audio_state_data_t test_data = { layer, NULL };
+        r_status_t status = r_layer_stack_process(rs, R_FALSE, r_layer_test_active_audio_state, &test_data);
+
+        if (R_SUCCEEDED(status))
+        {
+            audio_state = test_data.active_audio_state;
+        }
+    }
+    else
+    {
+        /* Layer does not propagate audio, so just return its audio state */
+        audio_state = &layer->audio_state;
+    }
+
+    return audio_state;
+}
+

@@ -85,26 +85,6 @@ static r_status_t r_event_pixels_to_coordinates(r_state_t *rs, int x, int y, r_v
     return status;
 }
 
-static r_status_t r_event_test_audio_layer(r_state_t *rs, r_layer_t *layer, unsigned int index, void *data)
-{
-    r_status_t status = (rs != NULL && layer != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-    R_ASSERT(R_SUCCEEDED(status));
-
-    if (R_SUCCEEDED(status))
-    {
-        if (!layer->propagate_audio || index == 0)
-        {
-            /* This layer either supplies its own audio or is the bottom layer on the stack */
-            r_layer_t **layer_out = (r_layer_t**)data;
-
-            *layer_out = layer;
-            status = R_S_STOP_ENUMERATION;
-        }
-    }
-
-    return status;
-}
-
 static r_status_t r_event_detect_active_layer(r_state_t *rs, r_layer_t **layer, r_layer_t **last_layer)
 {
     r_status_t status = r_layer_stack_get_active_layer(rs, layer);
@@ -118,15 +98,7 @@ static r_status_t r_event_detect_active_layer(r_state_t *rs, r_layer_t **layer, 
 
             if (R_SUCCEEDED(status))
             {
-                /* Find the layer that will supply audio (i.e. propagate_audio is false or the bottom layer on the stack) */
-                r_layer_t *audio_layer = NULL;
-
-                status = r_layer_stack_process(rs, R_FALSE, r_event_test_audio_layer, &audio_layer);
-
-                if (R_SUCCEEDED(status))
-                {
-                    status = r_audio_set_current_state(rs, &audio_layer->audio_state);
-                }
+                status = r_audio_set_current_state(rs, r_layer_stack_get_active_audio_state(rs));
             }
         }
     }

@@ -37,5 +37,8 @@ extern r_status_t r_layer_stack_setup(r_state_t *rs);
 extern r_status_t r_layer_stack_get_active_layer(r_state_t *rs, r_layer_t **layer);
 extern r_status_t r_layer_stack_process(r_state_t *rs, r_boolean_t ascending, r_layer_process_function_t process, void *data);
 
+extern r_audio_state_t *r_layer_stack_get_active_audio_state(r_state_t *rs);
+extern r_audio_state_t *r_layer_stack_get_active_audio_state_for_layer(r_state_t *rs, r_layer_t *layer);
+
 #endif
 

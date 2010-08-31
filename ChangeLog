@@ -1,3 +1,20 @@
+2010-08-30 deraj@users.sourceforge.net
+
+* r_audio_clip_cache.h: Added audio state functions
+* r_audio_clip_cache.c: Audio state helpers are now globals
+
+* r_layer.c: Layers now have audio state manipulation functions
+
+2010-08-23 deraj@users.sourceforge.net
+
+* r_layer_stack.h: Added r_layer_stack_get_active_audio_state and
+    r_layer_stack_get_active_audio_state_for_layer
+* r_layer_stack.c: Implemented functions for finding active audio states
+* r_event.c: Use layer stack function for finding active audio state
+
+* r_audio_clip_cache.c: Audio state play/clear, music start/stop/seek now can
+    be used globally (for the active audio state) or for a specific layer
+
 2010-08-22 deraj@users.sourceforge.net
 
 * r_file_internal.c (r_file_internal_close): Files are now only closed once

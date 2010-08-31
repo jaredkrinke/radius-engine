@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include "r_audio_clip_manager.h"
 #include "r_audio_clip_cache.h"
 #include "r_script.h"
+#include "r_layer_stack.h"
 
 r_object_field_t r_audio_clip_fields[] = { { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL } };
 
@@ -161,7 +162,17 @@ static int l_Audio_setVolume(lua_State *ls)
     return l_Internal_setVolume(ls, r_audio_set_volume);
 }
 
-static int l_Audio_play(lua_State *ls)
+static int l_Audio_getMusicVolume(lua_State *ls)
+{
+    return l_Internal_getVolume(ls, offsetof(r_state_t, audio_music_volume));
+}
+
+static int l_Audio_setMusicVolume(lua_State *ls)
+{
+    return l_Internal_setVolume(ls, r_audio_music_set_volume);
+}
+
+int l_AudioState_play(lua_State *ls, r_boolean_t global)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -171,13 +182,27 @@ static int l_Audio_play(lua_State *ls)
     /* Skip all work if audio is disabled */
     if (R_SUCCEEDED(status) && rs->audio_volume > 0)
     {
-        const r_script_argument_t expected_arguments[] = {
-            { LUA_TSTRING, 0 },
-            { LUA_TNUMBER, 0 },
-            { LUA_TNUMBER, 0 }
-        };
+        if (global)
+        {
+            const r_script_argument_t expected_arguments[] = {
+                { LUA_TSTRING, 0 },
+                { LUA_TNUMBER, 0 },
+                { LUA_TNUMBER, 0 }
+            };
 
-        status = r_script_verify_arguments_with_optional(rs, 1, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+            status = r_script_verify_arguments_with_optional(rs, 1, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+        }
+        else
+        {
+            const r_script_argument_t expected_arguments[] = {
+                { LUA_TUSERDATA, R_OBJECT_TYPE_LAYER },
+                { LUA_TSTRING, 0 },
+                { LUA_TNUMBER, 0 },
+                { LUA_TNUMBER, 0 }
+            };
+
+            status = r_script_verify_arguments_with_optional(rs, 2, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+        }
 
         if (R_SUCCEEDED(status))
         {
@@ -190,24 +215,32 @@ static int l_Audio_play(lua_State *ls)
             if (R_SUCCEEDED(status))
             {
                 int argument_count = lua_gettop(ls);
+                r_audio_state_t *audio_state = NULL;
                 unsigned char volume = R_AUDIO_VOLUME_MAX;
                 char position = 0;
 
-                if (argument_count >= 2)
+                if (!global)
                 {
-                    double f = lua_tonumber(ls, 2);
+                    r_layer_t *layer = (r_layer_t*)lua_touserdata(ls, 1);
+
+                    audio_state = r_layer_stack_get_active_audio_state_for_layer(rs, layer);
+                }
+
+                if ((global && argument_count >= 2) || (!global && argument_count >= 3))
+                {
+                    double f = lua_tonumber(ls, global ? 2 : 3);
 
                     volume = (unsigned char)(R_CLAMP(f, 0.0, 1.0) * R_AUDIO_VOLUME_MAX);
                 }
 
-                if (argument_count >= 3)
+                if ((global && argument_count >= 3) || (!global && argument_count >= 4))
                 {
-                    double f = lua_tonumber(ls, 3);
+                    double f = lua_tonumber(ls, global ? 3 : 4);
 
                     position = (char)(R_CLAMP(f, -1.0, 1.0) * R_AUDIO_POSITION_MAX);
                 }
 
-                status = r_audio_state_queue_clip(rs, NULL, audio_clip.clip_data, volume, position);
+                status = r_audio_state_queue_clip(rs, audio_state, audio_clip.clip_data, volume, position);
             }
         }
     }
@@ -217,7 +250,7 @@ static int l_Audio_play(lua_State *ls)
     return 0;
 }
 
-static int l_Audio_clear(lua_State *ls)
+int l_AudioState_clearAudio(lua_State *ls, r_boolean_t global)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -226,12 +259,32 @@ static int l_Audio_clear(lua_State *ls)
 
     if (R_SUCCEEDED(status))
     {
-        status = r_script_verify_arguments(rs, 0, NULL);
+        if (global)
+        {
+            status = r_script_verify_arguments(rs, 0, NULL);
+        }
+        else
+        {
+            const r_script_argument_t expected_arguments[] = {
+                { LUA_TUSERDATA, R_OBJECT_TYPE_LAYER }
+            };
+
+            status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+        }
 
         if (R_SUCCEEDED(status))
         {
+            r_audio_state_t *audio_state = NULL;
+
+            if (!global)
+            {
+                r_layer_t *layer = (r_layer_t*)lua_touserdata(ls, 1);
+
+                audio_state = r_layer_stack_get_active_audio_state_for_layer(rs, layer);
+            }
+
             /* TODO: This should prevent new sounds from being queued for the rest of the frame */
-            status = r_audio_state_clear(rs, NULL);
+            status = r_audio_state_clear(rs, audio_state);
         }
     }
 
@@ -240,17 +293,7 @@ static int l_Audio_clear(lua_State *ls)
     return 0;
 }
 
-static int l_Audio_getMusicVolume(lua_State *ls)
-{
-    return l_Internal_getVolume(ls, offsetof(r_state_t, audio_music_volume));
-}
-
-static int l_Audio_setMusicVolume(lua_State *ls)
-{
-    return l_Internal_setVolume(ls, r_audio_music_set_volume);
-}
-
-static int l_Audio_playMusic(lua_State *ls)
+int l_AudioState_playMusic(lua_State *ls, r_boolean_t global)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -260,31 +303,52 @@ static int l_Audio_playMusic(lua_State *ls)
     /* Skip all work if audio/music is disabled */
     if (R_SUCCEEDED(status) && rs->audio_volume > 0 && rs->audio_music_volume > 0)
     {
-        const r_script_argument_t expected_arguments[] = {
-            { LUA_TSTRING, 0 },
-            { LUA_TBOOLEAN, 0 }
-        };
+        if (global)
+        {
+            const r_script_argument_t expected_arguments[] = {
+                { LUA_TSTRING, 0 },
+                { LUA_TBOOLEAN, 0 }
+            };
 
-        status = r_script_verify_arguments_with_optional(rs, 1, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+            status = r_script_verify_arguments_with_optional(rs, 1, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+        }
+        else
+        {
+            const r_script_argument_t expected_arguments[] = {
+                { LUA_TUSERDATA, R_OBJECT_TYPE_LAYER },
+                { LUA_TSTRING, 0 },
+                { LUA_TBOOLEAN, 0 }
+            };
+
+            status = r_script_verify_arguments_with_optional(rs, 2, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+        }
 
         if (R_SUCCEEDED(status))
         {
             r_audio_clip_t audio_clip;
-            const char *audio_clip_path = lua_tostring(ls, 1);
+            const char *audio_clip_path = lua_tostring(ls, global ? 1 : 2);
 
             status = r_audio_clip_cache_retrieve(rs, audio_clip_path, R_TRUE, &audio_clip);
 
             if (R_SUCCEEDED(status))
             {
+                r_audio_state_t *audio_state = NULL;
                 int argument_count = lua_gettop(ls);
                 r_boolean_t loop = R_TRUE;
 
-                if (argument_count >= 2)
+                if (!global)
                 {
-                    loop = (lua_toboolean(ls, 2) != 0) ? R_TRUE : R_FALSE;
+                    r_layer_t *layer = (r_layer_t*)lua_touserdata(ls, 1);
+
+                    audio_state = r_layer_stack_get_active_audio_state_for_layer(rs, layer);
                 }
 
-                status = r_audio_state_music_play(rs, NULL, audio_clip.clip_data, loop);
+                if ((global && argument_count >= 2) || (!global && argument_count >= 3))
+                {
+                    loop = (lua_toboolean(ls, global ? 2 : 3) != 0) ? R_TRUE : R_FALSE;
+                }
+
+                status = r_audio_state_music_play(rs, audio_state, audio_clip.clip_data, loop);
             }
         }
     }
@@ -294,7 +358,7 @@ static int l_Audio_playMusic(lua_State *ls)
     return 0;
 }
 
-static int l_Audio_stopMusic(lua_State *ls)
+int l_AudioState_stopMusic(lua_State *ls, r_boolean_t global)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -304,11 +368,31 @@ static int l_Audio_stopMusic(lua_State *ls)
     /* Skip all work if audio is disabled */
     if (R_SUCCEEDED(status) && rs->audio_volume > 0)
     {
-        status = r_script_verify_arguments(rs, 0, NULL);
+        if (global)
+        {
+            status = r_script_verify_arguments(rs, 0, NULL);
+        }
+        else
+        {
+            const r_script_argument_t expected_arguments[] = {
+                { LUA_TUSERDATA, R_OBJECT_TYPE_LAYER }
+            };
+
+            status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+        }
 
         if (R_SUCCEEDED(status))
         {
-            status = r_audio_state_music_stop(rs, NULL);
+            r_audio_state_t *audio_state = NULL;
+
+            if (!global)
+            {
+                r_layer_t *layer = (r_layer_t*)lua_touserdata(ls, 1);
+
+                audio_state = r_layer_stack_get_active_audio_state_for_layer(rs, layer);
+            }
+
+            status = r_audio_state_music_stop(rs, audio_state);
         }
     }
 
@@ -317,7 +401,7 @@ static int l_Audio_stopMusic(lua_State *ls)
     return 0;
 }
 
-static int l_Audio_seekMusic(lua_State *ls)
+int l_AudioState_seekMusic(lua_State *ls, r_boolean_t global)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -327,23 +411,68 @@ static int l_Audio_seekMusic(lua_State *ls)
     /* Skip all work if audio/music is disabled */
     if (R_SUCCEEDED(status) && rs->audio_volume > 0 && rs->audio_music_volume > 0)
     {
-        const r_script_argument_t expected_arguments[] = {
-            { LUA_TNUMBER, 0 }
-        };
+        if (global)
+        {
+            const r_script_argument_t expected_arguments[] = {
+                { LUA_TNUMBER, 0 }
+            };
 
-        status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+            status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+        }
+        else
+        {
+            const r_script_argument_t expected_arguments[] = {
+                { LUA_TUSERDATA, R_OBJECT_TYPE_LAYER },
+                { LUA_TNUMBER, 0 }
+            };
+
+            status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+        }
 
         if (R_SUCCEEDED(status))
         {
-            unsigned int ms = (unsigned int)lua_tonumber(ls, 1);
+            r_audio_state_t *audio_state = NULL;
+            unsigned int ms = (unsigned int)lua_tonumber(ls, global ? 1 : 2);
 
-            status = r_audio_state_music_seek(rs, NULL, ms);
+            if (!global)
+            {
+                r_layer_t *layer = (r_layer_t*)lua_touserdata(ls, 1);
+
+                audio_state = r_layer_stack_get_active_audio_state_for_layer(rs, layer);
+            }
+
+            status = r_audio_state_music_seek(rs, audio_state, ms);
         }
     }
 
     lua_pop(ls, lua_gettop(ls));
 
     return 0;
+}
+
+static int l_Audio_play(lua_State *ls)
+{
+    return l_AudioState_play(ls, R_TRUE);
+}
+
+static int l_Audio_clearAudio(lua_State *ls)
+{
+    return l_AudioState_clearAudio(ls, R_TRUE);
+}
+
+static int l_Audio_playMusic(lua_State *ls)
+{
+    return l_AudioState_playMusic(ls, R_TRUE);
+}
+
+static int l_Audio_stopMusic(lua_State *ls)
+{
+    return l_AudioState_stopMusic(ls, R_TRUE);
+}
+
+static int l_Audio_seekMusic(lua_State *ls)
+{
+    return l_AudioState_seekMusic(ls, R_TRUE);
 }
 
 r_status_t r_audio_clip_cache_start(r_state_t *rs)
@@ -362,7 +491,7 @@ r_status_t r_audio_clip_cache_start(r_state_t *rs)
             { "getVolume",      R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_getVolume },
             { "setVolume",      R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_setVolume },
             { "play",           R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_play },
-            { "clear",          R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_clear },
+            { "clearAudio",     R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_clearAudio },
             { "getMusicVolume", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_getMusicVolume },
             { "setMusicVolume", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_setMusicVolume },
             { "playMusic",      R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Audio_playMusic },

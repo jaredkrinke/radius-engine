@@ -36,5 +36,12 @@ typedef struct
 extern r_status_t r_audio_clip_cache_start(r_state_t *rs);
 extern r_status_t r_audio_clip_cache_end(r_state_t *rs);
 
+/* TODO: These should probably go in some audio script file */
+extern int l_AudioState_play(lua_State *ls, r_boolean_t global);
+extern int l_AudioState_clearAudio(lua_State *ls, r_boolean_t global);
+extern int l_AudioState_playMusic(lua_State *ls, r_boolean_t global);
+extern int l_AudioState_stopMusic(lua_State *ls, r_boolean_t global);
+extern int l_AudioState_seekMusic(lua_State *ls, r_boolean_t global);
+
 #endif
 

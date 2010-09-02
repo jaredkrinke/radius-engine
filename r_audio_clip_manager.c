@@ -420,6 +420,11 @@ r_status_t r_audio_clip_instance_release(r_state_t *rs, r_audio_clip_instance_t 
                 free(clip_instance->state.on_demand.buffers[0]);
                 free(clip_instance->state.on_demand.buffers[1]);
                 break;
+
+            default:
+                /* Unexpected clip instance type */
+                R_ASSERT(0);
+                break;
             }
 
             r_audio_clip_data_release(rs, clip_instance->clip_data);

@@ -21,7 +21,7 @@ THE SOFTWARE.
 */
 
 #include <SDL.h>
-#include <SDL_Sound.h>
+#include <SDL_sound.h>
 #include <physfs.h>
 
 #include "r_assert.h"
@@ -115,11 +115,6 @@ static r_status_t r_audio_decoder_task_list_add(r_state_t *rs, r_audio_decoder_t
     return r_list_add(rs, list, item, &r_audio_decoder_task_list_def);
 }
 
-static void *r_audio_decoder_task_list_get_index(r_state_t *rs, r_audio_decoder_task_list_t *list, unsigned int index)
-{
-    return r_list_get_index(rs, list, index, &r_audio_decoder_task_list_def);
-}
-
 static unsigned int r_audio_decoder_task_list_get_count(r_state_t *rs, r_audio_decoder_task_list_t *list)
 {
     return r_list_get_count(rs, list, &r_audio_decoder_task_list_def);
@@ -128,16 +123,6 @@ static unsigned int r_audio_decoder_task_list_get_count(r_state_t *rs, r_audio_d
 static r_status_t r_audio_decoder_task_list_steal_index(r_state_t *rs, r_audio_decoder_task_list_t *list, unsigned int index, r_audio_decoder_task_t *task_out)
 {
     return r_list_steal_index(rs, list, index, task_out, &r_audio_decoder_task_list_def);
-}
-
-static r_status_t r_audio_decoder_task_list_clear(r_state_t *rs, r_audio_decoder_task_list_t *list)
-{
-    return r_list_clear(rs, list, &r_audio_decoder_task_list_def);
-}
-
-static r_audio_decoder_task_t *r_audio_decoder_task_list_get_index_internal(r_state_t *rs, r_audio_decoder_task_list_t *list, unsigned int index)
-{
-    return (r_audio_decoder_task_t*)r_audio_decoder_task_list_get_index(rs, list, index);
 }
 
 static unsigned int r_audio_decoder_task_list_get_count_internal(r_state_t *rs, r_audio_decoder_task_list_t *list)

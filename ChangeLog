@@ -1,3 +1,16 @@
+2010-09-01 deraj@users.sourceforge.net
+
+* r_audio_decoder.c: Fixed capitalization of SDL_sound.h
+
+* r_audio.c (r_audio_callback): Removed unused variable
+
+* r_audio_clip_manager (r_audio_clip_instance_release): Added default case
+
+* r_audio_decoder.c: Removed unused functions
+
+* r_vector.h: Removed const from r_vector_2d_from_homogeneous declaration
+* r_vector.c (r_vector2d_from_homogeneous): Removed unsupported const
+
 2010-08-30 deraj@users.sourceforge.net
 
 * r_audio_clip_cache.h: Added audio state functions

@@ -384,7 +384,6 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
 
                                 if (R_SUCCEEDED(clip_instance->state.on_demand.buffer_status[buffer_index]))
                                 {
-                                    const r_audio_clip_data_t *data = clip_instance->clip_data;
                                     const Sint16 *clip_frame = (Sint16*)&((unsigned char*)clip_instance->state.on_demand.buffers[buffer_index])[clip_instance->state.on_demand.buffer_position];
 
                                     if (clip_instance->volume > 0)

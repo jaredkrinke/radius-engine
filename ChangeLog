@@ -1,3 +1,8 @@
+2010-09-02 deraj@users.sourceforge.net
+
+* r_defs.h: Incremented version
+* configure.in: Incremented version
+
 2010-09-01 deraj@users.sourceforge.net
 
 * r_audio_decoder.c: Fixed capitalization of SDL_sound.h

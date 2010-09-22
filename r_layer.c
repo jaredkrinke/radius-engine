@@ -45,18 +45,20 @@ extern r_status_t r_audio_state_music_stop(r_state_t *rs, r_audio_state_t *audio
 extern r_status_t r_audio_state_music_seek(r_state_t *rs, r_audio_state_t *audio_state, unsigned int ms);
 
 r_object_field_t r_layer_fields[] = {
-    { "framePeriodMS",      LUA_TNUMBER,   0,                         offsetof(r_layer_t, frame_period_ms),      R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "entities",           LUA_TUSERDATA, R_OBJECT_TYPE_ENTITY_LIST, offsetof(r_layer_t, entities),             R_TRUE,  R_OBJECT_INIT_OPTIONAL, r_entity_list_field_init, NULL, NULL, NULL },
-    { "keyPressed",         LUA_TFUNCTION, 0,                         offsetof(r_layer_t, key_pressed),          R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "mouseButtonPressed", LUA_TFUNCTION, 0,                         offsetof(r_layer_t, mouse_button_pressed), R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "mouseMoved",         LUA_TFUNCTION, 0,                         offsetof(r_layer_t, mouse_moved),          R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "errorOccurred",      LUA_TFUNCTION, 0,                         offsetof(r_layer_t, error_occurred),       R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "propagateAudio",     LUA_TBOOLEAN,  0,                         offsetof(r_layer_t, propagate_audio),      R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "play",               LUA_TFUNCTION, 0,                         0,                                         R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_play, NULL },
-    { "clearAudio",         LUA_TFUNCTION, 0,                         0,                                         R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_clearAudio, NULL },
-    { "playMusic",          LUA_TFUNCTION, 0,                         0,                                         R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_playMusic, NULL },
-    { "stopMusic",          LUA_TFUNCTION, 0,                         0,                                         R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_stopMusic, NULL },
-    { "seekMusic",          LUA_TFUNCTION, 0,                         0,                                         R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_seekMusic, NULL },
+    { "framePeriodMS",         LUA_TNUMBER,   0,                         offsetof(r_layer_t, frame_period_ms),         R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "entities",              LUA_TUSERDATA, R_OBJECT_TYPE_ENTITY_LIST, offsetof(r_layer_t, entities),                R_TRUE,  R_OBJECT_INIT_OPTIONAL, r_entity_list_field_init, NULL, NULL, NULL },
+    { "keyPressed",            LUA_TFUNCTION, 0,                         offsetof(r_layer_t, key_pressed),             R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "mouseButtonPressed",    LUA_TFUNCTION, 0,                         offsetof(r_layer_t, mouse_button_pressed),    R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "mouseMoved",            LUA_TFUNCTION, 0,                         offsetof(r_layer_t, mouse_moved),             R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "joystickButtonPressed", LUA_TFUNCTION, 0,                         offsetof(r_layer_t, joystick_button_pressed), R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "joystickAxisMoved",     LUA_TFUNCTION, 0,                         offsetof(r_layer_t, joystick_axis_moved),     R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "errorOccurred",         LUA_TFUNCTION, 0,                         offsetof(r_layer_t, error_occurred),          R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "propagateAudio",        LUA_TBOOLEAN,  0,                         offsetof(r_layer_t, propagate_audio),         R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "play",                  LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_play, NULL },
+    { "clearAudio",            LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_clearAudio, NULL },
+    { "playMusic",             LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_playMusic, NULL },
+    { "stopMusic",             LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_stopMusic, NULL },
+    { "seekMusic",             LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_seekMusic, NULL },
     { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
 };
 
@@ -73,6 +75,8 @@ static r_status_t r_layer_init(r_state_t *rs, r_object_t *object)
     r_object_ref_init(&layer->key_pressed);
     r_object_ref_init(&layer->mouse_button_pressed);
     r_object_ref_init(&layer->mouse_moved);
+    r_object_ref_init(&layer->joystick_button_pressed);
+    r_object_ref_init(&layer->joystick_axis_moved);
     r_object_ref_init(&layer->error_occurred);
 
     layer->last_update_ms = 0;

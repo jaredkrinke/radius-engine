@@ -46,6 +46,8 @@ typedef struct
     r_object_ref_t      key_pressed;
     r_object_ref_t      mouse_button_pressed;
     r_object_ref_t      mouse_moved;
+    r_object_ref_t      joystick_button_pressed;
+    r_object_ref_t      joystick_axis_moved;
     r_object_ref_t      error_occurred;
 
     unsigned int        last_update_ms;

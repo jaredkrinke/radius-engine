@@ -1,3 +1,16 @@
+2010-09-21 deraj@users.sourceforge.net
+
+* r_state.h: Added event_state
+* r_state.c: event_state initialized to NULL
+
+* r_layer.h: Added joystick button/axis handler field
+* r_layer.c: Initialize joystick button/axis handler field
+
+* r_event.c (r_event_start, r_event_stop): Open/close joysticks
+* r_event.c: Joystick event handling
+
+* r_video.c (r_video_start): Enable SDL joystick support
+
 2010-09-02 deraj@users.sourceforge.net
 
 * r_defs.h: Incremented version

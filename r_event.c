@@ -34,6 +34,11 @@ THE SOFTWARE.
 #include "r_layer_stack.h"
 #include "r_audio.h"
 
+typedef struct {
+    int             joystick_count;
+    SDL_Joystick    *joysticks[1];
+} r_event_state_t;
+
 static R_INLINE r_status_t r_event_get_current_time(unsigned int *current_time_ms)
 {
     r_status_t status = (current_time_ms != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -60,11 +65,61 @@ r_status_t r_event_start(r_state_t *rs)
         status = SDL_EnableUNICODE(-1) ? R_SUCCESS : R_FAILURE;
     }
 
+    if (R_SUCCEEDED(status))
+    {
+        /* Open all available joysticks */
+        int joystick_count = SDL_NumJoysticks();
+        r_event_state_t *event_state = (r_event_state_t*)malloc(sizeof(r_event_state_t) + joystick_count * sizeof(SDL_Joystick*));
+
+        status = (event_state != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+        if (R_SUCCEEDED(status))
+        {
+            int i;
+
+            for (i = 0; i < joystick_count && R_SUCCEEDED(status); ++i)
+            {
+                event_state->joysticks[i] = SDL_JoystickOpen(i);
+                status = (event_state->joysticks[i] != NULL) ? R_SUCCESS : R_F_NOT_FOUND;
+            }
+
+            if (R_SUCCEEDED(status))
+            {
+                rs->event_state = (void*)event_state;
+                status = (SDL_JoystickEventState(SDL_ENABLE) == SDL_ENABLE) ? R_SUCCESS : R_FAILURE;
+            }
+            
+            if (R_FAILED(status))
+            {
+                for (--i; i >= 0; --i)
+                {
+                    SDL_JoystickClose(event_state->joysticks[i]);
+                }
+
+                free(event_state);
+            }
+        }
+    }
+
     return status;
 }
 
 void r_event_end(r_state_t *rs)
 {
+    /* Close joysticks */
+    r_event_state_t *event_state = (r_event_state_t*)rs->event_state;
+
+    if (event_state != NULL)
+    {
+        int i;
+
+        for (i = 0; i < event_state->joystick_count; ++i)
+        {
+            SDL_JoystickClose(event_state->joysticks[i]);
+        }
+    }
+
+    /* Revert Unicode translation */
     SDL_EnableUNICODE(0);
 }
 
@@ -279,6 +334,68 @@ static r_status_t r_event_handle_mouse_motion_event(r_state_t *rs, r_layer_t *la
     return status;
 }
 
+static r_status_t r_event_handle_joystick_button_event(r_state_t *rs, r_layer_t *layer, SDL_JoyButtonEvent *joystick_button_event)
+{
+    lua_State *ls = rs->script_state;
+    r_status_t status = r_object_ref_push(rs, (r_object_t*)layer, &layer->joystick_button_pressed);
+
+    if (R_SUCCEEDED(status))
+    {
+        if (lua_isfunction(ls, -1))
+        {
+            status = r_object_push(rs, (r_object_t*)layer);
+
+            if (R_SUCCEEDED(status))
+            {
+                lua_pushnumber(ls, joystick_button_event->which + 1);
+                lua_pushnumber(ls, joystick_button_event->button + 1);
+                lua_pushboolean(ls, joystick_button_event->state == SDL_PRESSED);
+
+                status = r_script_call(rs, 4, 0);
+            }
+        }
+        else
+        {
+            /* No event handler */
+            lua_pop(ls, 1);
+        }
+    }
+
+    return status;
+}
+
+static r_status_t r_event_handle_joystick_axis_event(r_state_t *rs, r_layer_t *layer, SDL_JoyAxisEvent *joystick_axis_event)
+{
+    lua_State *ls = rs->script_state;
+    r_status_t status = r_object_ref_push(rs, (r_object_t*)layer, &layer->joystick_axis_moved);
+
+    if (R_SUCCEEDED(status))
+    {
+        if (lua_isfunction(ls, -1))
+        {
+            status = r_object_push(rs, (r_object_t*)layer);
+
+            if (R_SUCCEEDED(status))
+            {
+                lua_Number value = (lua_Number)joystick_axis_event->value;
+
+                lua_pushnumber(ls, joystick_axis_event->which + 1);
+                lua_pushnumber(ls, joystick_axis_event->axis + 1);
+                lua_pushnumber(ls, value > 0 ? value / 32767 : value / 32768);
+
+                status = r_script_call(rs, 4, 0);
+            }
+        }
+        else
+        {
+            /* No event handler */
+            lua_pop(ls, 1);
+        }
+    }
+
+    return status;
+}
+
 static r_status_t r_event_handle_event(r_state_t *rs, r_layer_t *layer, SDL_Event *ev)
 {
     r_status_t status = (rs != NULL && layer != NULL && ev != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -310,8 +427,20 @@ static r_status_t r_event_handle_event(r_state_t *rs, r_layer_t *layer, SDL_Even
             status = r_event_handle_mouse_motion_event(rs, layer, &ev->motion);
             break;
 
+        case SDL_JOYBUTTONDOWN:
+        case SDL_JOYBUTTONUP:
+            status = r_event_handle_joystick_button_event(rs, layer, &ev->jbutton);
+            break;
+
+        case SDL_JOYAXISMOTION:
+            status = r_event_handle_joystick_axis_event(rs, layer, &ev->jaxis);
+            break;
+
         case SDL_QUIT:
             rs->done = R_TRUE;
+            break;
+
+        default:
             break;
         }
     }

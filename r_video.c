@@ -160,7 +160,7 @@ r_status_t r_video_start(r_state_t *rs, const char *default_font_path)
     if (R_SUCCEEDED(status))
     {
         /* Initialize video subsystem */
-        status = (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) == 0) ? R_SUCCESS : R_FAILURE;
+        status = (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK) == 0) ? R_SUCCESS : R_FAILURE;
 
         if (R_SUCCEEDED(status))
         {

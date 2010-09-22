@@ -57,6 +57,9 @@ typedef struct _r_state
     /* Script state */
     lua_State                       *script_state;
     jmp_buf                         script_error_return_point;
+
+    /* Event state */
+    void                            *event_state;
 } r_state_t;
 
 extern r_status_t r_state_init(r_state_t *rs, const char *argv0);

@@ -50,6 +50,8 @@ r_status_t r_state_init(r_state_t *rs, const char *argv0)
 
         rs->script_state = NULL;
 
+        rs->event_state = NULL;
+
         /* Seed random number generator with current time */
         srand((unsigned int)time(NULL));
     }

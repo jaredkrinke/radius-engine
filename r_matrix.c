@@ -83,6 +83,14 @@ void r_affine_transform2d_stack_free(r_affine_transform2d_stack_t *stack)
     }
 }
 
+void r_affine_transform2d_stack_clear(r_affine_transform2d_stack_t *stack)
+{
+    while (stack->parent != NULL)
+    {
+        r_affine_transform2d_stack_pop(stack);
+    }
+}
+
 /* Push a matrix onto a stack */
 static void r_affine_transform2d_stack_push(r_affine_transform2d_stack_t *head, const r_affine_transform2d_t *b)
 {

@@ -39,6 +39,42 @@ typedef struct {
     SDL_Joystick    *joysticks[1];
 } r_event_state_t;
 
+/* Default mouse button names */
+const char *mouse_button_names[] = {
+    "mb0",
+    "mb1",
+    "mb2",
+    "mb3",
+    "mb4",
+    "mb5",
+    "mb6",
+    "mb7",
+    "mb8",
+    "mb9",
+    "mb10",
+    "mb11",
+    "mb12",
+    "mb13",
+    "mb14",
+    "mb15",
+    "mb16",
+    "mb17",
+    "mb18",
+    "mb19",
+    "mb20",
+    "mb21",
+    "mb22",
+    "mb23",
+    "mb24",
+    "mb25",
+    "mb26",
+    "mb27",
+    "mb28",
+    "mb29",
+    "mb30",
+    "mb31"
+};
+
 static R_INLINE r_status_t r_event_get_current_time(unsigned int *current_time_ms)
 {
     r_status_t status = (current_time_ms != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -50,77 +86,6 @@ static R_INLINE r_status_t r_event_get_current_time(unsigned int *current_time_m
     }
 
     return status;
-}
-
-/* Initialize event support */
-r_status_t r_event_start(r_state_t *rs)
-{
-    /* Set up key names, note this should only be called once */
-    r_status_t status = r_event_keys_init();
-
-    if (R_SUCCEEDED(status))
-    {
-        SDL_EnableUNICODE(1);
-
-        status = SDL_EnableUNICODE(-1) ? R_SUCCESS : R_FAILURE;
-    }
-
-    if (R_SUCCEEDED(status))
-    {
-        /* Open all available joysticks */
-        int joystick_count = SDL_NumJoysticks();
-        r_event_state_t *event_state = (r_event_state_t*)malloc(sizeof(r_event_state_t) + joystick_count * sizeof(SDL_Joystick*));
-
-        status = (event_state != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
-
-        if (R_SUCCEEDED(status))
-        {
-            int i;
-
-            for (i = 0; i < joystick_count && R_SUCCEEDED(status); ++i)
-            {
-                event_state->joysticks[i] = SDL_JoystickOpen(i);
-                status = (event_state->joysticks[i] != NULL) ? R_SUCCESS : R_F_NOT_FOUND;
-            }
-
-            if (R_SUCCEEDED(status))
-            {
-                rs->event_state = (void*)event_state;
-                status = (SDL_JoystickEventState(SDL_ENABLE) == SDL_ENABLE) ? R_SUCCESS : R_FAILURE;
-            }
-            
-            if (R_FAILED(status))
-            {
-                for (--i; i >= 0; --i)
-                {
-                    SDL_JoystickClose(event_state->joysticks[i]);
-                }
-
-                free(event_state);
-            }
-        }
-    }
-
-    return status;
-}
-
-void r_event_end(r_state_t *rs)
-{
-    /* Close joysticks */
-    r_event_state_t *event_state = (r_event_state_t*)rs->event_state;
-
-    if (event_state != NULL)
-    {
-        int i;
-
-        for (i = 0; i < event_state->joystick_count; ++i)
-        {
-            SDL_JoystickClose(event_state->joysticks[i]);
-        }
-    }
-
-    /* Revert Unicode translation */
-    SDL_EnableUNICODE(0);
 }
 
 static r_status_t r_event_pixels_to_coordinates(r_state_t *rs, int x, int y, r_vector2d_t *v_prime)
@@ -233,20 +198,28 @@ static r_status_t r_event_mouse_button_get_name(Uint8 mouse_button, const char *
     switch (mouse_button)
     {
     case SDL_BUTTON_LEFT:
-        *mouse_button_name = "left";
+        *mouse_button_name = "mbleft";
         break;
 
     case SDL_BUTTON_MIDDLE:
-        *mouse_button_name = "middle";
+        *mouse_button_name = "mbmiddle";
         break;
 
     case SDL_BUTTON_RIGHT:
-        *mouse_button_name = "right";
+        *mouse_button_name = "mbright";
         break;
 
     default:
-        *mouse_button_name = "?";
-        status = R_S_FIELD_NOT_FOUND;
+        /* Default to "mbN" where N is the number */
+        if (mouse_button < R_ARRAY_SIZE(mouse_button_names))
+        {
+            *mouse_button_name = mouse_button_names[mouse_button];
+        }
+        else
+        {
+            *mouse_button_name = "?";
+            status = R_S_FIELD_NOT_FOUND;
+        }
         break;
     }
 
@@ -443,6 +416,127 @@ static r_status_t r_event_handle_event(r_state_t *rs, r_layer_t *layer, SDL_Even
         default:
             break;
         }
+    }
+
+    return status;
+}
+
+static int l_Mouse_getPosition(lua_State *ls)
+{
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = r_script_verify_arguments(rs, 0, NULL);
+    int result_count = 0;
+
+    if (R_SUCCEEDED(status))
+    {
+        int x;
+        int y;
+        r_vector2d_t v;
+
+        SDL_GetMouseState(&x, &y);
+        status = r_event_pixels_to_coordinates(rs, x, y, &v);
+
+        if (R_SUCCEEDED(status))
+        {
+            lua_pushnumber(ls, v[0]);
+            lua_pushnumber(ls, v[1]);
+            result_count = 2;
+        }
+    }
+
+    return result_count;
+}
+
+/* Initialize event support */
+r_status_t r_event_start(r_state_t *rs)
+{
+    /* Set up key names, note this should only be called once */
+    r_status_t status = r_event_keys_init();
+
+    if (R_SUCCEEDED(status))
+    {
+        SDL_EnableUNICODE(1);
+
+        status = SDL_EnableUNICODE(-1) ? R_SUCCESS : R_FAILURE;
+    }
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Open all available joysticks */
+        int joystick_count = SDL_NumJoysticks();
+        r_event_state_t *event_state = (r_event_state_t*)malloc(sizeof(r_event_state_t) + joystick_count * sizeof(SDL_Joystick*));
+
+        status = (event_state != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+        if (R_SUCCEEDED(status))
+        {
+            int i;
+
+            for (i = 0; i < joystick_count && R_SUCCEEDED(status); ++i)
+            {
+                event_state->joysticks[i] = SDL_JoystickOpen(i);
+                status = (event_state->joysticks[i] != NULL) ? R_SUCCESS : R_F_NOT_FOUND;
+            }
+
+            if (R_SUCCEEDED(status))
+            {
+                rs->event_state = (void*)event_state;
+                status = (SDL_JoystickEventState(SDL_ENABLE) == SDL_ENABLE) ? R_SUCCESS : R_FAILURE;
+            }
+            
+            if (R_FAILED(status))
+            {
+                for (--i; i >= 0; --i)
+                {
+                    SDL_JoystickClose(event_state->joysticks[i]);
+                }
+
+                free(event_state);
+            }
+        }
+    }
+
+    return status;
+}
+
+void r_event_end(r_state_t *rs)
+{
+    /* Close joysticks */
+    r_event_state_t *event_state = (r_event_state_t*)rs->event_state;
+
+    if (event_state != NULL)
+    {
+        int i;
+
+        for (i = 0; i < event_state->joystick_count; ++i)
+        {
+            SDL_JoystickClose(event_state->joysticks[i]);
+        }
+    }
+
+    /* Revert Unicode translation */
+    SDL_EnableUNICODE(0);
+}
+
+
+r_status_t r_event_setup(r_state_t *rs)
+{
+    r_status_t status = (rs != NULL && rs->script_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        r_script_node_t mouse_nodes[] = {
+            { "getPosition", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Mouse_getPosition},
+            { NULL }
+        };
+
+        r_script_node_root_t roots[] = {
+            { LUA_GLOBALSINDEX, NULL, { "Mouse", R_SCRIPT_NODE_TYPE_TABLE, mouse_nodes } },
+            { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
+        };
+
+        status = r_script_register_nodes(rs, roots);
     }
 
     return status;

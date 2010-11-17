@@ -76,22 +76,23 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
 
     if (R_SUCCEEDED(status))
     {
-        status = (SDL_SetVideoMode((int)width, (int)height, 0, SDL_OPENGL | (fullscreen == R_FALSE ? 0 : SDL_FULLSCREEN)) != NULL) ? R_SUCCESS : R_FAILURE;
+        status = (SDL_SetVideoMode((int)width, (int)height, 0, SDL_OPENGL | (fullscreen ? SDL_FULLSCREEN : 0)) != NULL) ? R_SUCCESS : R_FAILURE;
 
         if (R_SUCCEEDED(status))
         {
             /* Grab input if using a fullscreen mode */
-            if (fullscreen)
+            SDL_GrabMode grab_mode = fullscreen ? SDL_GRAB_ON : SDL_GRAB_OFF;
+
+            if (grab_mode != SDL_WM_GrabInput(SDL_GRAB_QUERY))
             {
-                SDL_WM_GrabInput(SDL_GRAB_ON);
-            }
-            else
-            {
-                SDL_WM_GrabInput(SDL_GRAB_OFF);
+                SDL_WM_GrabInput(grab_mode);
             }
 
             /* Don't show the cursor */
-            SDL_ShowCursor(SDL_DISABLE);
+            if (SDL_DISABLE != SDL_ShowCursor(SDL_QUERY))
+            {
+                SDL_ShowCursor(SDL_DISABLE);
+            }
 
             rs->video_width = width;
             rs->video_height = height;
@@ -99,8 +100,14 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
             /* Set up pixel-to-coordinate transformation */
             if (rs->pixels_to_coordinates == NULL)
             {
+                /* No transformation exists, so create a new stack */
                 rs->pixels_to_coordinates = r_affine_transform2d_stack_new();
                 status = (rs->pixels_to_coordinates != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+            }
+            else
+            {
+                /* A transformation already exists, so clear the stack */
+                r_affine_transform2d_stack_clear(rs->pixels_to_coordinates);
             }
 
             if (R_SUCCEEDED(status))

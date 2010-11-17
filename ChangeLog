@@ -1,3 +1,19 @@
+2010-11-16 deraj@users.sourceforge.net
+
+* r_matrix.h: Added r_affine_transform2d_stack_clear
+* r_matrix.c: Implemented r_affine_transform2d_stack_clear
+
+* r_video.c: Reset mouse coordinate transformation when changing video mode
+
+* r_event.c: Added support for mouse buttons other than left, middle, right
+* r_event.c: Changed name of mouse left/right/middle to mbleft/mbright/mbmiddle
+
+2010-11-15 deraj@users.sourceforge.net
+
+* r_event.h: Added r_event_setup
+* r_event.c (l_Mouse_getPosition, r_event_setup): Added mouse functions
+* r_script_lib.c: Call r_event_setup
+
 2010-09-21 deraj@users.sourceforge.net
 
 * r_state.h: Added event_state

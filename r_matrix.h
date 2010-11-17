@@ -48,6 +48,9 @@ extern r_affine_transform2d_stack_t *r_affine_transform2d_stack_new();
 /* Free an entire transformation stack */
 extern void r_affine_transform2d_stack_free(r_affine_transform2d_stack_t *stack);
 
+/* Clear the transformation stack */
+extern void r_affine_transform2d_stack_clear(r_affine_transform2d_stack_t *stack);
+
 /* Transformation operations
  * NOTE: these will all push a new matrix onto the stack */
 extern R_INLINE void r_affine_transform2d_stack_translate(r_affine_transform2d_stack_t *stack, r_real_t x, r_real_t y);

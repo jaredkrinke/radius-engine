@@ -27,13 +27,9 @@ THE SOFTWARE.
 #include "r_state.h"
 
 /* Event loop functions */
-
-/* Initialize event state. As implemented, this should only be called once
- * and it calls a function that is not thread safe. */
 extern r_status_t r_event_start(r_state_t *rs);
-
-/* Deinitialize event state */
 extern void r_event_end(r_state_t *rs);
+extern r_status_t r_event_setup(r_state_t *rs);
 
 extern R_INLINE void r_event_get_time_difference(unsigned int t1, unsigned int t2, unsigned int *difference_ms);
 

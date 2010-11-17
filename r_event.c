@@ -472,7 +472,9 @@ r_status_t r_event_start(r_state_t *rs)
         {
             int i;
 
-            for (i = 0; i < joystick_count && R_SUCCEEDED(status); ++i)
+            event_state->joystick_count = SDL_NumJoysticks();
+
+            for (i = 0; i < event_state->joystick_count && R_SUCCEEDED(status); ++i)
             {
                 event_state->joysticks[i] = SDL_JoystickOpen(i);
                 status = (event_state->joysticks[i] != NULL) ? R_SUCCESS : R_F_NOT_FOUND;

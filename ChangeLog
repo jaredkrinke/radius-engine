@@ -1,3 +1,7 @@
+2010-11-17 deraj@users.sourceforge.net
+
+* r_event.c: Fixed joystick count
+
 2010-11-16 deraj@users.sourceforge.net
 
 * r_matrix.h: Added r_affine_transform2d_stack_clear

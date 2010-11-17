@@ -43,10 +43,8 @@ THE SOFTWARE.
 #include "r_layer_stack.h"
 #include "r_string_buffer.h"
 
-/* Maximum vertical display coordinate
- * NOTE: the entire display is twice this value in height since the origin is
- * in the center */
-#define R_VIDEO_HEIGHT            (240.0)
+/* Height of the entire view (i.e. the max y coordinate is R_VIDEO_HEIGHT / 2 since the origin is in the center) */
+#define R_VIDEO_HEIGHT            (480.0)
 
 typedef struct {
     unsigned int width;
@@ -112,8 +110,8 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
 
             if (R_SUCCEEDED(status))
             {
-                r_affine_transform2d_stack_translate(rs->pixels_to_coordinates, (r_real_t)(-rs->video_width) / 2, -R_VIDEO_HEIGHT);
-                r_affine_transform2d_stack_scale(rs->pixels_to_coordinates, 1, -1);
+                r_affine_transform2d_stack_translate(rs->pixels_to_coordinates, (r_real_t)(-rs->video_width) / 2, (r_real_t)(-rs->video_height) / 2);
+                r_affine_transform2d_stack_scale(rs->pixels_to_coordinates, (r_real_t)(R_VIDEO_HEIGHT / rs->video_height), (r_real_t)(-R_VIDEO_HEIGHT / rs->video_height));
 
                 /* Initialize OpenGL */
                 /* TODO: determine which OpenGL setup commands are actually needed */
@@ -702,8 +700,8 @@ r_status_t r_video_draw(r_state_t *rs)
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         glLoadIdentity();
 
-        /* This will set the coordinates to (0,0) in the middle, and (R_VIDEO_HEIGHT * aspect ratio, R_VIDEO_HEIGHT) in the upper right */
-        glTranslatef(0, 0, (GLfloat)(-R_VIDEO_HEIGHT/R_TAN_PI_OVER_8));
+        /* This will set the coordinates to (0,0) in the middle, and (R_VIDEO_HEIGHT / 2 * aspect ratio, R_VIDEO_HEIGHT / 2) in the upper right */
+        glTranslatef(0, 0, (GLfloat)(-R_VIDEO_HEIGHT / (2 * R_TAN_PI_OVER_8)));
         glColor4f(1, 1, 1, 1);
 
         {

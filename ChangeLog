@@ -8,6 +8,8 @@
 * r_event.c: Added support for mouse buttons other than left, middle, right
 * r_event.c: Changed name of mouse left/right/middle to mbleft/mbright/mbmiddle
 
+* r_video.c (r_video_set_mode): Fixed mouse coordinate transformation
+
 2010-11-15 deraj@users.sourceforge.net
 
 * r_event.h: Added r_event_setup

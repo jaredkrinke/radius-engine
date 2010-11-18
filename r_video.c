@@ -157,7 +157,7 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
     return status;
 }
 
-r_status_t r_video_start(r_state_t *rs, const char *default_font_path)
+r_status_t r_video_start(r_state_t *rs, const char *application_name, const char *default_font_path)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL && default_font_path != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -171,6 +171,7 @@ r_status_t r_video_start(r_state_t *rs, const char *default_font_path)
         {
             /* TODO: find a way in SDL to sync to vertical refresh rate */
             /* Use double-buffering */
+            SDL_WM_SetCaption(application_name, application_name);
             status = (SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) == 0) ? R_SUCCESS : R_FAILURE;
 
             if (R_SUCCEEDED(status))

@@ -87,7 +87,7 @@ static int radius_execute_internal(const char *argv0, const char *application_na
 
                     if (R_SUCCEEDED(status))
                     {
-                        status = r_video_start(rs, default_font_path);
+                        status = r_video_start(rs, application_name, default_font_path);
 
                         if (R_SUCCEEDED(status))
                         {

@@ -2,6 +2,10 @@
 
 * r_event.c: Fixed joystick count
 
+* r_video.c (r_video_start): Set application name as window title
+* r_video.h: r_video_start takes the application name
+* radius.c: Pass application name to video module
+
 2010-11-16 deraj@users.sourceforge.net
 
 * r_matrix.h: Added r_affine_transform2d_stack_clear

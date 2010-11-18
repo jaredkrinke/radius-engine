@@ -41,7 +41,7 @@ extern r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned i
 
 /* Initialize video/input, returns R_SUCCESS on success, R_FAILURE on error */
 /* NOTE: this should be initialized before joystick/event support */
-extern r_status_t r_video_start(r_state_t *rs, const char *default_font_path);
+extern r_status_t r_video_start(r_state_t *rs, const char *application_name, const char *default_font_path);
 
 /* Deinitialize video/input */
 extern void r_video_end(r_state_t *rs);

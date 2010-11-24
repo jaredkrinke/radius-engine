@@ -229,10 +229,43 @@ static int l_isObject(lua_State *ls)
 /* Math functions */
 static int l_random(lua_State *ls)
 {
-    r_real_t number = ((r_real_t)rand()) / ((r_real_t)RAND_MAX);
-    lua_pushnumber(ls, (lua_Number)number);
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    int result_count = 0;
 
-    return 1;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        const r_script_argument_t expected_arguments[] = {
+            { LUA_TNUMBER, 0 }
+        };
+
+        status = r_script_verify_arguments_with_optional(rs, 0, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+
+        if (R_SUCCEEDED(status))
+        {
+            int argument_count = lua_gettop(ls);
+
+            if (argument_count == 1)
+            {
+                /* With parameter n, return a random integer on [0, n) (exclusive upper bound) */
+                lua_pushnumber(ls, (double)(rand() % ((int)lua_tonumber(ls, 1))));
+            }
+            else
+            {
+                /* Otherwise, just return a random real number on [0, 1] (inclusive on both ends) */
+                lua_pushnumber(ls, ((r_real_t)rand()) / RAND_MAX);
+            }
+
+            lua_insert(ls, 1);
+            result_count = 1;
+        }
+    }
+
+    lua_pop(ls, lua_gettop(ls) - result_count);
+
+    return result_count;
 }
 
 static R_INLINE int l_mathFunction(lua_State *ls, r_script_math_function_t f)

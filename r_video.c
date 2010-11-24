@@ -96,46 +96,32 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
             rs->video_height = height;
 
             /* Set up pixel-to-coordinate transformation */
-            if (rs->pixels_to_coordinates == NULL)
-            {
-                /* No transformation exists, so create a new stack */
-                rs->pixels_to_coordinates = r_affine_transform2d_stack_new();
-                status = (rs->pixels_to_coordinates != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
-            }
-            else
-            {
-                /* A transformation already exists, so clear the stack */
-                r_affine_transform2d_stack_clear(rs->pixels_to_coordinates);
-            }
+            r_affine_transform2d_stack_clear(rs->pixels_to_coordinates);
+            r_affine_transform2d_stack_translate(rs->pixels_to_coordinates, (r_real_t)(-rs->video_width) / 2, (r_real_t)(-rs->video_height) / 2);
+            r_affine_transform2d_stack_scale(rs->pixels_to_coordinates, (r_real_t)(R_VIDEO_HEIGHT / rs->video_height), (r_real_t)(-R_VIDEO_HEIGHT / rs->video_height));
 
-            if (R_SUCCEEDED(status))
-            {
-                r_affine_transform2d_stack_translate(rs->pixels_to_coordinates, (r_real_t)(-rs->video_width) / 2, (r_real_t)(-rs->video_height) / 2);
-                r_affine_transform2d_stack_scale(rs->pixels_to_coordinates, (r_real_t)(R_VIDEO_HEIGHT / rs->video_height), (r_real_t)(-R_VIDEO_HEIGHT / rs->video_height));
+            /* Initialize OpenGL */
+            /* TODO: determine which OpenGL setup commands are actually needed */
+            glViewport(0, 0, rs->video_width, rs->video_height);
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            gluPerspective(45, ((r_real_t)rs->video_width)/((r_real_t)rs->video_height), 0.000001, 1000000000.0);
+            glMatrixMode(GL_MODELVIEW);
+            glLoadIdentity();
+            glEnable(GL_TEXTURE_2D);
 
-                /* Initialize OpenGL */
-                /* TODO: determine which OpenGL setup commands are actually needed */
-                glViewport(0, 0, rs->video_width, rs->video_height);
-                glMatrixMode(GL_PROJECTION);
-                glLoadIdentity();
-                gluPerspective(45, ((r_real_t)rs->video_width)/((r_real_t)rs->video_height), 0.000001, 1000000000.0);
-                glMatrixMode(GL_MODELVIEW);
-                glLoadIdentity();
-                glEnable(GL_TEXTURE_2D);
+            glClearColor(0, 0, 0, 0.5);
+            glClearDepth(1.0);
 
-                glClearColor(0, 0, 0, 0.5);
-                glClearDepth(1.0);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glEnable(GL_BLEND);
+            glEnable(GL_COLOR_MATERIAL);
 
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                glEnable(GL_BLEND);
-                glEnable(GL_COLOR_MATERIAL);
-
-                /* Clear the screen */
-                glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-                SDL_GL_SwapBuffers();
-                glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-                SDL_GL_SwapBuffers();
-            }
+            /* Clear the screen */
+            glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+            SDL_GL_SwapBuffers();
+            glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+            SDL_GL_SwapBuffers();
         }
         else
         {
@@ -176,9 +162,21 @@ r_status_t r_video_start(r_state_t *rs, const char *application_name, const char
 
             if (R_SUCCEEDED(status))
             {
-                /* Set up image cache */
-                rs->default_font_path = default_font_path;
-                status = r_image_cache_start(rs);
+                /* Create a transformation stack for mouse coordinates */
+                rs->pixels_to_coordinates = r_affine_transform2d_stack_new();
+                status = (rs->pixels_to_coordinates != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+                if (R_SUCCEEDED(status))
+                {
+                    /* Set up image cache */
+                    rs->default_font_path = default_font_path;
+                    status = r_image_cache_start(rs);
+
+                    if (R_FAILED(status))
+                    {
+                        r_affine_transform2d_stack_free(rs->pixels_to_coordinates);
+                    }
+                }
             }
             else
             {
@@ -202,6 +200,7 @@ void r_video_end(r_state_t *rs)
     if (R_SUCCEEDED(status))
     {
         r_image_cache_stop(rs);
+        r_affine_transform2d_stack_free(rs->pixels_to_coordinates);
         SDL_WM_GrabInput(SDL_GRAB_OFF);
         SDL_Quit();
     }

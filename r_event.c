@@ -95,11 +95,22 @@ static r_status_t r_event_pixels_to_coordinates(r_state_t *rs, int x, int y, r_v
 
     if (R_SUCCEEDED(status))
     {
-        const r_vector2d_homogeneous_t v = { (r_real_t)x, (r_real_t)y, 1 };
-        r_vector2d_homogeneous_t v_prime_h;
+        status = (rs->pixels_to_coordinates != NULL) ? R_SUCCESS : R_F_NO_VIDEO_MODE_SET;
 
-        r_affine_transform2d_transform(rs->pixels_to_coordinates, &v, &v_prime_h);
-        r_vector2d_from_homogeneous(&v_prime_h, v_prime);
+        if (R_SUCCEEDED(status))
+        {
+            const r_vector2d_homogeneous_t v = { (r_real_t)x, (r_real_t)y, 1 };
+            r_vector2d_homogeneous_t v_prime_h;
+
+            r_affine_transform2d_transform(rs->pixels_to_coordinates, &v, &v_prime_h);
+            r_vector2d_from_homogeneous(&v_prime_h, v_prime);
+        }
+        else
+        {
+            /* Default to no transformation */
+            (*v_prime)[0] = (r_real_t)x;
+            (*v_prime)[1] = (r_real_t)y;
+        }
     }
 
     return status;

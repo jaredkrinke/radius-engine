@@ -69,6 +69,7 @@ typedef enum {
 
     RV_S_VIDEO_MODE_NOT_SET = 0x04000002,
 
+    RV_F_UNSUPPORTED_FORMAT = 0x83004001,
     R_VIDEO_FAILURE         = 0x83004005,
 
     /* Audio status codes */

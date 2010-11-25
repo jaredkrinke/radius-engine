@@ -176,54 +176,86 @@ static r_status_t r_image_load(r_state_t *rs, const char *image_path, r_object_t
                             png_uint_32 width = 0;
                             png_uint_32 height = 0;
                             int bit_depth, color_type, interlace_method, compression_method, filter_method;
-                            r_pixel_t *pixels = NULL;
 
                             png_set_read_fn(png, file, internal_png_read);
                             png_read_info(png, png_info);
                             png_get_IHDR(png, png_info, &width, &height, &bit_depth, &color_type, &interlace_method, &compression_method, &filter_method);
-                            pixels = (r_pixel_t*)malloc(width * height * sizeof(r_pixel_t));
-                            status = (pixels != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+                            /* TODO: Support gray-scale, paletted, and other bit depths */
+                            status = (bit_depth == 8 && color_type == PNG_COLOR_TYPE_RGB_ALPHA || color_type == PNG_COLOR_TYPE_RGB) ? R_SUCCESS : RV_F_UNSUPPORTED_FORMAT;
 
                             if (R_SUCCEEDED(status))
                             {
-                                /* Set up row pointers */
-                                void **rows;
+                                /* Calculate pixel size and set image format */
+                                int channels = 1;
+                                GLint pixel_format = GL_RGB;
+                                int pixel_size = 1;
 
-                                rows = (void**)malloc(height * sizeof(void*));
-                                status = (rows != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+                                char *pixels = NULL;
+
+                                switch (color_type)
+                                {
+                                case PNG_COLOR_TYPE_RGB:
+                                    channels = 3;
+                                    pixel_format = GL_RGB;
+                                    break;
+
+                                case PNG_COLOR_TYPE_RGB_ALPHA:
+                                    channels = 4;
+                                    pixel_format = GL_RGBA;
+                                    break;
+
+                                default:
+                                    /* Unsupported format but no error code was set */
+                                    R_ASSERT(0);
+                                }
+
+                                /* Allocate the buffer */
+                                pixel_size = (bit_depth * channels) / 8;
+                                pixels = (char*)malloc(width * height * pixel_size);
+                                status = (pixels != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
 
                                 if (R_SUCCEEDED(status))
                                 {
-                                    unsigned int i;
-                                    GLuint id = 0;
+                                    /* Set up row pointers */
+                                    void **rows;
 
-                                    for (i = 0; i < height; ++i)
+                                    rows = (void**)malloc(height * sizeof(void*));
+                                    status = (rows != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+                                    if (R_SUCCEEDED(status))
                                     {
-                                        rows[i] = (void*)(&pixels[width * i]);
+                                        unsigned int i;
+                                        GLuint id = 0;
+
+                                        for (i = 0; i < height; ++i)
+                                        {
+                                            rows[i] = (void*)(&pixels[pixel_size * width * i]);
+                                        }
+
+                                        /* Read image data */
+                                        png_read_image(png, (png_byte**)rows);
+
+                                        /* TODO: comment */
+                                        /* TODO: This should use OpenGL compatible sizes and other necessary information should be added to the image cache... */
+
+                                        glGenTextures(1, &id);
+                                        glBindTexture(GL_TEXTURE_2D, id);
+
+                                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+                                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+                                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); 
+                                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, pixel_format, GL_UNSIGNED_BYTE, (void*)pixels);
+
+                                        /* Fill image data */
+                                        ((r_image_t*)object)->image_data.id = id;
+
+                                        free(rows);
                                     }
 
-                                    /* Read image data */
-                                    png_read_image(png, (png_byte**)rows);
-
-                                    /* TODO: comment */
-                                    /* TODO: This should use OpenGL compatible sizes and other necessary information should be added to the image cache... */
-
-                                    glGenTextures(1, &id);
-                                    glBindTexture(GL_TEXTURE_2D, id);
-
-                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); 
-                                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (void*)pixels);
-
-                                    /* Fill image data */
-                                    ((r_image_t*)object)->image_data.id = id;
-
-                                    free(rows);
+                                    free(pixels);
                                 }
-
-                                free(pixels);
                             }
                         }
                         else

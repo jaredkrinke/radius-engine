@@ -463,120 +463,123 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
             r_video_color_blend(&color_base, color);
         }
 
-        glBindTexture(GL_TEXTURE_2D, (GLuint)((r_image_t*)element->image.value.object)->image_data.id);
-
-        glPushMatrix();
-        glTranslatef(element->x, element->y, 0);
-        glScalef(element->width, element->height, 0);
-        glRotatef(element->angle, 0, 0, 1);
-
-        switch (element->element_type)
+        if (color_base.opacity > 0)
         {
-        case R_ELEMENT_TYPE_IMAGE:
-            /* Draw the image */
-            glBegin(GL_POLYGON);
-            glTexCoord2f(0, 0);
-            glVertex3f(-0.5f, 0.5f, 0.0f);
+            glBindTexture(GL_TEXTURE_2D, (GLuint)((r_image_t*)element->image.value.object)->image_data.id);
 
-            glTexCoord2f(0, 1);
-            glVertex3f(-0.5f, -0.5f, 0.0f);
+            glPushMatrix();
+            glTranslatef(element->x, element->y, 0);
+            glScalef(element->width, element->height, 0);
+            glRotatef(element->angle, 0, 0, 1);
 
-            glTexCoord2f(1, 1);
-            glVertex3f(0.5f, -0.5f, 0.0f);
-
-            glTexCoord2f(1, 0);
-            glVertex3f(0.5f, 0.5f, 0.0f);
-            glEnd();
-            break;
-
-        case R_ELEMENT_TYPE_TEXT:
+            switch (element->element_type)
             {
-                /* Draw text, one character at a time */
-                r_element_text_t *element_text = (r_element_text_t*)element;
-                const char *pc = NULL;
-                int length = -1;
+            case R_ELEMENT_TYPE_IMAGE:
+                /* Draw the image */
+                glBegin(GL_POLYGON);
+                glTexCoord2f(0, 0);
+                glVertex3f(-0.5f, 0.5f, 0.0f);
 
-                /* If text is provided, use it; otherwise check for an underlying string buffer */
-                if (element_text->text.value.str != NULL)
+                glTexCoord2f(0, 1);
+                glVertex3f(-0.5f, -0.5f, 0.0f);
+
+                glTexCoord2f(1, 1);
+                glVertex3f(0.5f, -0.5f, 0.0f);
+
+                glTexCoord2f(1, 0);
+                glVertex3f(0.5f, 0.5f, 0.0f);
+                glEnd();
+                break;
+
+            case R_ELEMENT_TYPE_TEXT:
                 {
-                    pc = element_text->text.value.str;
-                }
-                else if (element_text->buffer.value.object != NULL && element_text->buffer.value.object->header->type == R_OBJECT_TYPE_STRING_BUFFER)
-                {
-                    r_string_buffer_t *string_buffer = (r_string_buffer_t*)element_text->buffer.value.object;
+                    /* Draw text, one character at a time */
+                    r_element_text_t *element_text = (r_element_text_t*)element;
+                    const char *pc = NULL;
+                    int length = -1;
 
-                    if (string_buffer->buffer != NULL)
+                    /* If text is provided, use it; otherwise check for an underlying string buffer */
+                    if (element_text->text.value.str != NULL)
                     {
-                        pc = string_buffer->buffer;
-                        length = string_buffer->length;
+                        pc = element_text->text.value.str;
                     }
-                }
-
-                if (pc != NULL)
-                {
-                    /* Determine length, if not already given */
-                    if (length == -1)
+                    else if (element_text->buffer.value.object != NULL && element_text->buffer.value.object->header->type == R_OBJECT_TYPE_STRING_BUFFER)
                     {
-                        /* TODO: C-style string length could be cached */
-                        length = strlen(pc);
-                    }
+                        r_string_buffer_t *string_buffer = (r_string_buffer_t*)element_text->buffer.value.object;
 
-                    /* Adjust position for alignment */
-                    switch (element_text->alignment)
-                    {
-                    case R_ELEMENT_TEXT_ALIGNMENT_LEFT:
-                        /* No adjustment needed for left alignment */
-                        break;
-
-                    case R_ELEMENT_TEXT_ALIGNMENT_CENTER:
-                        glTranslatef(-((r_real_t)length) / 2, 0, 0);
-                        break;
-
-                    case R_ELEMENT_TEXT_ALIGNMENT_RIGHT:
-                        glTranslatef(-((r_real_t)length), 0, 0);
-                        break;
-
-                    default:
-                        R_ASSERT(0);
-                        status = R_F_INVALID_INDEX;
-                        break;
-                    }
-
-                    if (R_SUCCEEDED(status))
-                    {
-                        /* Draw each character */
-                        for (; *pc != '\0'; ++pc)
+                        if (string_buffer->buffer != NULL)
                         {
-                            /* Characters in a font are stored in a 12x8 table */
-                            r_font_coordinates_t *fc = &r_font_coordinates[(unsigned char)(*pc)];
+                            pc = string_buffer->buffer;
+                            length = string_buffer->length;
+                        }
+                    }
 
-                            glBegin(GL_POLYGON);
-                            glTexCoord2f(fc->x_min, fc->y_min);
-                            glVertex3f(0, 1, 0);
+                    if (pc != NULL)
+                    {
+                        /* Determine length, if not already given */
+                        if (length == -1)
+                        {
+                            /* TODO: C-style string length could be cached */
+                            length = strlen(pc);
+                        }
 
-                            glTexCoord2f(fc->x_min, fc->y_max);
-                            glVertex3f(0, 0, 0);
+                        /* Adjust position for alignment */
+                        switch (element_text->alignment)
+                        {
+                        case R_ELEMENT_TEXT_ALIGNMENT_LEFT:
+                            /* No adjustment needed for left alignment */
+                            break;
 
-                            glTexCoord2f(fc->x_max, fc->y_max);
-                            glVertex3f(1, 0, 0);
+                        case R_ELEMENT_TEXT_ALIGNMENT_CENTER:
+                            glTranslatef(-((r_real_t)length) / 2, 0, 0);
+                            break;
 
-                            glTexCoord2f(fc->x_max, fc->y_min);
-                            glVertex3f(1, 1, 0);
-                            glEnd();
+                        case R_ELEMENT_TEXT_ALIGNMENT_RIGHT:
+                            glTranslatef(-((r_real_t)length), 0, 0);
+                            break;
 
-                            glTranslatef(1, 0, 0);
+                        default:
+                            R_ASSERT(0);
+                            status = R_F_INVALID_INDEX;
+                            break;
+                        }
+
+                        if (R_SUCCEEDED(status))
+                        {
+                            /* Draw each character */
+                            for (; *pc != '\0'; ++pc)
+                            {
+                                /* Characters in a font are stored in a 12x8 table */
+                                r_font_coordinates_t *fc = &r_font_coordinates[(unsigned char)(*pc)];
+
+                                glBegin(GL_POLYGON);
+                                glTexCoord2f(fc->x_min, fc->y_min);
+                                glVertex3f(0, 1, 0);
+
+                                glTexCoord2f(fc->x_min, fc->y_max);
+                                glVertex3f(0, 0, 0);
+
+                                glTexCoord2f(fc->x_max, fc->y_max);
+                                glVertex3f(1, 0, 0);
+
+                                glTexCoord2f(fc->x_max, fc->y_min);
+                                glVertex3f(1, 1, 0);
+                                glEnd();
+
+                                glTranslatef(1, 0, 0);
+                            }
                         }
                     }
                 }
+
+                break;
+
+            default:
+                status = R_VIDEO_FAILURE;
             }
 
-            break;
-
-        default:
-            status = R_VIDEO_FAILURE;
+            glPopMatrix();
         }
-
-        glPopMatrix();
 
         if (color != NULL)
         {
@@ -613,37 +616,40 @@ static r_status_t r_video_draw_entity(r_state_t *rs, r_entity_t *entity)
                 r_video_color_blend(&color_base, color);
             }
 
-            glPushMatrix();
-            glTranslatef(entity->x, entity->y, 0);
-            glScalef(entity->width, entity->height, 0);
-            glRotatef(entity->angle, 0, 0, 1);
-
-            /* TODO: Call glGetError at appropriate places everywhere */
-            status = (glGetError() == 0) ? R_SUCCESS : R_VIDEO_FAILURE;
-
-            if (R_SUCCEEDED(status))
+            if (color_base.opacity > 0)
             {
-                /* Draw all elements */
-                for (i = 0; i < element_list->object_list.count && R_SUCCEEDED(status); ++i)
-                {
-                    r_element_t *element = (r_element_t*)element_list->object_list.items[i].value.object;
+                glPushMatrix();
+                glTranslatef(entity->x, entity->y, 0);
+                glScalef(entity->width, entity->height, 0);
+                glRotatef(entity->angle, 0, 0, 1);
 
-                    status = r_video_draw_element(rs, element);
-                }
+                /* TODO: Call glGetError at appropriate places everywhere */
+                status = (glGetError() == 0) ? R_SUCCESS : R_VIDEO_FAILURE;
 
-                /* Draw children, if necessary */
                 if (R_SUCCEEDED(status))
                 {
-                    if (entity->children.value.object != NULL)
+                    /* Draw all elements */
+                    for (i = 0; i < element_list->object_list.count && R_SUCCEEDED(status); ++i)
                     {
-                        r_entity_list_t *children = (r_entity_list_t*)entity->children.value.object;
+                        r_element_t *element = (r_element_t*)element_list->object_list.items[i].value.object;
 
-                        status = r_video_draw_entity_list(rs, children);
+                        status = r_video_draw_element(rs, element);
+                    }
+
+                    /* Draw children, if necessary */
+                    if (R_SUCCEEDED(status))
+                    {
+                        if (entity->children.value.object != NULL)
+                        {
+                            r_entity_list_t *children = (r_entity_list_t*)entity->children.value.object;
+
+                            status = r_video_draw_entity_list(rs, children);
+                        }
                     }
                 }
-            }
 
-            glPopMatrix();
+                glPopMatrix();
+            }
 
             if (color != NULL)
             {

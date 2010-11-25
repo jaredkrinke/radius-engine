@@ -7,6 +7,8 @@
 
 * r_image_cache.c (r_image_load): Added support for RGB PNG images
 
+* r_video.c: Skip drawing invisible entities/elements
+
 2010-11-21 deraj@users.sourceforge.net
 
 * r_script_lib.c (l_random): random now returns values on [0, 1)

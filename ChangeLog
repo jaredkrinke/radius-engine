@@ -1,3 +1,7 @@
+2010-11-26 deraj@users.sourceforge.net
+
+* r_zlist.c: Actually fixed Z-List sort (smaller z implies drawn first)
+
 2010-11-24 deraj@users.sourceforge.net
 
 * configure.in: Updated web site

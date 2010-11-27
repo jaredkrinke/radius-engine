@@ -39,7 +39,7 @@ static R_INLINE r_status_t r_zlist_sort_insert(r_state_t *rs, r_object_list_t *o
         r_object_ref_t *insert_item = &zlist->object_list.items[insert_index];
         r_object_ref_t *compare_item = &zlist->object_list.items[compare_index];
 
-        if (zlist->item_compare(insert_item->value.object, compare_item->value.object) > 0)
+        if (zlist->item_compare(insert_item->value.object, compare_item->value.object) < 0)
         {
             r_object_ref_swap(insert_item, compare_item);
             insert_index = compare_index;

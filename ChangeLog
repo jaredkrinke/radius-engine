@@ -1,3 +1,7 @@
+2010-11-28 deraj@users.sourceforge.net
+
+* r_image_cache.c: Moved actual texture creation to r_image_load_internal
+
 2010-11-26 deraj@users.sourceforge.net
 
 * r_zlist.c: Actually fixed Z-List sort (smaller z implies drawn first)

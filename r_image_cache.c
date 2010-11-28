@@ -140,6 +140,32 @@ r_object_header_t r_image_header = { R_OBJECT_TYPE_IMAGE, sizeof(r_image_t), R_F
 r_image_t r_image_cache_default_image  = { { &r_image_header, 0 }, { R_IMAGE_INTERNAL_INVALID_ID } };
 r_image_t r_image_cache_default_font   = { { &r_image_header, 0 }, { R_IMAGE_INTERNAL_INVALID_ID } };
 
+static r_status_t r_image_load_internal(r_state_t *rs, r_image_t *image, int width, int height, GLint pixel_format, char *pixels)
+{
+    GLuint id = 0;
+
+    /* Check to make sure the image dimensions are powers of 2 */
+    R_ASSERT(width >= 64 && height >= 64 && ((width & (width - 1)) == 0) && ((height & (height - 1)) == 0));
+
+    /* Generate a new OpenGL texture ID */
+    glGenTextures(1, &id);
+    glBindTexture(GL_TEXTURE_2D, id);
+
+    /* Always clamp coordinates */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    /* Actually create the texture now */
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, pixel_format, GL_UNSIGNED_BYTE, (void*)pixels);
+
+    /* Fill image data */
+    image->image_data.id = id;
+
+    return R_SUCCESS;
+}
+
 static r_status_t r_image_load(r_state_t *rs, const char *image_path, r_object_t *object)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -226,31 +252,15 @@ static r_status_t r_image_load(r_state_t *rs, const char *image_path, r_object_t
                                     if (R_SUCCEEDED(status))
                                     {
                                         unsigned int i;
-                                        GLuint id = 0;
 
                                         for (i = 0; i < height; ++i)
                                         {
                                             rows[i] = (void*)(&pixels[pixel_size * width * i]);
                                         }
 
-                                        /* Read image data */
+                                        /* Read image data, create the texture, and free the temporary buffer */
                                         png_read_image(png, (png_byte**)rows);
-
-                                        /* TODO: comment */
-                                        /* TODO: This should use OpenGL compatible sizes and other necessary information should be added to the image cache... */
-
-                                        glGenTextures(1, &id);
-                                        glBindTexture(GL_TEXTURE_2D, id);
-
-                                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-                                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-                                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); 
-                                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, pixel_format, GL_UNSIGNED_BYTE, (void*)pixels);
-
-                                        /* Fill image data */
-                                        ((r_image_t*)object)->image_data.id = id;
-
+                                        status = r_image_load_internal(rs, (r_image_t*)object, width, height, pixel_format, pixels);
                                         free(rows);
                                     }
 

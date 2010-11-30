@@ -41,6 +41,8 @@ r_status_t r_state_init(r_state_t *rs, const char *argv0)
 
         rs->video_mode_set = R_FALSE;
         rs->default_font_path = NULL;
+        rs->min_texture_size = 0;
+        rs->max_texture_size = 0;
         rs->pixels_to_coordinates = NULL;
 
         rs->audio = NULL;

@@ -67,6 +67,11 @@ typedef enum {
     R_VIDEO_PROPERTY_NONE           = 0x00000000
 } r_video_property_t;
 
+r_status_t r_glenum_to_status(GLenum gl)
+{
+    return (gl == GL_NO_ERROR) ? R_SUCCESS : (R_F_BIT | R_FACILITY_VIDEO_GL | gl);
+}
+
 r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int height, r_boolean_t fullscreen)
 {
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -80,6 +85,7 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
         {
             /* Grab input if using a fullscreen mode */
             SDL_GrabMode grab_mode = fullscreen ? SDL_GRAB_ON : SDL_GRAB_OFF;
+            GLint max_texture_size = 512;
 
             if (grab_mode != SDL_WM_GrabInput(SDL_GRAB_QUERY))
             {
@@ -94,6 +100,14 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
 
             rs->video_width = width;
             rs->video_height = height;
+
+            /* Get OpenGL implementation parameters */
+            /* Query for maximum texture size */
+            glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+            rs->max_texture_size = (max_texture_size >= 64) ? max_texture_size : 512;
+
+            /* Assume minimum size is 64 since there isn't good documentation */
+            rs->min_texture_size = 64;
 
             /* Set up pixel-to-coordinate transformation */
             r_affine_transform2d_stack_clear(rs->pixels_to_coordinates);
@@ -122,6 +136,8 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
             SDL_GL_SwapBuffers();
             glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
             SDL_GL_SwapBuffers();
+
+            status = r_glenum_to_status(glGetError());
         }
         else
         {
@@ -457,6 +473,7 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
         /* Common element setup */
         r_color_t color_base;
         r_color_t *color = (r_color_t*)element->color.value.object;
+        r_image_t *image = (r_image_t*)element->image.value.object;
 
         if (color != NULL)
         {
@@ -465,8 +482,6 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
 
         if (color_base.opacity > 0)
         {
-            glBindTexture(GL_TEXTURE_2D, (GLuint)((r_image_t*)element->image.value.object)->image_data.id);
-
             glPushMatrix();
             glTranslatef(element->x, element->y, 0);
             glScalef(element->width, element->height, 0);
@@ -475,28 +490,86 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
             switch (element->element_type)
             {
             case R_ELEMENT_TYPE_IMAGE:
-                /* Draw the image */
-                glBegin(GL_POLYGON);
-                glTexCoord2f(0, 0);
-                glVertex3f(-0.5f, 0.5f, 0.0f);
+                switch (image->storage_type)
+                {
+                case R_IMAGE_STORAGE_NATIVE:
+                    /* Draw a single rectangle using the (single) texture */
+                    glBindTexture(GL_TEXTURE_2D, (GLuint)(image->storage.native.id));
 
-                glTexCoord2f(0, 1);
-                glVertex3f(-0.5f, -0.5f, 0.0f);
+                    glBegin(GL_POLYGON);
+                    glTexCoord2f(0, 0);
+                    glVertex3f(-0.5f, 0.5f, 0.0f);
 
-                glTexCoord2f(1, 1);
-                glVertex3f(0.5f, -0.5f, 0.0f);
+                    glTexCoord2f(0, 1);
+                    glVertex3f(-0.5f, -0.5f, 0.0f);
 
-                glTexCoord2f(1, 0);
-                glVertex3f(0.5f, 0.5f, 0.0f);
-                glEnd();
+                    glTexCoord2f(1, 1);
+                    glVertex3f(0.5f, -0.5f, 0.0f);
+
+                    glTexCoord2f(1, 0);
+                    glVertex3f(0.5f, 0.5f, 0.0f);
+                    glEnd();
+                    break;
+
+                case R_IMAGE_STORAGE_COMPOSITE:
+                    {
+                        /* Draw using one rectangle per texture */
+                        const unsigned int columns = image->storage.composite.columns;
+                        const unsigned int rows = image->storage.composite.rows;
+                        unsigned int i, j;
+                        r_real_t x1, y1;
+
+                        glPushMatrix();
+                        glTranslatef(-0.5f, 0.5f, 0);
+
+                        for (j = 0, y1 = 0.0f; j < rows; ++j)
+                        {
+                            const r_real_t y2 = y1 - ((r_real_t)(image->storage.composite.elements[j * rows].height)) / image->storage.composite.height;
+
+                            for (i = 0, x1 = 0.0f; i < columns; ++i)
+                            {
+                                const r_image_element_t *element = &image->storage.composite.elements[j * rows + i];
+                                const r_real_t x2 = x1 + ((r_real_t)element->width) / image->storage.composite.width;
+                                const r_real_t u2 = element->x2;
+                                const r_real_t v2 = element->y2;
+
+                                glBindTexture(GL_TEXTURE_2D, (GLuint)(element->id));
+
+                                glBegin(GL_POLYGON);
+                                glTexCoord2f(0, 0);
+                                glVertex3f(x1, y1, 0.0f);
+
+                                glTexCoord2f(0, v2);
+                                glVertex3f(x1, y2, 0.0f);
+
+                                glTexCoord2f(u2, v2);
+                                glVertex3f(x2, y2, 0.0f);
+
+                                glTexCoord2f(u2, 0);
+                                glVertex3f(x2, y1, 0.0f);
+                                glEnd();
+
+                                x1 = x2;
+                            }
+
+                            y1 = y2;
+                        }
+
+                        glPopMatrix();
+                    }
+                    break;
+                }
                 break;
 
             case R_ELEMENT_TYPE_TEXT:
                 {
                     /* Draw text, one character at a time */
+                    /* TODO: Should composite storage for fonts be supported? */
                     r_element_text_t *element_text = (r_element_text_t*)element;
                     const char *pc = NULL;
                     int length = -1;
+
+                    glBindTexture(GL_TEXTURE_2D, (GLuint)(image->storage.native.id));
 
                     /* If text is provided, use it; otherwise check for an underlying string buffer */
                     if (element_text->text.value.str != NULL)

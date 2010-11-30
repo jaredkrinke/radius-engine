@@ -26,15 +26,38 @@ THE SOFTWARE.
 #include "r_state.h"
 #include "r_video.h"
 
-typedef struct
-{
-    unsigned int id;
-} r_image_internal_t;
+typedef enum {
+    R_IMAGE_STORAGE_NATIVE,
+    R_IMAGE_STORAGE_COMPOSITE,
+    R_IMAGE_STORAGE_INVALID
+} r_image_storage_type_t;
+
+typedef struct {
+    unsigned int    id;
+    unsigned int    width;
+    unsigned int    height;
+    r_real_t        x2;
+    r_real_t        y2;
+} r_image_element_t;
 
 typedef struct
 {
-    r_object_t          object;
-    r_image_internal_t  image_data;
+    r_object_t              object;
+    r_image_storage_type_t  storage_type;
+
+    union {
+        struct {
+            unsigned int id;
+        } native;
+
+        struct {
+            unsigned int width;
+            unsigned int height;
+            unsigned int columns;
+            unsigned int rows;
+            r_image_element_t *elements;
+        } composite;
+    } storage;
 } r_image_t;
 
 extern r_image_t r_image_cache_default_image;

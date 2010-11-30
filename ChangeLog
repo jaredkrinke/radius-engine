@@ -1,6 +1,24 @@
+2010-11-29 deraj@users.sourceforge.net
+
+* r_image_cache.c: Added helper for creating a texture from an image region
+
+* r_video.c: Rendering for composite images
+
 2010-11-28 deraj@users.sourceforge.net
 
 * r_image_cache.c: Moved actual texture creation to r_image_load_internal
+
+* r_image_cache.h: Added native and composite image storage types
+
+* r_state.h: Added max texture size parameter
+* r_state.c: Initialize max texture size
+
+* r_video.c (r_video_set_mode): Retrieve max OpenGL texture size
+
+* r_defs.h: Added OpenGL error code facility
+* r_video.c (r_gl_to_status): Convert OpenGL errors to status codes
+
+* r_image_cache.c: Added row/column and other size calculations for composites
 
 2010-11-26 deraj@users.sourceforge.net
 

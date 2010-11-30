@@ -66,6 +66,7 @@ typedef enum {
 
     /* Video status codes */
     R_FACILITY_VIDEO        = 0x03000000,
+    R_FACILITY_VIDEO_GL     = 0x07000000,
 
     RV_S_VIDEO_MODE_NOT_SET = 0x04000002,
 
@@ -84,13 +85,14 @@ typedef enum {
     RA_F_SEEK_ERROR         = 0x84000104,
     R_F_AUDIO_FAILURE       = 0x84004005,
 
+    R_F_BIT                 = 0x80000000,
     R_F_INVALID             = 0x8100ffff
 } r_status_t;
 
 /* Error code macros */
-#define R_SUCCEEDED(status)     ((status & 0x80000000) == 0)
-#define R_FAILED(status)        ((status & 0x80000000) != 0)
-#define R_FACILITY(status)      (status & 0x07ff0000)
+#define R_SUCCEEDED(status)     (((status) & R_F_BIT) == 0)
+#define R_FAILED(status)        (((status) & R_F_BIT) != 0)
+#define R_FACILITY(status)      ((status) & 0x07ff0000)
 
 /* Boolean value representation */
 typedef int r_boolean_t;

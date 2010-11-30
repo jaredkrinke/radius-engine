@@ -35,6 +35,9 @@ typedef struct
     r_real_t y_max;
 } r_font_coordinates_t;
 
+/* Convert GLenum errors to r_status_t */
+extern r_status_t r_glenum_to_status(unsigned int gl);
+
 extern r_font_coordinates_t r_font_coordinates[];
 
 extern r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int height, r_boolean_t fullscreen);

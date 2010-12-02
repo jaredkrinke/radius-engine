@@ -31,6 +31,7 @@ THE SOFTWARE.
 typedef enum
 {
     R_ELEMENT_TYPE_IMAGE = 0,
+    R_ELEMENT_TYPE_IMAGE_REGION,
     R_ELEMENT_TYPE_TEXT,
     R_ELEMENT_TYPE_MAX
 } r_element_type_t;
@@ -62,6 +63,15 @@ typedef struct
 {
     r_element_t         element;
 } r_element_image_t;
+
+typedef struct
+{
+    r_element_image_t   image;
+    r_real_t            u1;
+    r_real_t            v1;
+    r_real_t            u2;
+    r_real_t            v2;
+} r_element_image_region_t;
 
 typedef struct
 {

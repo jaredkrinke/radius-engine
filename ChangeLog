@@ -1,3 +1,16 @@
+2010-12-01 deraj@users.sourceforge.net
+
+* r_video.c: Bug fixes to composite region calculations
+
+2010-11-30 deraj@users.sourceforge.net
+
+* r_element.h: r_element_image_region_t
+* r_element.c: Added image region element
+
+* r_video.c: Rendering for single-texture component storage
+
+* r_defs.h: Added R_F_BAD_COORDINATES
+
 2010-11-29 deraj@users.sourceforge.net
 
 * r_image_cache.c: Added helper for creating a texture from an image region

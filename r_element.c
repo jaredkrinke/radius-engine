@@ -82,6 +82,48 @@ static int l_Element_Image_new(lua_State *ls)
     return l_Object_new(ls, &r_element_image_header);
 }
 
+/* Image elements */
+r_object_field_t r_element_image_region_fields[] = {
+    { "image",  LUA_TSTRING,   0,                   offsetof(r_element_image_region_t, image.element.image),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, r_object_field_image_read, NULL, r_object_field_image_write },
+    { "u1",     LUA_TNUMBER,   0,                   offsetof(r_element_image_region_t, u1),                         R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "v1",     LUA_TNUMBER,   0,                   offsetof(r_element_image_region_t, v1),                         R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "u2",     LUA_TNUMBER,   0,                   offsetof(r_element_image_region_t, u2),                         R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "v2",     LUA_TNUMBER,   0,                   offsetof(r_element_image_region_t, v2),                         R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "x",      LUA_TNUMBER,   0,                   offsetof(r_element_image_region_t, image.element.x),            R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "y",      LUA_TNUMBER,   0,                   offsetof(r_element_image_region_t, image.element.y),            R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "z",      LUA_TNUMBER,   0,                   offsetof(r_element_image_region_t, image.element.z),            R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "width",  LUA_TNUMBER,   0,                   offsetof(r_element_image_region_t, image.element.width),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "height", LUA_TNUMBER,   0,                   offsetof(r_element_image_region_t, image.element.height),       R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "angle",  LUA_TNUMBER,   0,                   offsetof(r_element_image_region_t, image.element.angle),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "color",  LUA_TUSERDATA, R_OBJECT_TYPE_COLOR, offsetof(r_element_image_region_t, image.element.color),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
+    { "type",   LUA_TSTRING,   0,                   offsetof(r_element_image_region_t, image.element.element_type), R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_element_type_field_read, NULL, NULL },
+    { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
+};
+
+static r_status_t r_element_image_region_init(r_state_t *rs, r_object_t *object)
+{
+    r_element_image_region_t *element_image_region = (r_element_image_region_t*)object;
+    r_status_t status = r_element_image_init(rs, (r_object_t*)&element_image_region->image.element);
+
+    if (R_SUCCEEDED(status))
+    {
+        element_image_region->image.element.element_type = R_ELEMENT_TYPE_IMAGE_REGION;
+        element_image_region->u1 = 0;
+        element_image_region->v1 = 0;
+        element_image_region->u2 = 0;
+        element_image_region->v2 = 0;
+    }
+
+    return status;
+}
+
+r_object_header_t r_element_image_region_header = { R_OBJECT_TYPE_ELEMENT, sizeof(r_element_image_region_t), R_FALSE, r_element_image_region_fields, r_element_image_region_init, NULL, NULL };
+
+static int l_Element_ImageRegion_new(lua_State *ls)
+{
+    return l_Object_new(ls, &r_element_image_region_header);
+}
+
 const char *r_element_text_alignment_names[] = {
     "left",
     "center",
@@ -165,10 +207,12 @@ r_status_t r_element_setup(r_state_t *rs)
         if (R_SUCCEEDED(status))
         {
             r_script_node_t element_image_nodes[] = { { "new", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Element_Image_new }, { NULL } };
+            r_script_node_t element_image_region_nodes[] = { { "new", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Element_ImageRegion_new }, { NULL } };
             r_script_node_t element_text_nodes[]  = { { "new", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Element_Text_new },  { NULL } };
 
             r_script_node_t element_nodes[] = {
                 { "Image", R_SCRIPT_NODE_TYPE_TABLE, element_image_nodes },
+                { "ImageRegion", R_SCRIPT_NODE_TYPE_TABLE, element_image_region_nodes },
                 { "Text",  R_SCRIPT_NODE_TYPE_TABLE, element_text_nodes },
                 { NULL }
             };

@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include <math.h>
 #include <SDL.h>
 #if (defined _MSC_VER)
 #include <windows.h>
@@ -463,6 +464,216 @@ static void r_video_color_unblend(r_color_t *color_base)
     glColor4f(color_base->red, color_base->green, color_base->blue, color_base->opacity);
 }
 
+static r_status_t r_video_draw_element_image(r_state_t *rs, r_element_image_t *element_image)
+{
+    r_image_t *image = (r_image_t*)element_image->element.image.value.object;
+    r_real_t u1 = 0;
+    r_real_t v1 = 0;
+    r_real_t u2 = 1;
+    r_real_t v2 = 1;
+    r_status_t status = R_SUCCESS;
+
+    if (element_image->element.element_type == R_ELEMENT_TYPE_IMAGE_REGION)
+    {
+        const r_element_image_region_t *element_image_region = (r_element_image_region_t*)element_image;
+
+        u1 = max(0, element_image_region->u1);
+        v1 = max(0, element_image_region->v1);
+        u2 = min(1, element_image_region->u2);
+        v2 = min(1, element_image_region->v2);
+
+        /* Sanity-check the texture coordinates */
+        if (u1 < 0 || v1 < 0 || u2 > 1 || v2 > 1 || u1 >= u2 || v1 >= v2)
+        {
+            status = RV_F_BAD_COORDINATES;
+        }
+    }
+
+    if (R_SUCCEEDED(status))
+    {
+        switch (image->storage_type)
+        {
+        case R_IMAGE_STORAGE_NATIVE:
+            /* Draw a single rectangle using the (single) texture */
+            glBindTexture(GL_TEXTURE_2D, (GLuint)(image->storage.native.id));
+
+            glBegin(GL_POLYGON);
+            glTexCoord2f(u1, v1);
+            glVertex3f(-0.5f, 0.5f, 0.0f);
+
+            glTexCoord2f(u1, v2);
+            glVertex3f(-0.5f, -0.5f, 0.0f);
+
+            glTexCoord2f(u2, v2);
+            glVertex3f(0.5f, -0.5f, 0.0f);
+
+            glTexCoord2f(u2, v1);
+            glVertex3f(0.5f, 0.5f, 0.0f);
+            glEnd();
+            break;
+
+        case R_IMAGE_STORAGE_COMPOSITE:
+            {
+                /* Draw using one rectangle per texture */
+                const unsigned int columns = image->storage.composite.columns;
+                const unsigned int rows = image->storage.composite.rows;
+                unsigned int i, j;
+                r_real_t x1, y1;
+
+                /* Inclusive lower bound */
+                unsigned int i1 = 0;
+                unsigned int j1 = 0;
+
+                /* Exclusive upper bound */
+                unsigned int i2 = columns;
+                unsigned int j2 = rows;
+
+                /* If this is an image region, calculate the set of elements that need to be rendered */
+                if (element_image->element.element_type == R_ELEMENT_TYPE_IMAGE_REGION)
+                {
+                    const r_element_image_region_t *element_image_region = (r_element_image_region_t*)element_image;
+                    const unsigned int total_width = image->storage.composite.width;
+                    const unsigned int total_height = image->storage.composite.height;
+                    const unsigned int element_width = image->storage.composite.elements[0].width;
+                    const unsigned int element_height = image->storage.composite.elements[0].height;
+
+                    i1 = (unsigned int)(element_image_region->u1 * total_width / element_width);
+                    j1 = (unsigned int)(element_image_region->v1 * total_height / element_height);
+                    i2 = (unsigned int)ceil(element_image_region->u2 * total_width / element_width);
+                    j2 = (unsigned int)ceil(element_image_region->v2 * total_height / element_height);
+                }
+
+                glPushMatrix();
+                glTranslatef(-0.5f, 0.5f, 0);
+
+                for (j = j1, y1 = 0.0f; j < j2; ++j)
+                {
+                    r_real_t y2 = y1 - ((r_real_t)(image->storage.composite.elements[j * columns].height)) / ((v2 - v1) * image->storage.composite.height);
+
+                    for (i = i1, x1 = 0.0f; i < i2; ++i)
+                    {
+                        const r_image_element_t *element = &image->storage.composite.elements[j * columns + i];
+                        r_real_t x2 = x1 + ((r_real_t)element->width) / ((u2 - u1) * image->storage.composite.width);
+                        const r_real_t element_x2 = element->x2;
+                        const r_real_t element_y2 = element->y2;
+                        r_real_t element_u1 = u1;
+                        r_real_t element_v1 = v1;
+                        r_real_t element_u2 = u2;
+                        r_real_t element_v2 = v2;
+
+                        if (element_image->element.element_type == R_ELEMENT_TYPE_IMAGE_REGION)
+                        {
+                            const r_element_image_region_t *element_image_region = (r_element_image_region_t*)element_image;
+                            const unsigned int total_width = image->storage.composite.width;
+                            const unsigned int total_height = image->storage.composite.height;
+                            const unsigned int element_width = image->storage.composite.elements[0].width;
+                            const unsigned int element_height = image->storage.composite.elements[0].height;
+
+                            /* Default to an "inner" element surrounded by others */
+                            element_u1 = 0;
+                            element_v1 = 0;
+                            element_u2 = 1;
+                            element_v2 = 1;
+
+                            if (j == j1 || j == j2 - 1)
+                            {
+                                if (j == j1)
+                                {
+                                    /* First row */
+                                    element_v1 = (v1 * total_height / element_height - j1);
+
+                                    /* Last element may have a different (smaller) size */
+                                    if (j == rows - 1 && element->height != element_height)
+                                    {
+                                        element_v1 = (element_v1 * element_height - (element_height - element->height)) / element->height;
+                                    }
+                                }
+
+                                if (j == j2 - 1)
+                                {
+                                    /* Last row */
+                                    element_v2 = (v2 * total_height / element_height - (j2 - 1));
+
+                                    /* Last element may have a different (smaller) size */
+                                    if (j == rows - 1 && element->height != element_height)
+                                    {
+                                        element_v1 = (element_v1 * element_height - (element_height - element->height)) / element->height;
+                                    }
+                                }
+
+                                /* Weight the size according to the amount of the image shown--but only compute this once for the row */
+                                if (i == i1)
+                                {
+                                    y2 = y2 * (element_v2 - element_v1);
+                                }
+                            }
+
+                            if (i == i1 || i == i2 - 1)
+                            {
+                                if (i == i1)
+                                {
+                                    /* First column */
+                                    element_u1 = (u1 * total_width / element_width - i1);
+
+                                    /* Last element may have a different (smaller) size */
+                                    if (i == columns - 1 && element->width != element_width)
+                                    {
+                                        element_u1 = (element_u1 * element_width - (element_width - element->width)) / element->width;
+                                    }
+                                }
+
+                                if (i == i2 - 1)
+                                {
+                                    /* Last column */
+                                    element_u2 = (u2 * total_width / element_width - (i2 - 1));
+
+                                    /* Last element may have a different (smaller) size */
+                                    if (i == columns - 1 && element->width != element_width)
+                                    {
+                                        element_u1 = (element_u1 * element_width - (element_width - element->width)) / element->width;
+                                    }
+                                }
+
+                                /* Weight the size according to the amount of the image shown */
+                                x2 = x2 * (element_u2 - element_u1);
+                            }
+                        }
+
+                        /* Use the given texture */
+                        glBindTexture(GL_TEXTURE_2D, (GLuint)(element->id));
+
+                        /* Draw the rectangle */
+                        glBegin(GL_POLYGON);
+                        glTexCoord2f(element_u1 * element_x2, element_v1 * element_y2);
+                        glVertex3f(x1, y1, 0.0f);
+
+                        glTexCoord2f(element_u1 * element_x2, element_v2 * element_y2);
+                        glVertex3f(x1, y2, 0.0f);
+
+                        glTexCoord2f(element_u2 * element_x2, element_v2 * element_y2);
+                        glVertex3f(x2, y2, 0.0f);
+
+                        glTexCoord2f(element_u2 * element_x2, element_v1 * element_y2);
+                        glVertex3f(x2, y1, 0.0f);
+                        glEnd();
+
+                        /* Move to the next element's area */
+                        x1 = x2;
+                    }
+
+                    /* Move to the next element's area */
+                    y1 = y2;
+                }
+
+                glPopMatrix();
+            }
+            break;
+        }
+    }
+
+    return status;
+}
+
 static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
 {
     r_status_t status = (element != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -490,81 +701,15 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
             switch (element->element_type)
             {
             case R_ELEMENT_TYPE_IMAGE:
-                switch (image->storage_type)
-                {
-                case R_IMAGE_STORAGE_NATIVE:
-                    /* Draw a single rectangle using the (single) texture */
-                    glBindTexture(GL_TEXTURE_2D, (GLuint)(image->storage.native.id));
-
-                    glBegin(GL_POLYGON);
-                    glTexCoord2f(0, 0);
-                    glVertex3f(-0.5f, 0.5f, 0.0f);
-
-                    glTexCoord2f(0, 1);
-                    glVertex3f(-0.5f, -0.5f, 0.0f);
-
-                    glTexCoord2f(1, 1);
-                    glVertex3f(0.5f, -0.5f, 0.0f);
-
-                    glTexCoord2f(1, 0);
-                    glVertex3f(0.5f, 0.5f, 0.0f);
-                    glEnd();
-                    break;
-
-                case R_IMAGE_STORAGE_COMPOSITE:
-                    {
-                        /* Draw using one rectangle per texture */
-                        const unsigned int columns = image->storage.composite.columns;
-                        const unsigned int rows = image->storage.composite.rows;
-                        unsigned int i, j;
-                        r_real_t x1, y1;
-
-                        glPushMatrix();
-                        glTranslatef(-0.5f, 0.5f, 0);
-
-                        for (j = 0, y1 = 0.0f; j < rows; ++j)
-                        {
-                            const r_real_t y2 = y1 - ((r_real_t)(image->storage.composite.elements[j * rows].height)) / image->storage.composite.height;
-
-                            for (i = 0, x1 = 0.0f; i < columns; ++i)
-                            {
-                                const r_image_element_t *element = &image->storage.composite.elements[j * rows + i];
-                                const r_real_t x2 = x1 + ((r_real_t)element->width) / image->storage.composite.width;
-                                const r_real_t u2 = element->x2;
-                                const r_real_t v2 = element->y2;
-
-                                glBindTexture(GL_TEXTURE_2D, (GLuint)(element->id));
-
-                                glBegin(GL_POLYGON);
-                                glTexCoord2f(0, 0);
-                                glVertex3f(x1, y1, 0.0f);
-
-                                glTexCoord2f(0, v2);
-                                glVertex3f(x1, y2, 0.0f);
-
-                                glTexCoord2f(u2, v2);
-                                glVertex3f(x2, y2, 0.0f);
-
-                                glTexCoord2f(u2, 0);
-                                glVertex3f(x2, y1, 0.0f);
-                                glEnd();
-
-                                x1 = x2;
-                            }
-
-                            y1 = y2;
-                        }
-
-                        glPopMatrix();
-                    }
-                    break;
-                }
+            case R_ELEMENT_TYPE_IMAGE_REGION:
+                status = r_video_draw_element_image(rs, (r_element_image_t*)element);
                 break;
 
             case R_ELEMENT_TYPE_TEXT:
+                /* TODO: Should composite storage for fonts be supported? */
+                if (image->storage_type == R_IMAGE_STORAGE_NATIVE)
                 {
                     /* Draw text, one character at a time */
-                    /* TODO: Should composite storage for fonts be supported? */
                     r_element_text_t *element_text = (r_element_text_t*)element;
                     const char *pc = NULL;
                     int length = -1;
@@ -659,7 +804,10 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
             r_video_color_unblend(&color_base);
         }
 
-        status = (glGetError() == 0) ? R_SUCCESS : R_VIDEO_FAILURE;
+        if (R_SUCCEEDED(status))
+        {
+            status = (glGetError() == 0) ? R_SUCCESS : R_VIDEO_FAILURE;
+        }
     }
 
     return status;

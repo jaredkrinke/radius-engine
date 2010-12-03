@@ -1,3 +1,13 @@
+2010-12-03 deraj@users.sourceforge.net
+
+* r_video.c: Fixed last composite element texture calculations
+
+2010-12-02 deraj@users.sourceforge.net
+
+* r_image_cache.c: Enforce minimum texture size on last composite element
+
+* r_state.h: Texture sizes use "unsigned int"
+
 2010-12-01 deraj@users.sourceforge.net
 
 * r_video.c: Bug fixes to composite region calculations

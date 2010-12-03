@@ -46,8 +46,8 @@ typedef struct _r_state
     const char                      *default_font_path;
     int                             video_width;
     int                             video_height;
-    int                             min_texture_size;
-    int                             max_texture_size;
+    unsigned int                    min_texture_size;
+    unsigned int                    max_texture_size;
     r_affine_transform2d_stack_t    *pixels_to_coordinates;
 
     /* Audio state (note: audio lock must be held when manipulating audio state) */

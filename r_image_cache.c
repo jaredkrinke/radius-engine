@@ -184,7 +184,7 @@ static unsigned int r_image_get_element_count(unsigned int max_size, unsigned in
     return size / max_size + ((size % max_size != 0) ? 1 : 0);
 }
 
-static r_status_t r_image_create_texture(r_state_t *rs, unsigned int *id_out, int width, int height, GLint pixel_format, const unsigned char *pixels)
+static r_status_t r_image_create_texture(r_state_t *rs, unsigned int *id_out, unsigned int width, unsigned int height, GLint pixel_format, const unsigned char *pixels)
 {
     r_status_t status = R_SUCCESS;
     GLuint id = 0;
@@ -264,7 +264,7 @@ static r_status_t r_image_create_texture_from_region(r_state_t *rs,
     return r_image_create_texture(rs, id_out, texture_width, texture_height, pixel_format, buffer);
 }
 
-static r_status_t r_image_load_internal(r_state_t *rs, r_image_t *image, int width, int height, GLint pixel_format, unsigned int pixel_size, const unsigned char *pixels)
+static r_status_t r_image_load_internal(r_state_t *rs, r_image_t *image, unsigned int width, unsigned int height, GLint pixel_format, unsigned int pixel_size, const unsigned char *pixels)
 {
     r_status_t status = R_SUCCESS;
     GLuint id = 0;
@@ -334,7 +334,7 @@ static r_status_t r_image_load_internal(r_state_t *rs, r_image_t *image, int wid
                         if (i == columns - 1)
                         {
                             region_width = width - x1;
-                            texture_width = r_image_get_next_power_of_two(region_width);
+                            texture_width = (region_width > rs->min_texture_size) ? r_image_get_next_power_of_two(region_width) : rs->min_texture_size;
                         }
 
                         /* Create the image element's texture */

@@ -473,8 +473,10 @@ static r_status_t r_video_draw_element_image(r_state_t *rs, r_element_image_t *e
     r_real_t v2 = 1;
     r_status_t status = R_SUCCESS;
 
+    /* TODO: Cache the results of these calculations somewhere */
     if (element_image->element.element_type == R_ELEMENT_TYPE_IMAGE_REGION)
     {
+        /* TODO: These checks could go in the "set" function */
         const r_element_image_region_t *element_image_region = (r_element_image_region_t*)element_image;
 
         u1 = max(0, element_image_region->u1);
@@ -514,10 +516,12 @@ static r_status_t r_video_draw_element_image(r_state_t *rs, r_element_image_t *e
 
         case R_IMAGE_STORAGE_COMPOSITE:
             {
-                /* Draw using one rectangle per texture */
+                /* Draw using one rectangle per element */
                 const unsigned int columns = image->storage.composite.columns;
                 const unsigned int rows = image->storage.composite.rows;
                 unsigned int i, j;
+
+                /* Position of the current element */
                 r_real_t x1, y1;
 
                 /* Inclusive lower bound */
@@ -539,8 +543,8 @@ static r_status_t r_video_draw_element_image(r_state_t *rs, r_element_image_t *e
 
                     i1 = (unsigned int)(element_image_region->u1 * total_width / element_width);
                     j1 = (unsigned int)(element_image_region->v1 * total_height / element_height);
-                    i2 = (unsigned int)ceil(element_image_region->u2 * total_width / element_width);
-                    j2 = (unsigned int)ceil(element_image_region->v2 * total_height / element_height);
+                    i2 = min(i2, (unsigned int)ceil(element_image_region->u2 * total_width / element_width));
+                    j2 = min(j2, (unsigned int)ceil(element_image_region->v2 * total_height / element_height));
                 }
 
                 glPushMatrix();
@@ -585,7 +589,7 @@ static r_status_t r_video_draw_element_image(r_state_t *rs, r_element_image_t *e
                                     /* Last element may have a different (smaller) size */
                                     if (j == rows - 1 && element->height != element_height)
                                     {
-                                        element_v1 = (element_v1 * element_height - (element_height - element->height)) / element->height;
+                                        element_v1 = (element_v1 * element_height) / element->height;
                                     }
                                 }
 
@@ -597,7 +601,7 @@ static r_status_t r_video_draw_element_image(r_state_t *rs, r_element_image_t *e
                                     /* Last element may have a different (smaller) size */
                                     if (j == rows - 1 && element->height != element_height)
                                     {
-                                        element_v1 = (element_v1 * element_height - (element_height - element->height)) / element->height;
+                                        element_v2 = (element_v2 * element_height) / element->height;
                                     }
                                 }
 
@@ -618,7 +622,7 @@ static r_status_t r_video_draw_element_image(r_state_t *rs, r_element_image_t *e
                                     /* Last element may have a different (smaller) size */
                                     if (i == columns - 1 && element->width != element_width)
                                     {
-                                        element_u1 = (element_u1 * element_width - (element_width - element->width)) / element->width;
+                                        element_u1 = (element_u1 * element_width) / element->width;
                                     }
                                 }
 
@@ -630,7 +634,7 @@ static r_status_t r_video_draw_element_image(r_state_t *rs, r_element_image_t *e
                                     /* Last element may have a different (smaller) size */
                                     if (i == columns - 1 && element->width != element_width)
                                     {
-                                        element_u1 = (element_u1 * element_width - (element_width - element->width)) / element->width;
+                                        element_u2 = (element_u2 * element_width) / element->width;
                                     }
                                 }
 

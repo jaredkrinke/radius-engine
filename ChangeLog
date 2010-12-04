@@ -7,6 +7,9 @@
 * r_video.c (r_video_set_mode): Check for OpenGL 1.2 and set flag
 * r_image_cache.c: Use GL_CLAMP_TO_EDGE if available
 
+* r_video.c: Moved core image rendering to r_video_draw_image_internal
+* r_video.c: Fonts can now be rendered from composite storage
+
 2010-12-02 deraj@users.sourceforge.net
 
 * r_image_cache.c: Enforce minimum texture size on last composite element

@@ -1,5 +1,9 @@
 2010-12-03 deraj@users.sourceforge.net
 
+* r_video.c: Fixed font rending (position was off)
+
+2010-12-03 deraj@users.sourceforge.net
+
 * r_video.c: Fixed last composite element texture calculations
 
 * r_state.h: Added "full featured" (OpenGL 1.2) flag to r_state_t

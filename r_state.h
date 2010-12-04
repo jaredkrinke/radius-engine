@@ -46,6 +46,7 @@ typedef struct _r_state
     const char                      *default_font_path;
     int                             video_width;
     int                             video_height;
+    r_boolean_t                     video_full_featured;
     unsigned int                    min_texture_size;
     unsigned int                    max_texture_size;
     r_affine_transform2d_stack_t    *pixels_to_coordinates;

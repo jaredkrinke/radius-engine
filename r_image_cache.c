@@ -37,6 +37,11 @@ THE SOFTWARE.
 #include "r_resource_cache.h"
 #include "r_image_cache.h"
 
+#ifndef GL_CLAMP_TO_EDGE
+#define GL_CLAMP_TO_EDGE 0x812F
+#endif
+
+
 #define R_IMAGE_CACHE_DEFAULT_IMAGE_WIDTH   256
 #define R_IMAGE_CACHE_DEFAULT_IMAGE_HEIGHT  256
 
@@ -199,8 +204,8 @@ static r_status_t r_image_create_texture(r_state_t *rs, unsigned int *id_out, un
     glBindTexture(GL_TEXTURE_2D, id);
 
     /* Always clamp coordinates */
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, rs->video_full_featured ? GL_CLAMP_TO_EDGE : GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, rs->video_full_featured ? GL_CLAMP_TO_EDGE : GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
@@ -322,7 +327,7 @@ static r_status_t r_image_load_internal(r_state_t *rs, r_image_t *image, unsigne
                     if (j == rows - 1)
                     {
                         region_height = height - y1;
-                        texture_height = r_image_get_next_power_of_two(region_height);
+                        texture_height = (region_height > rs->min_texture_size) ? r_image_get_next_power_of_two(region_height) : rs->min_texture_size;
                     }
 
                     for (i = 0, x1 = 0; i < columns && R_SUCCEEDED(status); ++i)
@@ -628,8 +633,8 @@ r_status_t r_image_cache_reload(r_state_t *rs)
         glGenTextures(1, &id);
         glBindTexture(GL_TEXTURE_2D, id);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, rs->video_full_featured ? GL_CLAMP_TO_EDGE : GL_CLAMP);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, rs->video_full_featured ? GL_CLAMP_TO_EDGE : GL_CLAMP);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (void*)pixels);

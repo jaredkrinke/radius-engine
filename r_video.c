@@ -103,6 +103,24 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
             rs->video_height = height;
 
             /* Get OpenGL implementation parameters */
+            /* Check to see if OpenGL 1.2 is supported */
+            {
+                /* Kind of surprising that string parsing is required to get the version... */
+                const char *version_string_original = glGetString(GL_VERSION);
+                char version_string[4];
+                double version = 0;
+
+                /* Assume "Major.Minor" is 3 characters--ignore release and other text */
+                memcpy(version_string, version_string_original, 3 * sizeof(char));
+                version_string[3] = '\0';
+                version = atof(version_string);
+
+                if (version > 1.2)
+                {
+                    rs->video_full_featured = R_TRUE;
+                }
+            }
+
             /* Query for maximum texture size */
             glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
             rs->max_texture_size = (max_texture_size >= 64) ? max_texture_size : 512;

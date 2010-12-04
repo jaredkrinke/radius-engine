@@ -2,6 +2,8 @@
 
 * r_video.c: Fixed font rending (position was off)
 
+* r_script_lib.c: Added "pow" math function
+
 2010-12-03 deraj@users.sourceforge.net
 
 * r_video.c: Fixed last composite element texture calculations

@@ -65,6 +65,7 @@ const char *r_object_type_names[R_OBJECT_TYPE_MAX] = {
 
 /* TODO: Math functions use double, but the default type is float... */
 typedef double (*r_script_math_function_t)(double input);
+typedef double (*r_script_math_function2_t)(double x, double y);
 typedef double (*r_script_math_aggregate_function_t)(double aggregate, r_boolean_t first, double input);
 
 static r_status_t r_script_log(r_state_t *rs, r_log_level_t level, const char *str)
@@ -299,6 +300,39 @@ static R_INLINE int l_mathFunction(lua_State *ls, r_script_math_function_t f)
     return result_count;
 }
 
+static R_INLINE int l_mathFunction2(lua_State *ls, r_script_math_function2_t f)
+{
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    int result_count = 0;
+
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        const r_script_argument_t expected_arguments[] = {
+            { LUA_TNUMBER, 0 },
+            { LUA_TNUMBER, 0 }
+        };
+
+        status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+
+        if (R_SUCCEEDED(status))
+        {
+            double x = (double)lua_tonumber(ls, 1);
+            double y = (double)lua_tonumber(ls, 2);
+
+            lua_pushnumber(ls, f(x, y));
+            lua_insert(ls, 1);
+            result_count = 1;
+        }
+    }
+
+    lua_pop(ls, lua_gettop(ls) - result_count);
+
+    return result_count;
+}
+
 static double sin_degrees(double x)
 {
     return sin(R_PI_OVER_180 * x);
@@ -332,6 +366,11 @@ static int l_tan(lua_State *ls)
 static int l_exp(lua_State *ls)
 {
     return l_mathFunction(ls, exp);
+}
+
+static int l_pow(lua_State *ls)
+{
+    return l_mathFunction2(ls, pow);
 }
 
 static int l_log(lua_State *ls)
@@ -822,6 +861,7 @@ r_status_t r_script_setup(r_state_t *rs)
         lua_register(ls, "cos", l_cos);
         lua_register(ls, "tan", l_tan);
         lua_register(ls, "exp", l_exp);
+        lua_register(ls, "pow", l_pow);
         lua_register(ls, "log", l_log);
         lua_register(ls, "sqrt", l_sqrt);
         lua_register(ls, "arcsin", l_arcsin);

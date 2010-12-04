@@ -538,6 +538,7 @@ static r_status_t r_video_draw_image_internal(r_state_t *rs, r_image_t *image, r
                 j2 = min(j2, (unsigned int)ceil(v2 * total_height / element_height));
             }
 
+            /* TODO: Maybe don't push a new matrix just for this... */
             glPushMatrix();
             glTranslatef(-0.5f, 0.5f, 0);
 
@@ -788,6 +789,8 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
 
                         if (R_SUCCEEDED(status))
                         {
+                            glTranslatef(0.5f, 0.5f, 0);
+
                             /* Draw each character */
                             for (; *pc != '\0' && R_SUCCEEDED(status); ++pc)
                             {
@@ -797,6 +800,8 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
                                 status = r_video_draw_image_internal(rs, image, R_TRUE, fc->x_min, fc->y_min, fc->x_max, fc->y_max);
                                 glTranslatef(1, 0, 0);
                             }
+
+                            glTranslatef(-0.5f, -0.5f, 0);
                         }
                     }
                 }

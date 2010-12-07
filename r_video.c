@@ -254,6 +254,35 @@ static R_INLINE void r_video_push_mode_table(lua_State *ls, unsigned int width, 
     lua_rawset(ls, -3);
 }
 
+static int l_Video_setTitle(lua_State *ls)
+{
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+
+    R_ASSERT(R_SUCCEEDED(status));
+
+    /* Check arguments */
+    if (R_SUCCEEDED(status))
+    {
+        const r_script_argument_t expected_arguments[] = {
+            { LUA_TSTRING,  0 }
+        };
+
+        status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+    }
+
+    if (R_SUCCEEDED(status))
+    {
+        const char *title = lua_tostring(ls, 1);
+
+        SDL_WM_SetCaption(title, title);
+    }
+
+    lua_pop(ls, lua_gettop(ls));
+
+    return 0;
+}
+
 static int l_Video_getModes(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
@@ -449,6 +478,7 @@ r_status_t r_video_setup(r_state_t *rs)
             { "getFullscreen",  R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Video_getFullscreen },
             { "getModes",       R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Video_getModes },
             { "setMode",        R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Video_setMode },
+            { "setTitle",       R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Video_setTitle },
             { NULL }
         };
 

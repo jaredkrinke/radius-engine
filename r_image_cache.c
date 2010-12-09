@@ -301,7 +301,15 @@ static r_status_t r_image_load_internal(r_state_t *rs, r_image_t *image, unsigne
         int index = 0;
 
         /* Allocate buffer for creating element textures */
-        const unsigned int buffer_pixels = (columns == 1 && rows == 1) ? (r_image_get_next_power_of_two(width) * r_image_get_next_power_of_two(height)) : (rs->max_texture_size * rs->max_texture_size);
+        const max_texture_width = (columns == 1) ?
+            ((width > rs->min_texture_size) ? r_image_get_next_power_of_two(width) : rs->min_texture_size)
+            : rs->max_texture_size;
+
+        const max_texture_height = (rows == 1) ?
+            ((height > rs->min_texture_size) ? r_image_get_next_power_of_two(height) : rs->min_texture_size)
+            : rs->max_texture_size;
+
+        const unsigned int buffer_pixels = max_texture_width * max_texture_height;
         const unsigned int buffer_size = buffer_pixels * pixel_size;
         unsigned char *buffer = (unsigned char*)malloc(buffer_size);
 

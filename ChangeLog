@@ -1,3 +1,11 @@
+2010-12-08 deraj@users.sourceforge.net
+
+* r_video.c: Assume minimum texture size is 8
+
+* r_image_cache.c: Fix composite buffer size
+
+* r_element.c: Added "imageRegion" type name
+
 2010-12-07 deraj@users.sourceforge.net
 
 * r_video.c: Added Video.setTitle for setting window title

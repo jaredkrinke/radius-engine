@@ -30,6 +30,7 @@ THE SOFTWARE.
 
 const char *r_element_type_names[R_ELEMENT_TYPE_MAX] = {
     "image",
+    "imageRegion",
     "text"
 };
 

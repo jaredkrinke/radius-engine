@@ -125,8 +125,8 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
             glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
             rs->max_texture_size = (max_texture_size >= 64) ? max_texture_size : 512;
 
-            /* Assume minimum size is 64 since there isn't good documentation */
-            rs->min_texture_size = 64;
+            /* Assume minimum size is 8 since there isn't good documentation */
+            rs->min_texture_size = 8;
 
             /* Set up pixel-to-coordinate transformation */
             r_affine_transform2d_stack_clear(rs->pixels_to_coordinates);

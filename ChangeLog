@@ -1,3 +1,7 @@
+2010-12-09 deraj@users.sourceforge.net
+
+* r_file_system.c: Added "include" for optionally loading a file
+
 2010-12-08 deraj@users.sourceforge.net
 
 * r_video.c: Assume minimum texture size is 8

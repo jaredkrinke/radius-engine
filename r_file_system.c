@@ -125,7 +125,7 @@ static const char *r_file_system_reader(lua_State* ls, void* user_data, size_t* 
 }
 
 /* TODO: Error handling on required scripts should be handled somehow */
-static r_status_t r_file_system_load_script(r_state_t *rs, const char *path)
+static r_status_t r_file_system_load_script(r_state_t *rs, const char *path, r_boolean_t required)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL && path != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -136,7 +136,7 @@ static r_status_t r_file_system_load_script(r_state_t *rs, const char *path)
 
         /* TODO: Should file name loading be case-sensitive? It seems like developers on Windows might get cases wrong... */
         args.f = PHYSFS_openRead(path);
-        status = (args.f != NULL) ? R_SUCCESS : R_FAILURE;
+        status = (args.f != NULL) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
 
         if (R_SUCCEEDED(status))
         {
@@ -154,17 +154,26 @@ static r_status_t r_file_system_load_script(r_state_t *rs, const char *path)
             if (R_FAILED(status))
             {
                 /* Error loading or running the function */
-                r_log_error(rs, lua_tostring(rs->script_state, -1));
+                if (required)
+                {
+                    r_log_error(rs, lua_tostring(rs->script_state, -1));
+                }
+
                 lua_pop(rs->script_state, 1);
             }
 
             PHYSFS_close(args.f);
         }
-        else
+        else if (required)
         {
-            r_log_error(rs, PHYSFS_getLastError());
-            r_log_error(rs, path);
+            r_log_error_format(rs, "Failed to load %s: %s", path, PHYSFS_getLastError());
         }
+    }
+
+    if (R_FAILED(status) && !required)
+    {
+        /* Ignore errors if the file is not required */
+        status = R_SUCCESS;
     }
 
     return status;
@@ -239,7 +248,7 @@ static int l_ls(lua_State *ls)
 }
 
 /* Require a script to be loaded before execution proceeds */
-static int l_require(lua_State *ls)
+static int l_load_script(lua_State *ls, r_boolean_t required)
 {
     int argc = lua_gettop(ls);
 
@@ -273,7 +282,7 @@ static int l_require(lua_State *ls)
                         lua_rawset(ls, loaded_scripts_index);
 
                         /* Load the script now, ignore errors */
-                        r_file_system_load_script(rs, script);
+                        r_file_system_load_script(rs, script, required);
                     }
                     lua_pop(ls, 1); /* loaded */
                 }
@@ -284,6 +293,16 @@ static int l_require(lua_State *ls)
     }
 
     return 0;
+}
+
+static int l_require(lua_State *ls)
+{
+    return l_load_script(ls, R_TRUE);
+}
+
+static int l_include(lua_State *ls)
+{
+    return l_load_script(ls, R_FALSE);
 }
 
 r_status_t r_file_system_setup_script(r_state_t *rs)
@@ -306,6 +325,7 @@ r_status_t r_file_system_setup_script(r_state_t *rs)
             /* Register functions */
             lua_register(ls, "ls", l_ls);
             lua_register(ls, "require", l_require);
+            lua_register(ls, "include", l_include);
         }
     }
 

@@ -1,3 +1,13 @@
+2010-12-12 deraj@users.sourceforge.net
+
+* r_image_cache.c (r_image_free_texture): Do nothing when no storage type set
+
+* r_image_cache.c: Fix initialization of default image/font
+
+* r_defs.h: Added R_MIN and R_MAX macros
+
+* r_video.c: Use R_MIN/R_MAX
+
 2010-12-09 deraj@users.sourceforge.net
 
 * r_file_system.c: Added "include" for optionally loading a file

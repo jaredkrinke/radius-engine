@@ -130,6 +130,9 @@ static r_status_t r_image_free_texture(r_state_t *rs, r_image_t *image)
                 free(image->storage.composite.elements);
             }
             break;
+
+        case R_IMAGE_STORAGE_INVALID:
+            break;
         }
 
         image->storage_type = R_IMAGE_STORAGE_INVALID;
@@ -165,8 +168,8 @@ static r_status_t r_image_cleanup(r_state_t *rs, r_object_t *object)
 
 r_object_header_t r_image_header = { R_OBJECT_TYPE_IMAGE, sizeof(r_image_t), R_FALSE, r_image_fields, r_image_init, NULL, r_image_cleanup };
 
-r_image_t r_image_cache_default_image  = { { &r_image_header, 0 }, { R_IMAGE_INTERNAL_INVALID_ID } };
-r_image_t r_image_cache_default_font   = { { &r_image_header, 0 }, { R_IMAGE_INTERNAL_INVALID_ID } };
+r_image_t r_image_cache_default_image  = { { &r_image_header, 0 }, R_IMAGE_STORAGE_NATIVE, { { R_IMAGE_INTERNAL_INVALID_ID } } };
+r_image_t r_image_cache_default_font   = { { &r_image_header, 0 }, R_IMAGE_STORAGE_NATIVE, { { R_IMAGE_INTERNAL_INVALID_ID } } };
 
 /* Compute next largest power of two */
 static unsigned int r_image_get_next_power_of_two(unsigned int size)
@@ -255,7 +258,7 @@ static r_status_t r_image_create_texture_from_region(r_state_t *rs,
     {
         for (i = region_width; i < texture_width; ++i)
         {
-            memcpy(&buffer[(j * texture_width + i) * pixel_size], &pixels[((min(j + y1, region_height - 1 + y1)) * image_width + region_width - 1 + x1) * pixel_size], pixel_size);
+            memcpy(&buffer[(j * texture_width + i) * pixel_size], &pixels[((R_MIN(j + y1, region_height - 1 + y1)) * image_width + region_width - 1 + x1) * pixel_size], pixel_size);
         }
     }
 
@@ -272,7 +275,6 @@ static r_status_t r_image_create_texture_from_region(r_state_t *rs,
 static r_status_t r_image_load_internal(r_state_t *rs, r_image_t *image, unsigned int width, unsigned int height, GLint pixel_format, unsigned int pixel_size, const unsigned char *pixels)
 {
     r_status_t status = R_SUCCESS;
-    GLuint id = 0;
 
     /* Check to see if a native OpenGL texture can be used */
     if (width >= rs->min_texture_size
@@ -301,11 +303,11 @@ static r_status_t r_image_load_internal(r_state_t *rs, r_image_t *image, unsigne
         int index = 0;
 
         /* Allocate buffer for creating element textures */
-        const max_texture_width = (columns == 1) ?
+        const unsigned int max_texture_width = (columns == 1) ?
             ((width > rs->min_texture_size) ? r_image_get_next_power_of_two(width) : rs->min_texture_size)
             : rs->max_texture_size;
 
-        const max_texture_height = (rows == 1) ?
+        const unsigned int max_texture_height = (rows == 1) ?
             ((height > rs->min_texture_size) ? r_image_get_next_power_of_two(height) : rs->min_texture_size)
             : rs->max_texture_size;
 
@@ -448,7 +450,7 @@ static r_status_t r_image_load(r_state_t *rs, const char *image_path, r_object_t
                             png_get_IHDR(png, png_info, &width, &height, &bit_depth, &color_type, &interlace_method, &compression_method, &filter_method);
 
                             /* TODO: Support gray-scale, paletted, and other bit depths */
-                            status = (bit_depth == 8 && color_type == PNG_COLOR_TYPE_RGB_ALPHA || color_type == PNG_COLOR_TYPE_RGB) ? R_SUCCESS : RV_F_UNSUPPORTED_FORMAT;
+                            status = (bit_depth == 8 && (color_type == PNG_COLOR_TYPE_RGB_ALPHA || color_type == PNG_COLOR_TYPE_RGB)) ? R_SUCCESS : RV_F_UNSUPPORTED_FORMAT;
 
                             if (R_SUCCEEDED(status))
                             {

@@ -106,7 +106,7 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
             /* Check to see if OpenGL 1.2 is supported */
             {
                 /* Kind of surprising that string parsing is required to get the version... */
-                const char *version_string_original = glGetString(GL_VERSION);
+                const char *version_string_original = (const char*)glGetString(GL_VERSION);
                 char version_string[4];
                 double version = 0;
 
@@ -564,8 +564,8 @@ static r_status_t r_video_draw_image_internal(r_state_t *rs, r_image_t *image, r
 
                 i1 = (unsigned int)(u1 * total_width / element_width);
                 j1 = (unsigned int)(v1 * total_height / element_height);
-                i2 = min(i2, (unsigned int)ceil(u2 * total_width / element_width));
-                j2 = min(j2, (unsigned int)ceil(v2 * total_height / element_height));
+                i2 = R_MIN(i2, (unsigned int)ceil(u2 * total_width / element_width));
+                j2 = R_MIN(j2, (unsigned int)ceil(v2 * total_height / element_height));
             }
 
             /* TODO: Maybe don't push a new matrix just for this... */
@@ -693,6 +693,10 @@ static r_status_t r_video_draw_image_internal(r_state_t *rs, r_image_t *image, r
             glPopMatrix();
         }
         break;
+
+    default:
+        R_ASSERT(0); /* Unsupported storage type */
+        break;
     }
 
     return r_glenum_to_status(glGetError());
@@ -713,10 +717,10 @@ static r_status_t r_video_draw_element_image(r_state_t *rs, r_element_image_t *e
         /* TODO: These checks could go in the "set" function */
         const r_element_image_region_t *element_image_region = (r_element_image_region_t*)element_image;
 
-        u1 = max(0, element_image_region->u1);
-        v1 = max(0, element_image_region->v1);
-        u2 = min(1, element_image_region->u2);
-        v2 = min(1, element_image_region->v2);
+        u1 = R_MAX(0, element_image_region->u1);
+        v1 = R_MAX(0, element_image_region->v1);
+        u2 = R_MIN(1, element_image_region->u2);
+        v2 = R_MIN(1, element_image_region->v2);
 
         /* Sanity-check the texture coordinates */
         if (u1 < 0 || v1 < 0 || u2 > 1 || v2 > 1 || u1 >= u2 || v1 >= v2)

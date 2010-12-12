@@ -114,6 +114,8 @@ typedef float r_real_t;
 #define R_REAL_EXACT_INTEGER_MAX    (1<<24)
 
 #define R_CLAMP(value, min, max)    ((value) > (max) ? (max) : ((value) < (min) ? (min) : (value)))
+#define R_MIN(a, b)                 ((a) <= (b)) ? (a) : (b)
+#define R_MAX(a, b)                 ((a) >= (b)) ? (a) : (b)
 
 /* Useful mathematical values */
 #define R_PI                        (3.141592653589793238462643383279502884197169399375105)

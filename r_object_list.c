@@ -64,7 +64,7 @@ void r_object_ref_swap(r_object_ref_t *a, r_object_ref_t *b)
 }
 
 /* TODO: Check all script functions to ensure errors are reported somehow! */
-static r_status_t r_object_list_add(r_state_t *rs, r_object_list_t *object_list, int item_index, r_object_list_insert_function_t insert)
+static r_status_t r_object_list_add(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, int item_index, r_object_list_insert_function_t insert)
 {
     /* Ensure there is enough space for the new item */
     r_status_t status = R_SUCCESS;
@@ -102,7 +102,9 @@ static r_status_t r_object_list_add(r_state_t *rs, r_object_list_t *object_list,
 
     if (R_SUCCEEDED(status))
     {
-        status = r_object_ref_write(rs, (r_object_t*)object_list, &object_list->items[object_list->count], object_list->item_type, item_index);
+        r_object_t *owner = (parent != NULL) ? parent : (r_object_t*)object_list;
+
+        status = r_object_ref_write(rs, owner, &object_list->items[object_list->count], object_list->item_type, item_index);
 
         if (R_SUCCEEDED(status))
         {
@@ -123,7 +125,7 @@ static r_status_t r_object_list_add(r_state_t *rs, r_object_list_t *object_list,
     return status;
 }
 
-static r_status_t r_object_list_remove(r_state_t *rs, r_object_list_t *object_list, unsigned int item)
+static r_status_t r_object_list_remove(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, unsigned int item)
 {
     /* Ensure the index is valid */
     r_status_t status = (item >= 0 && item < object_list->count) ? R_SUCCESS : R_F_INVALID_INDEX;
@@ -131,7 +133,9 @@ static r_status_t r_object_list_remove(r_state_t *rs, r_object_list_t *object_li
     if (R_SUCCEEDED(status))
     {
         /* Clear the reference */
-        status = r_object_ref_clear(rs, (r_object_t*)object_list, &object_list->items[item]);
+        r_object_t *owner = (parent != NULL) ? parent : (r_object_t*)object_list;
+
+        status = r_object_ref_clear(rs, owner, &object_list->items[item]);
 
         if (R_SUCCEEDED(status))
         {
@@ -173,7 +177,7 @@ static r_status_t r_object_list_find(r_state_t *rs, r_object_list_t *object_list
     return status;
 }
 
-static r_status_t r_object_list_clear(r_state_t *rs, r_object_list_t *object_list, r_object_type_t list_type)
+static r_status_t r_object_list_clear(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list)
 {
     r_status_t status = R_SUCCESS;
 
@@ -184,14 +188,14 @@ static r_status_t r_object_list_clear(r_state_t *rs, r_object_list_t *object_lis
 
         for (i = object_list->count - 1; object_list->count > 0 && R_SUCCEEDED(status); --i)
         {
-            status = r_object_list_remove(rs, object_list, i);
+            status = r_object_list_remove(rs, parent, object_list, i);
         }
     }
 
     return status;
 }
 
-int l_ObjectList_add(lua_State *ls, r_object_type_t list_type, r_object_list_insert_function_t insert)
+int l_ObjectList_add_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset, r_object_list_insert_function_t insert)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -213,23 +217,23 @@ int l_ObjectList_add(lua_State *ls, r_object_type_t list_type, r_object_list_ins
     if (R_SUCCEEDED(status))
     {
         /* Check object list type */
-        int object_list_index = 1;
+        int parent_index = 1;
         int item_index = 2;
-        r_object_t *object = (r_object_t*)lua_touserdata(ls, object_list_index);
+        r_object_t *parent = (r_object_t*)lua_touserdata(ls, parent_index);
 
-        status = (object->header->type == list_type) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
+        status = (parent->header->type == parent_type) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
 
         if (R_SUCCEEDED(status))
         {
             /* Check item type */
-            r_object_list_t *object_list = (r_object_list_t*)object;
+            r_object_list_t *object_list = (r_object_list_t*)(((r_byte_t*)parent) + object_list_offset);
             r_object_t *item = (r_object_t*)lua_touserdata(ls, item_index);
 
             status = (item->header->type == object_list->item_type) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
 
             if (R_SUCCEEDED(status))
             {
-                status = r_object_list_add(rs, object_list, item_index, insert);
+                status = r_object_list_add(rs, parent, object_list, item_index, insert);
 
                 if (R_SUCCEEDED(status))
                 {
@@ -246,7 +250,7 @@ int l_ObjectList_add(lua_State *ls, r_object_type_t list_type, r_object_list_ins
     return result_count;
 }
 
-int l_ObjectList_forEach(lua_State *ls, r_object_type_t list_type)
+int l_ObjectList_forEach_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -268,22 +272,22 @@ int l_ObjectList_forEach(lua_State *ls, r_object_type_t list_type)
     if (R_SUCCEEDED(status))
     {
         /* Check object list type */
-        int object_list_index = 1;
+        int parent_index = 1;
         int function_index = 2;
-        r_object_t *object = (r_object_t*)lua_touserdata(ls, object_list_index);
+        r_object_t *parent = (r_object_t*)lua_touserdata(ls, parent_index);
 
-        status = (object->header->type == list_type) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
+        status = (parent->header->type == parent_type) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
 
         if (R_SUCCEEDED(status))
         {
             /* Iterate through items and apply function */
-            r_object_list_t *object_list = (r_object_list_t*)object;
+            r_object_list_t *object_list = (r_object_list_t*)(((r_byte_t*)parent) + object_list_offset);
             unsigned int i;
 
             for (i = 0; i < object_list->count && R_SUCCEEDED(status); ++i)
             {
                 lua_pushvalue(ls, function_index);
-                status = r_object_ref_push(rs, (r_object_t*)object_list, &object_list->items[i]);
+                status = r_object_ref_push(rs, parent, &object_list->items[i]);
 
                 if (R_SUCCEEDED(status))
                 {
@@ -303,7 +307,7 @@ int l_ObjectList_forEach(lua_State *ls, r_object_type_t list_type)
     return 0;
 }
 
-int l_ObjectList_pop(lua_State *ls, r_object_type_t list_type)
+int l_ObjectList_pop_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -327,15 +331,15 @@ int l_ObjectList_pop(lua_State *ls, r_object_type_t list_type)
     if (R_SUCCEEDED(status))
     {
         /* Check object list type */
-        int object_list_index = 1;
-        r_object_t *object = (r_object_t*)lua_touserdata(ls, object_list_index);
+        int parent_index = 1;
+        r_object_t *parent = (r_object_t*)lua_touserdata(ls, parent_index);
 
-        status = (object->header->type == list_type) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
+        status = (parent->header->type == parent_type) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
 
         if (R_SUCCEEDED(status))
         {
             /* Ensure the stack is not empty */
-            r_object_list_t *object_list = (r_object_list_t*)object;
+            r_object_list_t *object_list = (r_object_list_t*)(((r_byte_t*)parent) + object_list_offset);
 
             status = (object_list->count > 0) ? R_SUCCESS : RS_F_INVALID_INDEX;
 
@@ -344,11 +348,11 @@ int l_ObjectList_pop(lua_State *ls, r_object_type_t list_type)
                 /* Push the last item and remove it from the list */
                 const unsigned int item = object_list->count - 1;
 
-                status = r_object_ref_push(rs, (r_object_t*)object_list, &object_list->items[item]);
+                status = r_object_ref_push(rs, parent, &object_list->items[item]);
 
                 if (R_SUCCEEDED(status))
                 {
-                    status = r_object_list_remove(rs, object_list, item);
+                    status = r_object_list_remove(rs, parent, object_list, item);
 
                     if (R_SUCCEEDED(status))
                     {
@@ -369,10 +373,10 @@ int l_ObjectList_pop(lua_State *ls, r_object_type_t list_type)
     return result_count;
 }
 
-int l_ObjectList_remove(lua_State *ls, r_object_type_t list_type, r_object_type_t item_type)
+int l_ObjectList_remove_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset, r_object_type_t item_type)
 {
     const r_script_argument_t expected_arguments[] = {
-        { LUA_TUSERDATA, list_type },
+        { LUA_TUSERDATA, parent_type },
         { LUA_TUSERDATA, item_type }
     };
 
@@ -381,7 +385,8 @@ int l_ObjectList_remove(lua_State *ls, r_object_type_t list_type, r_object_type_
 
     if (R_SUCCEEDED(status))
     {
-        r_object_list_t *object_list = (r_object_list_t*)lua_touserdata(ls, 1);
+        r_object_t *parent = (r_object_t*)lua_touserdata(ls, 1);
+        r_object_list_t *object_list = (r_object_list_t*)(((r_byte_t*)parent) + object_list_offset);
         r_object_t *object = (r_object_t*)lua_touserdata(ls, 2);
         unsigned int item = 0;
 
@@ -389,7 +394,7 @@ int l_ObjectList_remove(lua_State *ls, r_object_type_t list_type, r_object_type_
 
         if (R_SUCCEEDED(status))
         {
-            status = r_object_list_remove(rs, object_list, item);
+            status = r_object_list_remove(rs, parent, object_list, item);
         }
     }
 
@@ -398,23 +403,49 @@ int l_ObjectList_remove(lua_State *ls, r_object_type_t list_type, r_object_type_
     return 0;
 }
 
-int l_ObjectList_clear(lua_State *ls, r_object_type_t list_type)
+int l_ObjectList_clear_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset)
 {
-    const r_script_argument_t expected_arguments[] = { { LUA_TUSERDATA, list_type } };
+    const r_script_argument_t expected_arguments[] = { { LUA_TUSERDATA, parent_type } };
 
     r_state_t *rs = r_script_get_r_state(ls);
     r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
 
     if (R_SUCCEEDED(status))
     {
-        r_object_list_t *object_list = (r_object_list_t*)lua_touserdata(ls, 1);
+        r_object_t *parent = (r_object_t*)lua_touserdata(ls, 1);
+        r_object_list_t *object_list = (r_object_list_t*)(((r_byte_t*)parent) + object_list_offset);
 
-        status = r_object_list_clear(rs, object_list, list_type);
+        status = r_object_list_clear(rs, parent, object_list);
     }
 
     lua_pop(ls, lua_gettop(ls));
 
     return 0;
+}
+
+int l_ObjectList_add(lua_State *ls, r_object_type_t list_type, r_object_list_insert_function_t insert)
+{
+    return l_ObjectList_add_internal(ls, list_type, 0, insert);
+}
+
+int l_ObjectList_forEach(lua_State *ls, r_object_type_t list_type)
+{
+    return l_ObjectList_forEach_internal(ls, list_type, 0);
+}
+
+int l_ObjectList_pop(lua_State *ls, r_object_type_t list_type)
+{
+    return l_ObjectList_pop_internal(ls, list_type, 0);
+}
+
+int l_ObjectList_remove(lua_State *ls, r_object_type_t list_type, r_object_type_t item_type)
+{
+    return l_ObjectList_remove_internal(ls, list_type, 0, item_type);
+}
+
+int l_ObjectList_clear(lua_State *ls, r_object_type_t list_type)
+{
+    return l_ObjectList_clear_internal(ls, list_type, 0);
 }
 
 r_status_t r_object_list_init(r_state_t *rs, r_object_t *object, r_object_type_t list_type, r_object_type_t item_type)
@@ -467,8 +498,8 @@ r_status_t r_object_list_process_arguments(r_state_t *rs, r_object_t *object, in
 
                 if (R_SUCCEEDED(status))
                 {
-                    /* Add to the list */
-                    status = r_object_list_add(rs, object_list, i, insert);
+                    /* Add to the list (note that no parent is specified because this must be its own object to hit this code) */
+                    status = r_object_list_add(rs, NULL, object_list, i, insert);
                 }
             }
         }
@@ -485,16 +516,11 @@ r_status_t r_object_list_cleanup(r_state_t *rs, r_object_t *object, r_object_typ
 
     if (R_SUCCEEDED(status))
     {
-        status = (object->header->type == list_type) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
+        r_object_list_t *object_list = (r_object_list_t*)object;
 
-        if (R_SUCCEEDED(status))
+        if (object_list->items != NULL)
         {
-            r_object_list_t *object_list = (r_object_list_t*)object;
-
-            if (object_list->items != NULL)
-            {
-                free(object_list->items);
-            }
+            free(object_list->items);
         }
     }
 

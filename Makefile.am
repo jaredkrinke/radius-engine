@@ -11,6 +11,8 @@ libradius_engine_a_SOURCES = \
                              r_audio_clip_manager.h \
                              r_audio_decoder.h \
                              r_audio_decoder.c \
+                             r_collision_detector.c \
+                             r_collision_detector.h \
                              r_color.c \
                              r_color.h \
                              r_defs.h \
@@ -42,8 +44,8 @@ libradius_engine_a_SOURCES = \
                              r_list.h \
                              r_log.c \
                              r_log.h \
-                             r_matrix.c \
-                             r_matrix.h \
+                             r_mesh.c \
+                             r_mesh.h \
                              r_object.c \
                              r_object.h \
                              r_object_enum.c \
@@ -68,6 +70,8 @@ libradius_engine_a_SOURCES = \
                              r_string.h \
                              r_string_buffer.h \
                              r_string_buffer.c \
+                             r_transform2d.c \
+                             r_transform2d.h \
                              r_vector.c \
                              r_vector.h \
                              r_video.c \

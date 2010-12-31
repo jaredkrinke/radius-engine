@@ -27,7 +27,7 @@ THE SOFTWARE.
 #include <setjmp.h>
 
 #include "r_defs.h"
-#include "r_matrix.h"
+#include "r_transform2d.h"
 
 /* Stores the state of the Radius Engine */
 typedef struct _r_state
@@ -49,7 +49,7 @@ typedef struct _r_state
     r_boolean_t                     video_full_featured;
     unsigned int                    min_texture_size;
     unsigned int                    max_texture_size;
-    r_affine_transform2d_stack_t    *pixels_to_coordinates;
+    r_transform2d_t                 pixels_to_coordinates;
 
     /* Audio state (note: audio lock must be held when manipulating audio state) */
     void                            *audio;

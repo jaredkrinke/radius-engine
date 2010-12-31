@@ -1,3 +1,90 @@
+2010-12-31 deraj@users.sourceforge.net
+
+* configure.in: Incremented version
+* r_defs.h: Incremented version
+
+2010-12-30 deraj@users.sourceforge.net
+
+* r_collision_detector.h: Initial collision detection interface
+* r_collision_detector.c: Working (though inefficient) collision detection
+
+* r_object.h: Added CollisionDetector type
+* r_script_lib.c: Register CollisionDetector type
+
+* Makefile.am: Added r_collision_detector.*
+
+* r_collision_detector.c: Code cleanup
+
+2010-12-29 deraj@users.sourceforge.net
+
+* r_matrix.h: Rewrote transformations to not use a stack
+* r_matrix.c: Reimplemented transformations
+
+* r_state.h: Pixel-to-coordinate transformation is now a member
+* r_state.c: Initialize transformation
+* r_event.c: Pixel-to-coordinate transformation is now a member
+* r_video.c: Pixel-to-coordinate transformation is now a member
+
+* Makefile.am: Renamed r_matrix.* to r_transform2d.*
+* r_transform2d.h: Formerly r_matrix.h
+* r_transform2d.c: Formerly r_matrix.c
+* r_state.h: Include r_transform2d.h
+
+* r_vector.h (r_vector2d_from_homogeneous): Mark source vector const
+* r_vector.c (r_vector2d_from_homogeneous): Mark source vector const
+
+* r_entity.c: Added Entity.convertToLocal/Absolute for coordinate transforms
+
+* r_video.c: Fixed ordering of entity/element transformations
+* r_entity.c: Fixed ordering of transformations
+
+* r_transform2d.h: Expose normal vectors
+* r_transform2d.c: Use homogeneous vectors internally only
+* r_event.c: Don't need to use homogeneous vectors anymore
+
+* r_entity.h: Expose transformation matrices
+* r_entity.c: Expose transformation matrices, add Entity.mesh
+
+* r_object.h: Add mesh type identifier
+* r_script_lib.c: Export Mesh functions
+
+* r_mesh.h: Added new mesh type
+* r_mesh.c: New mesh type
+
+2010-12-28 deraj@users.sourceforge.net
+
+* r_entity.h: Added parent reference to r_entity_t
+* r_entity.c: Keep track of parent when being added/removed
+* r_layer.c (l_Layer_addChild): Top-level entities must not have a parent
+
+2010-12-27 deraj@users.sourceforge.net
+
+* r_entity_list.h: Export r_entity_list_init
+* r_entity_list.c: Export r_entity_list_init
+
+* r_entity.h: Don't directly expose internal entity list to scripts
+* r_entity.c: Added r_entity_cleanup for clearing children
+* r_layer.h: Don't directly expose internal entity list to scripts
+* r_layer.c (r_layer_cleanup): Clear entity list
+
+* r_video.c (r_video_draw): Layer entitiy list is now a member, not reference
+* r_layer.c (r_layer_update): Entity list is now a member, not a reference
+* r_video.c (r_video_draw_entity): Entity.children is a member, not reference
+
+* r_object_list.h: Added manipulation functions for internal/hidden lists
+* r_object_list.c: Implemented manipulation functions for internal/hidden lists
+* r_zlist.h: Added manipulation functions for internal/hidden lists
+* r_zlist.c: Implemented manipulation functions for internal/hidden lists
+
+* r_entity.c: Added add/remove/forEach/clearChild/Children to Entity
+* r_layer.c: Added add/remove/forEach/clearChild/Children to Layer
+
+* r_object_list.c (r_object_list_add): Optional owner override (for parent)
+* r_object_list.c (r_object_list_remove): Optional owner override (for parent)
+* r_object_list.c: ObjectList internal functions use parent as owner of refs
+
+* r_object_list.c (r_object_list_cleanup): Don't explicitly check object type
+
 2010-12-12 deraj@users.sourceforge.net
 
 * r_image_cache.c (r_image_free_texture): Do nothing when no storage type set

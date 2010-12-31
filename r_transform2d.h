@@ -1,3 +1,6 @@
+#ifndef __R_TRANSFORM2D_H
+#define __R_TRANSFORM2D_H
+
 /*
 Copyright 2010 Jared Krinke.
 
@@ -22,18 +25,18 @@ THE SOFTWARE.
 
 #include "r_vector.h"
 
-void r_vector2d_from_homogeneous(const r_vector2d_homogeneous_t *v_h, r_vector2d_t *v)
-{
-    /* TODO: This unnecessary branch here is probably bad for performance */
-    if ((*v_h)[2] == (r_real_t)1)
-    {
-        (*v)[0] = (*v_h)[0];
-        (*v)[1] = (*v_h)[1];
-    }
-    else
-    {
-        (*v)[0] = (*v_h)[0] / (*v_h)[2];
-        (*v)[1] = (*v_h)[1] / (*v_h)[2];
-    }
-}
+typedef r_real_t r_transform2d_t[3][3];
+
+extern void r_transform2d_init(r_transform2d_t *transform);
+extern void r_transform2d_copy(r_transform2d_t *to, const r_transform2d_t *from);
+
+/* Transformation operations */
+extern void r_transform2d_translate(r_transform2d_t *transform, r_real_t x, r_real_t y);
+extern void r_transform2d_scale(r_transform2d_t *transform, r_real_t sx, r_real_t sy);
+extern void r_transform2d_rotate(r_transform2d_t *transform, r_real_t degrees);
+
+/* Apply the transformation */
+extern R_INLINE void r_transform2d_transform(const r_transform2d_t *a, const r_vector2d_t *v, r_vector2d_t *av);
+
+#endif
 

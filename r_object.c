@@ -92,7 +92,7 @@ static r_status_t r_object_field_write_internal(r_state_t *rs, r_object_t *objec
 
     if (field->write != NULL)
     {
-        /* Simple type (just use the provided offset) */
+        /* Custom write function */
         status = (field->script_type == lua_type(ls, value_index)) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
 
         if (R_SUCCEEDED(status))
@@ -102,8 +102,7 @@ static r_status_t r_object_field_write_internal(r_state_t *rs, r_object_t *objec
     }
     else if (field->offset >= 0)
     {
-
-        /* Custom write function */
+        /* Simple type (just use the provided offset) */
         switch (field->script_type)
         {
         case LUA_TBOOLEAN:

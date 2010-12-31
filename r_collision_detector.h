@@ -1,3 +1,6 @@
+#ifndef __R_COLLISION_DETECTOR_H
+#define __R_COLLISION_DETECTOR_H
+
 /*
 Copyright 2010 Jared Krinke.
 
@@ -20,20 +23,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include "r_vector.h"
+#include "r_object.h"
+#include "r_object_list.h"
 
-void r_vector2d_from_homogeneous(const r_vector2d_homogeneous_t *v_h, r_vector2d_t *v)
+typedef r_object_list_t r_collision_object_list_t;
+
+typedef struct
 {
-    /* TODO: This unnecessary branch here is probably bad for performance */
-    if ((*v_h)[2] == (r_real_t)1)
-    {
-        (*v)[0] = (*v_h)[0];
-        (*v)[1] = (*v_h)[1];
-    }
-    else
-    {
-        (*v)[0] = (*v_h)[0] / (*v_h)[2];
-        (*v)[1] = (*v_h)[1] / (*v_h)[2];
-    }
-}
+    r_object_t                  object;
+    r_collision_object_list_t   children;
+} r_collision_detector_t;
+
+extern r_status_t r_collision_detector_setup(r_state_t *rs);
+
+#endif
 

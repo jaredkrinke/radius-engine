@@ -44,7 +44,7 @@ r_status_t r_state_init(r_state_t *rs, const char *argv0)
         rs->video_full_featured = R_FALSE;
         rs->min_texture_size = 0;
         rs->max_texture_size = 0;
-        rs->pixels_to_coordinates = NULL;
+        r_transform2d_init(&rs->pixels_to_coordinates);
 
         rs->audio = NULL;
         rs->audio_volume = 0;

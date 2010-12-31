@@ -26,6 +26,7 @@ THE SOFTWARE.
 #include <lua.h>
 
 #include "r_element_list.h"
+#include "r_entity_list.h"
 
 typedef struct
 {
@@ -33,8 +34,11 @@ typedef struct
 
     r_object_ref_t      elements;
     r_object_ref_t      update;
-    /* TODO: Need to ensure that there are no cycles in an entity graph! */
-    r_object_ref_t      children;
+    r_object_ref_t      mesh;
+    r_object_ref_t      parent;
+
+    /* TODO: Should I ensure that there are no cycles in an entity graph? */
+    r_entity_list_t     children;
 
     r_real_t            x;
     r_real_t            y;
@@ -48,6 +52,9 @@ typedef struct
 extern r_status_t r_entity_setup(r_state_t *rs);
 
 extern r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int difference_ms);
+
+extern r_status_t r_entity_get_local_transform(r_state_t *rs, const r_entity_t *entity, r_transform2d_t *transform);
+extern r_status_t r_entity_get_absolute_transform(r_state_t *rs, const r_entity_t *entity, r_transform2d_t *transform);
 
 #endif
 

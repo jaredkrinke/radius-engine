@@ -39,6 +39,13 @@ extern r_status_t r_zlist_init(r_state_t *rs, r_object_t *object, r_object_type_
 extern r_status_t r_zlist_process_arguments(r_state_t *rs, r_object_t *object, int argument_count);
 extern r_status_t r_zlist_cleanup(r_state_t *rs, r_object_t *object, r_object_type_t list_type);
 
+/* Functions for manipulating an internal/hidden ZList */
+extern int l_ZList_add_internal(lua_State *ls, r_object_type_t parent_type, int zlist_offset);
+extern int l_ZList_forEach_internal(lua_State *ls, r_object_type_t parent_type, int zlist_offset);
+extern int l_ZList_remove_internal(lua_State *ls, r_object_type_t parent_type, int zlist_offset, r_object_type_t item_type);
+extern int l_ZList_clear_internal(lua_State *ls, r_object_type_t parent_type, int zlist_offset);
+
+/* Functions for directly manipulating ZList objects */
 extern int l_ZList_add(lua_State *ls, r_object_type_t list_type);
 extern int l_ZList_forEach(lua_State *ls, r_object_type_t list_type);
 extern int l_ZList_remove(lua_State *ls, r_object_type_t list_type, r_object_type_t item_type);

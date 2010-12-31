@@ -1,3 +1,6 @@
+#ifndef __R_MESH_H
+#define __R_MESH_H
+
 /*
 Copyright 2010 Jared Krinke.
 
@@ -20,20 +23,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include "r_vector.h"
+#include "r_object.h"
+#include "r_list.h"
 
-void r_vector2d_from_homogeneous(const r_vector2d_homogeneous_t *v_h, r_vector2d_t *v)
+typedef r_real_t r_triangle_t[3][2];
+typedef r_list_t r_triangle_list_t;
+
+typedef struct
 {
-    /* TODO: This unnecessary branch here is probably bad for performance */
-    if ((*v_h)[2] == (r_real_t)1)
-    {
-        (*v)[0] = (*v_h)[0];
-        (*v)[1] = (*v_h)[1];
-    }
-    else
-    {
-        (*v)[0] = (*v_h)[0] / (*v_h)[2];
-        (*v)[1] = (*v_h)[1] / (*v_h)[2];
-    }
-}
+    r_object_t          object;
+    r_triangle_list_t   triangles;
+} r_mesh_t;
+
+extern r_status_t r_mesh_setup(r_state_t *rs);
+
+#endif
 

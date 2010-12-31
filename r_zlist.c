@@ -56,6 +56,26 @@ static R_INLINE r_status_t r_zlist_sort_insert(r_state_t *rs, r_object_list_t *o
 }
 
 /* TODO: Check all script functions to ensure errors are reported somehow! */
+int l_ZList_add_internal(lua_State *ls, r_object_type_t parent_type, int zlist_offset)
+{
+    return l_ObjectList_add_internal(ls, parent_type, zlist_offset, r_zlist_sort_insert);
+}
+
+int l_ZList_forEach_internal(lua_State *ls, r_object_type_t parent_type, int zlist_offset)
+{
+    return l_ObjectList_forEach_internal(ls, parent_type, zlist_offset);
+}
+
+int l_ZList_remove_internal(lua_State *ls, r_object_type_t parent_type, int zlist_offset, r_object_type_t item_type)
+{
+    return l_ObjectList_remove_internal(ls, parent_type, zlist_offset, item_type);
+}
+
+int l_ZList_clear_internal(lua_State *ls, r_object_type_t parent_type, int zlist_offset)
+{
+    return l_ObjectList_clear_internal(ls, parent_type, zlist_offset);
+}
+
 int l_ZList_add(lua_State *ls, r_object_type_t list_type)
 {
     return l_ObjectList_add(ls, list_type, r_zlist_sort_insert);

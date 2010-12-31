@@ -32,14 +32,15 @@ THE SOFTWARE.
 #include "r_color.h"
 #include "r_element.h"
 #include "r_element_list.h"
+#include "r_mesh.h"
 #include "r_entity.h"
-#include "r_entity_list.h"
 #include "r_layer.h"
 #include "r_layer_stack.h"
 #include "r_string.h"
 #include "r_file.h"
 #include "r_video.h"
 #include "r_event.h"
+#include "r_collision_detector.h"
 
 #define R_SCRIPT_DUMP_MAX_INDENT            4
 #define R_SCRIPT_DUMP_INDENT_SIZE           2
@@ -938,12 +939,12 @@ r_status_t r_script_setup(r_state_t *rs)
 
         if (R_SUCCEEDED(status))
         {
-            status = r_entity_setup(rs);
+            status = r_mesh_setup(rs);
         }
 
         if (R_SUCCEEDED(status))
         {
-            status = r_entity_list_setup(rs);
+            status = r_entity_setup(rs);
         }
 
         if (R_SUCCEEDED(status))
@@ -964,6 +965,11 @@ r_status_t r_script_setup(r_state_t *rs)
         if (R_SUCCEEDED(status))
         {
             status = r_event_setup(rs);
+        }
+
+        if (R_SUCCEEDED(status))
+        {
+            status = r_collision_detector_setup(rs);
         }
 
         /* TODO: Registered functions should probably be unregistered... */

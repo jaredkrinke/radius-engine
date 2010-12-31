@@ -33,7 +33,6 @@ THE SOFTWARE.
 #include "r_log.h"
 #include "r_video.h"
 #include "r_log.h"
-#include "r_matrix.h"
 #include "r_script.h"
 #include "r_layer.h"
 #include "r_color.h"
@@ -129,9 +128,9 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
             rs->min_texture_size = 8;
 
             /* Set up pixel-to-coordinate transformation */
-            r_affine_transform2d_stack_clear(rs->pixels_to_coordinates);
-            r_affine_transform2d_stack_translate(rs->pixels_to_coordinates, (r_real_t)(-rs->video_width) / 2, (r_real_t)(-rs->video_height) / 2);
-            r_affine_transform2d_stack_scale(rs->pixels_to_coordinates, (r_real_t)(R_VIDEO_HEIGHT / rs->video_height), (r_real_t)(-R_VIDEO_HEIGHT / rs->video_height));
+            r_transform2d_init(&rs->pixels_to_coordinates);
+            r_transform2d_translate(&rs->pixels_to_coordinates, (r_real_t)(-rs->video_width) / 2, (r_real_t)(-rs->video_height) / 2);
+            r_transform2d_scale(&rs->pixels_to_coordinates, (r_real_t)(R_VIDEO_HEIGHT / rs->video_height), (r_real_t)(-R_VIDEO_HEIGHT / rs->video_height));
 
             /* Initialize OpenGL */
             /* TODO: determine which OpenGL setup commands are actually needed */
@@ -197,21 +196,9 @@ r_status_t r_video_start(r_state_t *rs, const char *application_name, const char
 
             if (R_SUCCEEDED(status))
             {
-                /* Create a transformation stack for mouse coordinates */
-                rs->pixels_to_coordinates = r_affine_transform2d_stack_new();
-                status = (rs->pixels_to_coordinates != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
-
-                if (R_SUCCEEDED(status))
-                {
-                    /* Set up image cache */
-                    rs->default_font_path = default_font_path;
-                    status = r_image_cache_start(rs);
-
-                    if (R_FAILED(status))
-                    {
-                        r_affine_transform2d_stack_free(rs->pixels_to_coordinates);
-                    }
-                }
+                /* Set up image cache */
+                rs->default_font_path = default_font_path;
+                status = r_image_cache_start(rs);
             }
             else
             {
@@ -235,7 +222,6 @@ void r_video_end(r_state_t *rs)
     if (R_SUCCEEDED(status))
     {
         r_image_cache_stop(rs);
-        r_affine_transform2d_stack_free(rs->pixels_to_coordinates);
         SDL_WM_GrabInput(SDL_GRAB_OFF);
         SDL_Quit();
     }
@@ -758,8 +744,8 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
         {
             glPushMatrix();
             glTranslatef(element->x, element->y, 0);
-            glScalef(element->width, element->height, 0);
             glRotatef(element->angle, 0, 0, 1);
+            glScalef(element->width, element->height, 0);
 
             switch (element->element_type)
             {
@@ -890,8 +876,8 @@ static r_status_t r_video_draw_entity(r_state_t *rs, r_entity_t *entity)
             {
                 glPushMatrix();
                 glTranslatef(entity->x, entity->y, 0);
-                glScalef(entity->width, entity->height, 0);
                 glRotatef(entity->angle, 0, 0, 1);
+                glScalef(entity->width, entity->height, 0);
 
                 /* TODO: Call glGetError at appropriate places everywhere */
                 status = (glGetError() == 0) ? R_SUCCESS : R_VIDEO_FAILURE;
@@ -909,11 +895,9 @@ static r_status_t r_video_draw_entity(r_state_t *rs, r_entity_t *entity)
                     /* Draw children, if necessary */
                     if (R_SUCCEEDED(status))
                     {
-                        if (entity->children.value.object != NULL)
+                        if (entity->children.object_list.count > 0)
                         {
-                            r_entity_list_t *children = (r_entity_list_t*)entity->children.value.object;
-
-                            status = r_video_draw_entity_list(rs, children);
+                            status = r_video_draw_entity_list(rs, &entity->children);
                         }
                     }
                 }
@@ -989,12 +973,9 @@ r_status_t r_video_draw(r_state_t *rs)
             {
                 if (layer != NULL)
                 {
-                    r_object_ref_t *entities_ref = &layer->entities;
-                    r_entity_list_t *entities = (r_entity_list_t*)entities_ref->value.object;
-
-                    if (entities != NULL)
+                    if (layer->entities.object_list.count > 0)
                     {
-                        r_video_draw_entity_list(rs, entities);
+                        r_video_draw_entity_list(rs, &layer->entities);
                     }
                 }
             }

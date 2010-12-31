@@ -29,7 +29,6 @@ THE SOFTWARE.
 #include "r_event_keys.h"
 #include "r_script.h"
 #include "r_vector.h"
-#include "r_matrix.h"
 #include "r_layer.h"
 #include "r_layer_stack.h"
 #include "r_audio.h"
@@ -99,11 +98,9 @@ static r_status_t r_event_pixels_to_coordinates(r_state_t *rs, int x, int y, r_v
 
         if (R_SUCCEEDED(status))
         {
-            const r_vector2d_homogeneous_t v = { (r_real_t)x, (r_real_t)y, 1 };
-            r_vector2d_homogeneous_t v_prime_h;
+            const r_vector2d_t v = { (r_real_t)x, (r_real_t)y };
 
-            r_affine_transform2d_transform(rs->pixels_to_coordinates, &v, &v_prime_h);
-            r_vector2d_from_homogeneous(&v_prime_h, v_prime);
+            r_transform2d_transform(&rs->pixels_to_coordinates, &v, v_prime);
         }
         else
         {

@@ -3,6 +3,8 @@
 * configure.in: Incremented version
 * r_defs.h: Incremented version
 
+* r_event.c: Fixed bad merge
+
 2010-12-30 deraj@users.sourceforge.net
 
 * r_collision_detector.h: Initial collision detection interface

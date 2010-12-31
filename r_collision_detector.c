@@ -32,9 +32,6 @@ THE SOFTWARE.
 
 /* Two-dimensional triangle-triangle collision detection, adapted from http://www.acm.org/jgt/papers/GuigueDevillers03/ (2003) */
 
-/* "Signed area" of a triangle (> 0 implies counterclockwise ordering, < 0 implies clockwise, 0 implies collinear */
-#define R_TRIANGLE_SIGNED_AREA(p, q, r)    (((p)[0] - (r)[0]) * ((q)[1] - (r)[1]) - ((p)[1] - (r)[1]) * ((q)[0] - (r)[0]))
-
 static R_INLINE r_boolean_t r_triangle_test_point(const r_vector2d_t *p1, const r_vector2d_t *q1, const r_vector2d_t *r1, const r_vector2d_t *p2, const r_vector2d_t *q2, const r_vector2d_t *r2)
 {
     r_boolean_t intersect = R_FALSE;
@@ -229,6 +226,7 @@ static r_status_t r_collision_detection_intersect_entities(r_state_t *rs, const 
                 r_transform2d_transform(transform2, &(*lt2)[1], &t2[1]);
                 r_transform2d_transform(transform2, &(*lt2)[2], &t2[2]);
 
+                /* Note: Mesh triangles have points ordered counterclockwise (enforced by r_mesh_t) */
                 intersect = (intersect || r_triangle_intersect_ccw(&t1, &t2));
             }
         }
@@ -238,26 +236,6 @@ static r_status_t r_collision_detection_intersect_entities(r_state_t *rs, const 
 
     return R_SUCCESS;
 }
-
-/* TODO: Move this to when triangles are added to a mesh */
-//gboolean tri_overlap(RGTriangle* t1, RGTriangle* t2) {
-//    if (R_TRIANGLE_SIGNED_AREA((&t1->points[0]),(&t1->points[1]),(&t1->points[2])) < 0) {
-//        if (R_TRIANGLE_SIGNED_AREA((&t2->points[0]),(&t2->points[1]),(&t2->points[2])) < 0) {
-//            return ccw_tri_tri_intersection_2d((&t1->points[0]),(&t1->points[2]),(&t1->points[1]),(&t2->points[0]),(&t2->points[2]),(&t2->points[1]));
-//        }
-//        else {
-//            return ccw_tri_tri_intersection_2d((&t1->points[0]),(&t1->points[2]),(&t1->points[1]),(&t2->points[0]),(&t2->points[1]),(&t2->points[2]));
-//        }
-//    }
-//    else {
-//        if (R_TRIANGLE_SIGNED_AREA((&t2->points[0]),(&t2->points[1]),(&t2->points[2])) < 0) {
-//            return ccw_tri_tri_intersection_2d((&t1->points[0]),(&t1->points[1]),(&t1->points[2]),(&t2->points[0]),(&t2->points[2]),(&t2->points[1]));
-//        }
-//        else {
-//            return ccw_tri_tri_intersection_2d((&t1->points[0]),(&t1->points[1]),(&t1->points[2]),(&t2->points[0]),(&t2->points[1]),(&t2->points[2]));
-//        }
-//    }
-//}
 
 r_object_ref_t r_collision_detector_ref_for_each_collision = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_collision_detector_ref_add_child = { R_OBJECT_REF_INVALID, { NULL } };

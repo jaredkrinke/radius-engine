@@ -5,6 +5,10 @@
 
 * r_event.c: Fixed bad merge
 
+* r_mesh.c: Enforce CCW ordering on mesh triangles
+* r_collision_detector.h: Moved R_TRIANGLE_SIGNED_AREA to here
+* r_collision_detector.c: Mesh triangles are guaranteed to be CCW
+
 2010-12-30 deraj@users.sourceforge.net
 
 * r_collision_detector.h: Initial collision detection interface

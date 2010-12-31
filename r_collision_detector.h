@@ -26,6 +26,9 @@ THE SOFTWARE.
 #include "r_object.h"
 #include "r_object_list.h"
 
+/* "Signed area" of a triangle (> 0 implies counterclockwise ordering, < 0 implies clockwise, 0 implies collinear */
+#define R_TRIANGLE_SIGNED_AREA(p, q, r)    (((p)[0] - (r)[0]) * ((q)[1] - (r)[1]) - ((p)[1] - (r)[1]) * ((q)[0] - (r)[0]))
+
 typedef r_object_list_t r_collision_object_list_t;
 
 typedef struct

@@ -27,6 +27,7 @@ THE SOFTWARE.
 #include "r_script.h"
 #include "r_object_ref.h"
 #include "r_mesh.h"
+#include "r_collision_detector.h"
 
 /* Triangle list implementation */
 static void r_triangle_null(r_state_t *rs, void *item)
@@ -57,6 +58,22 @@ static r_status_t r_triangle_list_add(r_state_t *rs, r_triangle_list_t *list, r_
     return r_list_add(rs, (r_list_t*)list, (void*)triangle, &r_triangle_list_def);
 }
 
+static void r_triangle_convert_to_ccw(const r_triangle_t *from, r_triangle_t *to) {
+    if (R_TRIANGLE_SIGNED_AREA((*from)[0], (*from)[1], (*from)[2]) < 0)
+    {
+        (*to)[0][0] = (*from)[2][0];
+        (*to)[0][1] = (*from)[2][1];
+        (*to)[1][0] = (*from)[1][0];
+        (*to)[1][1] = (*from)[1][1];
+        (*to)[2][0] = (*from)[0][0];
+        (*to)[2][1] = (*from)[0][1];
+    }
+    else
+    {
+        memcpy(to, from, sizeof(r_triangle_t));
+    }
+}
+
 /* Mesh implementation */
 r_object_ref_t r_mesh_ref_add_triangle      = { R_OBJECT_REF_INVALID, { NULL } };
 /* TODO: r_object_ref_t r_mesh_ref_for_each_triangle = { R_OBJECT_REF_INVALID, { NULL } }; */
@@ -77,7 +94,6 @@ static r_status_t r_mesh_init(r_state_t *rs, r_object_t *object)
 
 /* TODO: Support specifying vertices in the constructor? */
 r_object_header_t r_mesh_header = { R_OBJECT_TYPE_MESH, sizeof(r_mesh_t), R_TRUE, r_mesh_fields, r_mesh_init, NULL, NULL};
-
 
 static int l_Mesh_new(lua_State *ls)
 {
@@ -108,8 +124,12 @@ static int l_Mesh_addTriangle(lua_State *ls)
                                   (r_real_t)lua_tonumber(ls, 5),
                                   (r_real_t)lua_tonumber(ls, 6),
                                   (r_real_t)lua_tonumber(ls, 7) };
+        r_triangle_t triangle_ccw;
 
-        status = r_triangle_list_add(rs, &mesh->triangles, &triangle);
+        /* Enforce counterclockwise ordering on triangle points */
+        r_triangle_convert_to_ccw(&triangle, &triangle_ccw);
+
+        status = r_triangle_list_add(rs, &mesh->triangles, &triangle_ccw);
     }
 
     lua_pop(ls, lua_gettop(ls));

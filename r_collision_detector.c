@@ -195,7 +195,7 @@ static r_boolean_t r_triangle_intersect_ccw(const r_triangle_t *t1, const r_tria
     return intersect;
 }
 
-static r_status_t r_collision_detection_intersect_entities(r_state_t *rs, const r_entity_t *e1, r_transform2d_t *transform1, const r_entity_t *e2, r_transform2d_t *transform2, r_boolean_t *intersect_out)
+static r_status_t r_collision_detection_intersect_entities(r_state_t *rs, const r_entity_t *e1, const r_transform2d_t *transform1, const r_entity_t *e2, const r_transform2d_t *transform2, r_boolean_t *intersect_out)
 {
     /* Check for intersections between all triangles */
     const r_mesh_t *m1 = (r_mesh_t*)e1->mesh.value.object;
@@ -289,7 +289,7 @@ static int l_CollisionDetector_forEachCollision(lua_State *ls)
         {
             r_entity_t *e1 = (r_entity_t*)collision_detector->children.items[i].value.object;
             unsigned int j;
-            r_transform2d_t transform1;
+            const r_transform2d_t *transform1 = NULL;
 
             status = r_entity_get_absolute_transform(rs, e1, &transform1);
 
@@ -298,7 +298,7 @@ static int l_CollisionDetector_forEachCollision(lua_State *ls)
                 for (j = i + 1; j < collision_detector->children.count && R_SUCCEEDED(status); ++j)
                 {
                     r_entity_t *e2 = (r_entity_t*)collision_detector->children.items[j].value.object;
-                    r_transform2d_t transform2;
+                    const r_transform2d_t *transform2 = NULL;
 
                     status = r_entity_get_absolute_transform(rs, e2, &transform2);
 
@@ -306,7 +306,7 @@ static int l_CollisionDetector_forEachCollision(lua_State *ls)
                     {
                         r_boolean_t intersect = R_FALSE;
 
-                        status = r_collision_detection_intersect_entities(rs, e1, &transform1, e2, &transform2, &intersect);
+                        status = r_collision_detection_intersect_entities(rs, e1, transform1, e2, transform2, &intersect);
 
                         if (R_SUCCEEDED(status) && intersect)
                         {

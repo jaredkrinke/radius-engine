@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -337,7 +337,7 @@ r_status_t r_string_buffer_process_arguments(r_state_t *rs, r_object_t *object, 
     return status;
 }
 
-static r_status_t r_string_buffer_field_text_read(r_state_t *rs, r_object_t *object, void *value)
+static r_status_t r_string_buffer_field_text_read(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -361,7 +361,7 @@ static r_status_t r_string_buffer_field_text_read(r_state_t *rs, r_object_t *obj
     return status;
 }
 
-static r_status_t r_string_buffer_field_length_read(r_state_t *rs, r_object_t *object, void *value)
+static r_status_t r_string_buffer_field_length_read(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));

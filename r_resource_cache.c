@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -277,7 +277,7 @@ r_status_t r_resource_cache_retrieve(r_state_t *rs, r_resource_cache_t *resource
     return status;
 }
 
-r_status_t r_object_field_resource_read(r_state_t *rs, r_resource_cache_t *resource_cache, r_object_t *object, void *value)
+r_status_t r_object_field_resource_read(r_state_t *rs, r_resource_cache_t *resource_cache, r_object_t *object, const r_object_field_t *field, void *value)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL && value != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
 
@@ -315,7 +315,7 @@ r_status_t r_object_field_resource_read(r_state_t *rs, r_resource_cache_t *resou
     return status;
 }
 
-r_status_t r_object_field_resource_write(r_state_t *rs, r_resource_cache_t *resource_cache, r_object_t *object, void *value, int index)
+r_status_t r_object_field_resource_write(r_state_t *rs, r_resource_cache_t *resource_cache, r_object_t *object, const r_object_field_t *field, void *value, int index)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL && value != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
 

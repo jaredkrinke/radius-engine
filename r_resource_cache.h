@@ -2,7 +2,7 @@
 #define _R_RESOURCE_CACHE_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -53,8 +53,8 @@ extern r_status_t r_resource_cache_stop(r_state_t *rs, r_resource_cache_t *resou
 extern r_status_t r_resource_cache_process(r_state_t *rs, r_resource_cache_t *resource_cache, r_resource_cache_process_function_t process);
 extern r_status_t r_resource_cache_retrieve(r_state_t *rs, r_resource_cache_t *resource_cache, const char* resource_path, r_boolean_t persistent, r_object_t *parent, r_object_ref_t *object_ref, r_object_t *object);
 
-extern r_status_t r_object_field_resource_read(r_state_t *rs, r_resource_cache_t *resource_cache, r_object_t *object, void *value);
-extern r_status_t r_object_field_resource_write(r_state_t *rs, r_resource_cache_t *resource_cache, r_object_t *object, void *value, int index);
+extern r_status_t r_object_field_resource_read(r_state_t *rs, r_resource_cache_t *resource_cache, r_object_t *object, const r_object_field_t *field, void *value);
+extern r_status_t r_object_field_resource_write(r_state_t *rs, r_resource_cache_t *resource_cache, r_object_t *object, const r_object_field_t *field, void *value, int index);
 
 #endif
 

@@ -2,7 +2,7 @@
 #define __R_OBJECT_REF_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -55,7 +55,7 @@ extern r_status_t r_object_table_ref_write(r_state_t *rs, r_object_t *object, r_
 
 extern r_status_t r_object_field_object_init_new(r_state_t *rs, r_object_t *object, void *value, r_object_type_t field_type, r_object_ref_t *object_new_ref);
 
-extern r_status_t r_object_ref_field_read_global(r_state_t *rs, r_object_t *object, void *value);
+extern r_status_t r_object_ref_field_read_global(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value);
 
 #endif
 

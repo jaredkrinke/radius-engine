@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -114,7 +114,7 @@ r_status_t r_element_list_setup(r_state_t *rs)
     return status;
 }
 
-r_status_t r_element_list_field_init(r_state_t *rs, r_object_t *object, void *value)
+r_status_t r_element_list_field_init(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value)
 {
     return r_object_field_object_init_new(rs, object, value, R_OBJECT_TYPE_ELEMENT_LIST, &r_element_list_ref_new);
 }

@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,6 @@ void r_object_ref_init(r_object_ref_t *object_ref)
 
 r_status_t r_object_ref_push(r_state_t *rs, r_object_t *object, const r_object_ref_t *object_ref)
 {
-    /* Get the string reference */
     r_status_t status = (rs != NULL && rs->script_state != NULL && object_ref != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
 
@@ -252,7 +251,7 @@ r_status_t r_object_field_object_init_new(r_state_t *rs, r_object_t *object, voi
     return status;
 }
 
-r_status_t r_object_ref_field_read_global(r_state_t *rs, r_object_t *object, void *value)
+r_status_t r_object_ref_field_read_global(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value)
 {
     return r_object_ref_push(rs, NULL, (r_object_ref_t*)value);
 }

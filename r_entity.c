@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,35 @@ THE SOFTWARE.
 #include "r_script.h"
 #include "r_entity_list.h"
 
+static void r_entity_increment_version(r_entity_t *entity)
+{
+    entity->version = entity->version + 1;
+
+    /* Update children as well */
+    if (entity->children.object_list.count > 0)
+    {
+        unsigned int i;
+
+        for (i = 0; i < entity->children.object_list.count; ++i)
+        {
+            r_entity_increment_version((r_entity_t*)entity->children.object_list.items[i].value.object);
+        }
+    }
+}
+
+static r_status_t r_enitity_transform_field_write(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value, int value_index)
+{
+    /* Write the field normally, but update the transform version */
+    r_status_t status = r_object_field_write_default(rs, object, field, value, value_index);
+
+    if (R_SUCCEEDED(status))
+    {
+        r_entity_increment_version((r_entity_t*)object);
+    }
+
+    return status;
+}
+
 r_object_ref_t r_entity_ref_add_child           = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_entity_ref_remove_child        = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_entity_ref_for_each_child      = { R_OBJECT_REF_INVALID, { NULL } };
@@ -36,12 +65,12 @@ r_object_ref_t r_entity_ref_convert_to_local    = { R_OBJECT_REF_INVALID, { NULL
 r_object_ref_t r_entity_ref_convert_to_absolute = { R_OBJECT_REF_INVALID, { NULL } };
 
 r_object_field_t r_entity_fields[] = {
-    { "x",                 LUA_TNUMBER,   0,                          offsetof(r_entity_t, x),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, NULL },
-    { "y",                 LUA_TNUMBER,   0,                          offsetof(r_entity_t, y),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, NULL },
-    { "z",                 LUA_TNUMBER,   0,                          offsetof(r_entity_t, z),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, NULL },
-    { "width",             LUA_TNUMBER,   0,                          offsetof(r_entity_t, width),    R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, NULL },
-    { "height",            LUA_TNUMBER,   0,                          offsetof(r_entity_t, height),   R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, NULL },
-    { "angle",             LUA_TNUMBER,   0,                          offsetof(r_entity_t, angle),    R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, NULL },
+    { "x",                 LUA_TNUMBER,   0,                          offsetof(r_entity_t, x),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, &r_enitity_transform_field_write },
+    { "y",                 LUA_TNUMBER,   0,                          offsetof(r_entity_t, y),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, &r_enitity_transform_field_write },
+    { "z",                 LUA_TNUMBER,   0,                          offsetof(r_entity_t, z),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, &r_enitity_transform_field_write },
+    { "width",             LUA_TNUMBER,   0,                          offsetof(r_entity_t, width),    R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, &r_enitity_transform_field_write },
+    { "height",            LUA_TNUMBER,   0,                          offsetof(r_entity_t, height),   R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, &r_enitity_transform_field_write },
+    { "angle",             LUA_TNUMBER,   0,                          offsetof(r_entity_t, angle),    R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, &r_enitity_transform_field_write },
     { "color",             LUA_TUSERDATA, R_OBJECT_TYPE_COLOR,        offsetof(r_entity_t, color),    R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, NULL },
     { "elements",          LUA_TUSERDATA, R_OBJECT_TYPE_ELEMENT_LIST, offsetof(r_entity_t, elements), R_TRUE,  R_OBJECT_INIT_OPTIONAL, r_element_list_field_init, NULL, NULL, NULL },
     { "update",            LUA_TFUNCTION, 0,                          offsetof(r_entity_t, update),   R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, NULL },
@@ -68,6 +97,13 @@ static r_status_t r_entity_init(r_state_t *rs, r_object_t *object)
 
     status = r_entity_list_init(rs, &entity->children);
 
+    r_transform2d_init(&entity->absolute_to_local);
+    entity->absolute_to_local_version = 0;
+    r_transform2d_init(&entity->local_to_absolute);
+    entity->local_to_absolute_version = 0;
+
+    entity->version      = 1;
+
     entity->x            = 0;
     entity->y            = 0;
     entity->z            = 0;
@@ -90,27 +126,27 @@ static r_status_t r_entity_cleanup(r_state_t *rs, r_object_t *object)
 
 r_object_header_t r_entity_header = { R_OBJECT_TYPE_ENTITY, sizeof(r_entity_t), R_TRUE, r_entity_fields, r_entity_init, NULL, NULL};
 
-static r_status_t r_entity_transform_to_local(r_state_t *rs, const r_entity_t *entity, const r_vector2d_t *av, r_vector2d_t *lv)
+static r_status_t r_entity_transform_to_local(r_state_t *rs, r_entity_t *entity, const r_vector2d_t *av, r_vector2d_t *lv)
 {
-    r_transform2d_t transform;
+    const r_transform2d_t *transform;
     r_status_t status = r_entity_get_local_transform(rs, entity, &transform);
 
     if (R_SUCCEEDED(status))
     {
-        r_transform2d_transform(&transform, av, lv);
+        r_transform2d_transform(transform, av, lv);
     }
 
     return status;
 }
 
-static r_status_t r_entity_transform_to_absolute(r_state_t *rs, const r_entity_t *entity, const r_vector2d_t *lv, r_vector2d_t *av)
+static r_status_t r_entity_transform_to_absolute(r_state_t *rs, r_entity_t *entity, const r_vector2d_t *lv, r_vector2d_t *av)
 {
-    r_transform2d_t transform;
+    const r_transform2d_t *transform;
     r_status_t status = r_entity_get_absolute_transform(rs, entity, &transform);
 
     if (R_SUCCEEDED(status))
     {
-        r_transform2d_transform(&transform, lv, av);
+        r_transform2d_transform(transform, lv, av);
     }
 
     return status;
@@ -369,67 +405,107 @@ r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int diffe
     return status;
 }
 
-r_status_t r_entity_get_local_transform(r_state_t *rs, const r_entity_t *entity, r_transform2d_t *transform)
+r_status_t r_entity_get_local_transform(r_state_t *rs, r_entity_t *entity, const r_transform2d_t **transform)
 {
-    r_entity_t *parent = (r_entity_t*)entity->parent.value.object;
     r_status_t status = R_SUCCESS;
 
-    /* Get parent's coordinate transformation */
-    if (parent != NULL)
+    if (entity->version == entity->absolute_to_local_version)
     {
-        status = r_entity_get_local_transform(rs, parent, transform);
+        /* Transform is up to date, so just return it */
+        *transform = &entity->absolute_to_local;
     }
     else
     {
-        r_transform2d_init(transform);
-    }
+        /* Transform must be recomputed due to changes in positoin/scale/rotation */
+        r_entity_t *parent = (r_entity_t*)entity->parent.value.object;
 
-    /* Convert to local coordinate transformation */
-    if (R_SUCCEEDED(status))
-    {
-        if (entity->x != 0 || entity->y != 0)
+        /* Copy parent transform or identity */
+        if (parent != NULL)
         {
-            r_transform2d_translate(transform, -entity->x, -entity->y);
+            const r_transform2d_t *parent_transform = NULL;
+
+            status = r_entity_get_local_transform(rs, parent, &parent_transform);
+
+            if (R_SUCCEEDED(status))
+            {
+                r_transform2d_copy(&entity->absolute_to_local, parent_transform);
+            }
+        }
+        else
+        {
+            /* Use the identity transform since there is no parent */
+            r_transform2d_init(&entity->absolute_to_local);
         }
 
-        if (entity->angle != 0)
+        /* Convert to local coordinate transformation */
+        if (R_SUCCEEDED(status))
         {
-            r_transform2d_rotate(transform, -entity->angle);
-        }
+            if (entity->x != 0 || entity->y != 0)
+            {
+                r_transform2d_translate(&entity->absolute_to_local, -entity->x, -entity->y);
+            }
 
-        if (entity->width != 1 || entity->height != 1)
-        {
-            r_transform2d_scale(transform, ((r_real_t)1) / entity->width, ((r_real_t)1) / entity->height);
+            if (entity->angle != 0)
+            {
+                r_transform2d_rotate(&entity->absolute_to_local, -entity->angle);
+            }
+
+            if (entity->width != 1 || entity->height != 1)
+            {
+                r_transform2d_scale(&entity->absolute_to_local, ((r_real_t)1) / entity->width, ((r_real_t)1) / entity->height);
+            }
+
+            /* Record current version and return transform */
+            entity->absolute_to_local_version = entity->version;
+            *transform = &entity->absolute_to_local;
         }
     }
 
     return status;
 }
 
-r_status_t r_entity_get_absolute_transform(r_state_t *rs, const r_entity_t *entity, r_transform2d_t *transform)
+r_status_t r_entity_get_absolute_transform(r_state_t *rs, r_entity_t *entity, const r_transform2d_t **transform)
 {
-    r_transform2d_init(transform);
+    r_status_t status = R_SUCCESS;
 
-    /* Convert from local coordinate transformation */
-    do
+    if (entity->version == entity->local_to_absolute_version)
     {
-        if (entity->width != 1 || entity->height != 1)
+        /* Transform is up to date, so just return it */
+        *transform = &entity->local_to_absolute;
+    }
+    else
+    {
+        /* Transform must be recomputed due to changes in positoin/scale/rotation */
+        /* TODO: Make this more efficient! Can any of the parent's transform be reused? */
+        r_entity_t *e = entity;
+
+        r_transform2d_init(&entity->local_to_absolute);
+
+        /* Convert from local coordinate transformation */
+        do
         {
-            r_transform2d_scale(transform, entity->width, entity->height);
-        }
+            if (e->width != 1 || e->height != 1)
+            {
+                r_transform2d_scale(&entity->local_to_absolute, e->width, e->height);
+            }
 
-        if (entity->angle != 0)
-        {
-            r_transform2d_rotate(transform, entity->angle);
-        }
+            if (e->angle != 0)
+            {
+                r_transform2d_rotate(&entity->local_to_absolute, e->angle);
+            }
 
-        if (entity->x != 0 || entity->y != 0)
-        {
-            r_transform2d_translate(transform, entity->x, entity->y);
-        }
+            if (e->x != 0 || e->y != 0)
+            {
+                r_transform2d_translate(&entity->local_to_absolute, e->x, e->y);
+            }
 
-        entity = (r_entity_t*)entity->parent.value.object;
-    } while (entity != NULL);
+            e = (r_entity_t*)e->parent.value.object;
+        } while (e != NULL);
 
-    return R_SUCCESS;
+        /* Record current version and return transform */
+        entity->local_to_absolute_version = entity->version;
+        *transform = &entity->local_to_absolute;
+    }
+
+    return status;
 }

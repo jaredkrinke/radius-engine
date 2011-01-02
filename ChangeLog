@@ -1,3 +1,21 @@
+2011-01-02 deraj@users.sourceforge.net
+
+* r_object.h: Field init/read/write now receive a pointer to the field
+* r_object.c: Update field functions to receive pointer to the field
+* r_element.c: Updates for field functions prototype changes
+* r_element_list.c: Updates for field functions prototype changes
+* r_element_list.h: Updates for field functions prototype changes
+* r_image_cache.c: Updates for field functions prototype changes
+* r_image_cache.h: Updates for field functions prototype changes
+* r_object_ref.c: Updates for field functions prototype changes
+* r_object_ref.h: Updates for field functions prototype changes
+* r_resource_cache.c: Updates for field functions prototype changes
+* r_resource_cache.h: Updates for field functions prototype changes
+* r_string_buffer.c: Updates for field functions prototype changes
+
+* r_object.h: Added r_object_field_write_default for default write
+* r_object.c (r_object_field_write_default): Implemented
+
 2010-12-31 deraj@users.sourceforge.net
 
 * configure.in: Incremented version

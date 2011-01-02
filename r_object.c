@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -46,11 +46,11 @@ static r_status_t r_object_field_read_internal(r_state_t *rs, r_object_t *object
         if (field->read_value_override != NULL)
         {
             /* Value parameter is globally overridden */
-            status = field->read(rs, object, field->read_value_override);
+            status = field->read(rs, object, field, field->read_value_override);
         }
         else
         {
-            status = field->read(rs, object, value);
+            status = field->read(rs, object, field, value);
         }
     }
     else if (field->offset >= 0)
@@ -97,51 +97,12 @@ static r_status_t r_object_field_write_internal(r_state_t *rs, r_object_t *objec
 
         if (R_SUCCEEDED(status))
         {
-            status = field->write(rs, object, value, value_index);
+            status = field->write(rs, object, field, value, value_index);
         }
     }
     else if (field->offset >= 0)
     {
-        /* Simple type (just use the provided offset) */
-        switch (field->script_type)
-        {
-        case LUA_TBOOLEAN:
-            status = (lua_type(ls, value_index) == LUA_TBOOLEAN) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
-
-            if (R_SUCCEEDED(status))
-            {
-                *((int*)value) = lua_toboolean(ls, value_index) ? R_TRUE : R_FALSE;
-            }
-            break;
-
-        case LUA_TNUMBER:
-            status = (lua_type(ls, value_index) == LUA_TNUMBER) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
-
-            if (R_SUCCEEDED(status))
-            {
-                *((r_real_t*)value) = (r_real_t)lua_tonumber(ls, value_index);
-            }
-            break;
-
-        case LUA_TSTRING:
-            /* TODO: Support writing numbers to string fields (just format the number as a string) */
-            status = r_object_string_ref_write(rs, object, (r_object_ref_t*)value, value_index);
-            break;
-
-        case LUA_TFUNCTION:
-            status = r_object_function_ref_write(rs, object, (r_object_ref_t*)value, value_index);
-            break;
-
-        case LUA_TUSERDATA:
-            status = r_object_ref_write(rs, object, (r_object_ref_t*)value, field->object_ref_type, value_index);
-            break;
-
-        default:
-            /* Invalid field type */
-            R_ASSERT(0);
-            status = R_F_INVALID_ARGUMENT;
-            break;
-        }
+        status = r_object_field_write_default(rs, object, field, value, value_index);
     }
 
     return status;
@@ -423,7 +384,7 @@ static r_status_t r_object_process_arguments(r_state_t *rs, r_object_t *object, 
                 {
                     void *value = (void*)(((r_byte_t*)object) + field->offset);
 
-                    status = field->init(rs, object, value);
+                    status = field->init(rs, object, field, value);
                 }
             }
         }
@@ -457,6 +418,56 @@ static r_status_t r_object_setup_environment(r_state_t *rs, r_object_t *object, 
 
         /* Set environment table */
         lua_setfenv(ls, object_index);
+    }
+
+    return status;
+}
+
+r_status_t r_object_field_write_default(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value, int value_index)
+{
+    /* Write to the field, but first verify the type */
+    lua_State *ls = rs->script_state;
+    r_status_t status = R_SUCCESS;
+
+    /* Simple type (just use the provided offset) */
+    switch (field->script_type)
+    {
+    case LUA_TBOOLEAN:
+        status = (lua_type(ls, value_index) == LUA_TBOOLEAN) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
+
+        if (R_SUCCEEDED(status))
+        {
+            *((int*)value) = lua_toboolean(ls, value_index) ? R_TRUE : R_FALSE;
+        }
+        break;
+
+    case LUA_TNUMBER:
+        status = (lua_type(ls, value_index) == LUA_TNUMBER) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
+
+        if (R_SUCCEEDED(status))
+        {
+            *((r_real_t*)value) = (r_real_t)lua_tonumber(ls, value_index);
+        }
+        break;
+
+    case LUA_TSTRING:
+        /* TODO: Support writing numbers to string fields (just format the number as a string) */
+        status = r_object_string_ref_write(rs, object, (r_object_ref_t*)value, value_index);
+        break;
+
+    case LUA_TFUNCTION:
+        status = r_object_function_ref_write(rs, object, (r_object_ref_t*)value, value_index);
+        break;
+
+    case LUA_TUSERDATA:
+        status = r_object_ref_write(rs, object, (r_object_ref_t*)value, field->object_ref_type, value_index);
+        break;
+
+    default:
+        /* Invalid field type */
+        R_ASSERT(0);
+        status = R_F_INVALID_ARGUMENT;
+        break;
     }
 
     return status;

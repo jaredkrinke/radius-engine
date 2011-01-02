@@ -2,7 +2,7 @@
 #define _R_IMAGE_CACHE_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -73,10 +73,10 @@ extern r_status_t r_image_cache_stop(r_state_t *rs);
 extern r_status_t r_image_cache_reload(r_state_t *rs);
 
 /* Read an object field representing an image (i.e. convert from image ID to the image's path) */
-extern r_status_t r_object_field_image_read(r_state_t *rs, r_object_t *object, void *value);
+extern r_status_t r_object_field_image_read(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value);
 
 /* Write a object field representing an image (i.e. convert from an image path to an ID) */
-extern r_status_t r_object_field_image_write(r_state_t *rs, r_object_t *object, void *value, int index);
+extern r_status_t r_object_field_image_write(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value, int index);
 
 #endif
 

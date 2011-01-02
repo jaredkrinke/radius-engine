@@ -2,7 +2,7 @@
 #define __R_ENTITY_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@ THE SOFTWARE.
 
 #include "r_element_list.h"
 #include "r_entity_list.h"
+#include "r_transform2d.h"
 
 typedef struct
 {
@@ -39,6 +40,15 @@ typedef struct
 
     /* TODO: Should I ensure that there are no cycles in an entity graph? */
     r_entity_list_t     children;
+
+    /* Transformations between local and absolute coordinates--these are cached and only updated when necessary */
+    r_transform2d_t     absolute_to_local;
+    unsigned int        absolute_to_local_version;
+    r_transform2d_t     local_to_absolute;
+    unsigned int        local_to_absolute_version;
+
+    /* The "version" indicates when the entity's position, scale, or rotation (i.e. transformation) have changed */
+    unsigned int        version;
 
     r_real_t            x;
     r_real_t            y;
@@ -53,8 +63,8 @@ extern r_status_t r_entity_setup(r_state_t *rs);
 
 extern r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int difference_ms);
 
-extern r_status_t r_entity_get_local_transform(r_state_t *rs, const r_entity_t *entity, r_transform2d_t *transform);
-extern r_status_t r_entity_get_absolute_transform(r_state_t *rs, const r_entity_t *entity, r_transform2d_t *transform);
+extern r_status_t r_entity_get_local_transform(r_state_t *rs, r_entity_t *entity, const r_transform2d_t **transform);
+extern r_status_t r_entity_get_absolute_transform(r_state_t *rs, r_entity_t *entity, const r_transform2d_t **transform);
 
 #endif
 

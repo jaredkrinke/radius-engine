@@ -2,7 +2,7 @@
 #define __R_OBJECT_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -57,12 +57,13 @@ typedef enum
 } r_object_init_type_t;
 
 struct _r_object;
+struct _r_object_field;
 
-typedef r_status_t (*r_object_field_init_function_t)(r_state_t *rs, struct _r_object *object, void *value);
-typedef r_status_t (*r_object_field_read_function_t)(r_state_t *rs, struct _r_object *object, void *value);
-typedef r_status_t (*r_object_field_write_function_t)(r_state_t *rs, struct _r_object *object, void *value, int value_index);
+typedef r_status_t (*r_object_field_init_function_t)(r_state_t *rs, struct _r_object *object, const struct _r_object_field *field, void *value);
+typedef r_status_t (*r_object_field_read_function_t)(r_state_t *rs, struct _r_object *object, const struct _r_object_field *field, void *value);
+typedef r_status_t (*r_object_field_write_function_t)(r_state_t *rs, struct _r_object *object, const struct _r_object_field *field, void *value, int value_index);
 
-typedef struct
+typedef struct _r_object_field
 {
     const char                          *name;
     int                                 script_type;
@@ -96,6 +97,8 @@ typedef struct _r_object
     const r_object_header_t *header;
     unsigned int            id;
 } r_object_t;
+
+extern r_status_t r_object_field_write_default(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value, int value_index);
 
 extern r_status_t r_object_push(r_state_t *rs, r_object_t *object);
 

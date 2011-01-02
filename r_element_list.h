@@ -2,7 +2,7 @@
 #define __R_ELEMENT_LIST_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@ typedef r_zlist_t r_element_list_t;
 
 extern r_status_t r_element_list_setup(r_state_t *rs);
 
-extern r_status_t r_element_list_field_init(r_state_t *rs, r_object_t *object, void *value);
+extern r_status_t r_element_list_field_init(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value);
 
 #endif
 

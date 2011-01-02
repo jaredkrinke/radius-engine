@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ const char *r_element_type_names[R_ELEMENT_TYPE_MAX] = {
 
 r_object_enum_t r_element_type_enum = { { R_OBJECT_REF_INVALID, { NULL } }, R_ELEMENT_TYPE_MAX, r_element_type_names };
 
-static r_status_t r_element_type_field_read(r_state_t *rs, r_object_t *object, void *value)
+static r_status_t r_element_type_field_read(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value)
 {
     return r_object_enum_field_read(rs, value, &r_element_type_enum);
 }
@@ -133,12 +133,12 @@ const char *r_element_text_alignment_names[] = {
 
 r_object_enum_t r_element_text_alignment_enum = { { R_OBJECT_REF_INVALID, { NULL } }, R_ELEMENT_TEXT_ALIGNMENT_MAX, r_element_text_alignment_names };
 
-r_status_t r_element_text_alignment_field_read(r_state_t *rs, r_object_t *object, void *value)
+r_status_t r_element_text_alignment_field_read(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value)
 {
     return r_object_enum_field_read(rs, value, &r_element_text_alignment_enum);
 }
 
-r_status_t r_element_text_alignment_field_write(r_state_t *rs, r_object_t *object, void *value, int value_index)
+r_status_t r_element_text_alignment_field_write(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value, int value_index)
 {
     return r_object_enum_field_write(rs, value, value_index, &r_element_text_alignment_enum);
 }

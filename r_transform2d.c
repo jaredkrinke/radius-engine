@@ -138,18 +138,19 @@ void r_transform2d_rotate(r_transform2d_t *transform, r_real_t degrees)
 void r_transform2d_invert(r_transform2d_t *to, const r_transform2d_t *from)
 {
     r_real_t z = r_transform2d_determinant(from);
+    r_real_t factor = ((r_real_t)1) / z;
 
-    (*to)[0][0] = z * ((*from)[1][1] * (*from)[2][2] - (*from)[1][2] * (*from)[2][1]);
-    (*to)[0][1] = z * ((*from)[0][2] * (*from)[2][1] - (*from)[0][1] * (*from)[2][2]);
-    (*to)[0][2] = z * ((*from)[0][1] * (*from)[1][2] - (*from)[0][2] * (*from)[1][1]);
+    (*to)[0][0] = factor * ((*from)[1][1] * (*from)[2][2] - (*from)[1][2] * (*from)[2][1]);
+    (*to)[0][1] = factor * ((*from)[0][2] * (*from)[2][1] - (*from)[0][1] * (*from)[2][2]);
+    (*to)[0][2] = factor * ((*from)[0][1] * (*from)[1][2] - (*from)[0][2] * (*from)[1][1]);
 
-    (*to)[1][0] = z * ((*from)[1][2] * (*from)[2][0] - (*from)[1][0] * (*from)[2][2]);
-    (*to)[1][1] = z * ((*from)[0][0] * (*from)[2][2] - (*from)[0][2] * (*from)[2][0]);
-    (*to)[1][2] = z * ((*from)[0][2] * (*from)[1][0] - (*from)[0][0] * (*from)[1][2]);
+    (*to)[1][0] = factor * ((*from)[1][2] * (*from)[2][0] - (*from)[1][0] * (*from)[2][2]);
+    (*to)[1][1] = factor * ((*from)[0][0] * (*from)[2][2] - (*from)[0][2] * (*from)[2][0]);
+    (*to)[1][2] = factor * ((*from)[0][2] * (*from)[1][0] - (*from)[0][0] * (*from)[1][2]);
 
-    (*to)[2][0] = z * ((*from)[1][0] * (*from)[2][1] - (*from)[1][1] * (*from)[2][0]);
-    (*to)[2][1] = z * ((*from)[0][1] * (*from)[2][0] - (*from)[0][0] * (*from)[2][1]);
-    (*to)[2][2] = z * ((*from)[0][0] * (*from)[1][1] - (*from)[0][1] * (*from)[1][0]);
+    (*to)[2][0] = factor * ((*from)[1][0] * (*from)[2][1] - (*from)[1][1] * (*from)[2][0]);
+    (*to)[2][1] = factor * ((*from)[0][1] * (*from)[2][0] - (*from)[0][0] * (*from)[2][1]);
+    (*to)[2][2] = factor * ((*from)[0][0] * (*from)[1][1] - (*from)[0][1] * (*from)[1][0]);
 }
 
 void r_transform2d_transform(const r_transform2d_t *a, const r_vector2d_t *v, r_vector2d_t *av)

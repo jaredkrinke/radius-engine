@@ -1,3 +1,10 @@
+2011-01-03 deraj@users.sourceforge.net
+
+* r_transform2d.h: Expose r_transform2d_invert
+* r_transform2d.c: Implementation of inverse and determinant
+
+* r_entity.c: Compute absolute transform by inverting local
+
 2011-01-02 deraj@users.sourceforge.net
 
 * r_object.h: Field init/read/write now receive a pointer to the field

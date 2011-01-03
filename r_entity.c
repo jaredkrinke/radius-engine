@@ -476,35 +476,19 @@ r_status_t r_entity_get_absolute_transform(r_state_t *rs, r_entity_t *entity, co
     else
     {
         /* Transform must be recomputed due to changes in positoin/scale/rotation */
-        /* TODO: Make this more efficient! Can any of the parent's transform be reused? */
-        r_entity_t *e = entity;
+        /* Calculate using inverse of absolute_to_local */
+        const r_transform2d_t *absolute_to_local;
 
-        r_transform2d_init(&entity->local_to_absolute);
+        status = r_entity_get_local_transform(rs, entity, &absolute_to_local);
 
-        /* Convert from local coordinate transformation */
-        do
+        if (R_SUCCEEDED(status))
         {
-            if (e->width != 1 || e->height != 1)
-            {
-                r_transform2d_scale(&entity->local_to_absolute, e->width, e->height);
-            }
+            r_transform2d_invert(&entity->local_to_absolute, absolute_to_local);
 
-            if (e->angle != 0)
-            {
-                r_transform2d_rotate(&entity->local_to_absolute, e->angle);
-            }
-
-            if (e->x != 0 || e->y != 0)
-            {
-                r_transform2d_translate(&entity->local_to_absolute, e->x, e->y);
-            }
-
-            e = (r_entity_t*)e->parent.value.object;
-        } while (e != NULL);
-
-        /* Record current version and return transform */
-        entity->local_to_absolute_version = entity->version;
-        *transform = &entity->local_to_absolute;
+            /* Record current version and return transform */
+            entity->local_to_absolute_version = entity->version;
+            *transform = &entity->local_to_absolute;
+        }
     }
 
     return status;

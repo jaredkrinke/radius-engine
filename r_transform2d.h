@@ -35,6 +35,9 @@ extern void r_transform2d_translate(r_transform2d_t *transform, r_real_t x, r_re
 extern void r_transform2d_scale(r_transform2d_t *transform, r_real_t sx, r_real_t sy);
 extern void r_transform2d_rotate(r_transform2d_t *transform, r_real_t degrees);
 
+/* General operations */
+extern void r_transform2d_invert(r_transform2d_t *to, const r_transform2d_t *from);
+
 /* Apply the transformation */
 extern R_INLINE void r_transform2d_transform(const r_transform2d_t *a, const r_vector2d_t *v, r_vector2d_t *av);
 

@@ -58,6 +58,13 @@ static R_INLINE void r_transform2d_multiply(const r_transform2d_t *a, const r_tr
     }
 }
 
+static R_INLINE r_real_t r_transform2d_determinant(const r_transform2d_t *a)
+{
+    return (*a)[0][0] * ((*a)[1][1] * (*a)[2][2] - (*a)[1][2] * (*a)[2][1])
+           + (*a)[0][1] * ((*a)[1][2] * (*a)[2][0] - (*a)[2][2] * (*a)[1][0])
+           + (*a)[0][2] * ((*a)[1][0] * (*a)[2][1] - (*a)[1][1] * (*a)[2][0]);
+}
+
 static R_INLINE void r_transform2d_transform_homogeneous(const r_transform2d_t *a, const r_vector2d_homogeneous_t *vh, r_vector2d_homogeneous_t *avh)
 {
     int i;
@@ -126,6 +133,23 @@ void r_transform2d_rotate(r_transform2d_t *transform, r_real_t degrees)
 
     memcpy(&a, transform, sizeof(r_transform2d_t));
     r_transform2d_multiply(&a, &b, transform);
+}
+
+void r_transform2d_invert(r_transform2d_t *to, const r_transform2d_t *from)
+{
+    r_real_t z = r_transform2d_determinant(from);
+
+    (*to)[0][0] = z * ((*from)[1][1] * (*from)[2][2] - (*from)[1][2] * (*from)[2][1]);
+    (*to)[0][1] = z * ((*from)[0][2] * (*from)[2][1] - (*from)[0][1] * (*from)[2][2]);
+    (*to)[0][2] = z * ((*from)[0][1] * (*from)[1][2] - (*from)[0][2] * (*from)[1][1]);
+
+    (*to)[1][0] = z * ((*from)[1][2] * (*from)[2][0] - (*from)[1][0] * (*from)[2][2]);
+    (*to)[1][1] = z * ((*from)[0][0] * (*from)[2][2] - (*from)[0][2] * (*from)[2][0]);
+    (*to)[1][2] = z * ((*from)[0][2] * (*from)[1][0] - (*from)[0][0] * (*from)[1][2]);
+
+    (*to)[2][0] = z * ((*from)[1][0] * (*from)[2][1] - (*from)[1][1] * (*from)[2][0]);
+    (*to)[2][1] = z * ((*from)[0][1] * (*from)[2][0] - (*from)[0][0] * (*from)[2][1]);
+    (*to)[2][2] = z * ((*from)[0][0] * (*from)[1][1] - (*from)[0][1] * (*from)[1][0]);
 }
 
 void r_transform2d_transform(const r_transform2d_t *a, const r_vector2d_t *v, r_vector2d_t *av)

@@ -916,10 +916,10 @@ static r_status_t r_video_draw_entity(r_state_t *rs, r_entity_t *entity)
 
                             if (R_SUCCEEDED(status))
                             {
-                                glColor4f(0.25f, 1.0f, 0.25f, 0.4f);
+                                glColor4f(0.25f, 1.0f, 0.25f, 0.25f);
                                 glDisable(GL_TEXTURE_2D);
 
-                                /* Use "absolute" coordinates */
+                                /* Use "absolute" coordinates to draw mesh triangles */
                                 glPushMatrix();
                                 glLoadIdentity();
                                 glTranslatef(0, 0, (GLfloat)(-R_VIDEO_HEIGHT / (2 * R_TAN_PI_OVER_8)));
@@ -940,6 +940,26 @@ static r_status_t r_video_draw_entity(r_state_t *rs, r_entity_t *entity)
                                     glVertex3f(b[0], b[1], 0.0f);
                                     glVertex3f(c[0], c[1], 0.0f);
                                     glEnd();
+                                }
+
+                                /* Draw bounding rectangle */
+                                {
+                                    const r_vector2d_t *min = NULL;
+                                    const r_vector2d_t *max = NULL;
+
+                                    status = r_entity_get_bounds(rs, entity, &min, &max);
+
+                                    if (R_SUCCEEDED(status))
+                                    {
+                                        glColor4f(0.25f, 0.25f, 1.0f, 0.4f);
+
+                                        glBegin(GL_POLYGON);
+                                        glVertex3f((*min)[0], (*max)[1], 0.0f);
+                                        glVertex3f((*min)[0], (*min)[1], 0.0f);
+                                        glVertex3f((*max)[0], (*min)[1], 0.0f);
+                                        glVertex3f((*max)[0], (*max)[1], 0.0f);
+                                        glEnd();
+                                    }
                                 }
 
                                 glPopMatrix();

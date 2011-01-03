@@ -47,6 +47,11 @@ typedef struct
     r_transform2d_t     local_to_absolute;
     unsigned int        local_to_absolute_version;
 
+    /* Bounding rectangle */
+    r_vector2d_t        bound_min;
+    r_vector2d_t        bound_max;
+    unsigned int        bounds_version;
+
     /* The "version" indicates when the entity's position, scale, or rotation (i.e. transformation) have changed */
     unsigned int        version;
 
@@ -65,6 +70,7 @@ extern r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned in
 
 extern r_status_t r_entity_get_local_transform(r_state_t *rs, r_entity_t *entity, const r_transform2d_t **transform);
 extern r_status_t r_entity_get_absolute_transform(r_state_t *rs, r_entity_t *entity, const r_transform2d_t **transform);
+extern r_status_t r_entity_get_bounds(r_state_t *rs, r_entity_t *entity, const r_vector2d_t **min, const r_vector2d_t **max);
 
 #endif
 

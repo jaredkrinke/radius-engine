@@ -5,6 +5,13 @@
 
 * r_entity.c: Compute absolute transform by inverting local
 
+* r_collision_detector.c (r_collision_detection_intersect_entities): Use
+    bounding rectangle to skip triangle intersection tests
+* r_entity.h: Added bounding rectangle to r_entity_t
+* r_entity.c: Compute bounding rectangle on demand
+
+* r_video.c: Debug collisions by drawing bounding rectangles as well
+
 2011-01-02 deraj@users.sourceforge.net
 
 * r_object.h: Field init/read/write now receive a pointer to the field

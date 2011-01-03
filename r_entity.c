@@ -27,6 +27,7 @@ THE SOFTWARE.
 #include "r_entity.h"
 #include "r_script.h"
 #include "r_entity_list.h"
+#include "r_mesh.h"
 
 static void r_entity_increment_version(r_entity_t *entity)
 {
@@ -97,10 +98,10 @@ static r_status_t r_entity_init(r_state_t *rs, r_object_t *object)
 
     status = r_entity_list_init(rs, &entity->children);
 
-    r_transform2d_init(&entity->absolute_to_local);
     entity->absolute_to_local_version = 0;
-    r_transform2d_init(&entity->local_to_absolute);
     entity->local_to_absolute_version = 0;
+
+    entity->bounds_version = 0;
 
     entity->version      = 1;
 
@@ -489,6 +490,71 @@ r_status_t r_entity_get_absolute_transform(r_state_t *rs, r_entity_t *entity, co
             entity->local_to_absolute_version = entity->version;
             *transform = &entity->local_to_absolute;
         }
+    }
+
+    return status;
+}
+
+r_status_t r_entity_get_bounds(r_state_t *rs, r_entity_t *entity, const r_vector2d_t **min, const r_vector2d_t **max)
+{
+    r_status_t status = R_SUCCESS;
+
+    if (entity->version != entity->bounds_version)
+    {
+        /* Recompute */
+        const r_transform2d_t *local_to_absolute = NULL;
+
+        status = r_entity_get_absolute_transform(rs, entity, &local_to_absolute);
+
+        if (R_SUCCEEDED(status))
+        {
+            r_mesh_t *mesh = (r_mesh_t*)entity->mesh.value.object;
+            unsigned int i;
+
+            R_ASSERT(mesh != NULL);
+            R_ASSERT(mesh->triangles.count > 0);
+
+            /* Find min/max bounds (in absolute coordinates) */
+            for (i = 0; i < mesh->triangles.count; ++i)
+            {
+                const r_triangle_t *triangle = (r_triangle_t*)&mesh->triangles.items[i];
+                int j;
+
+                for (j = 0; j < 3; ++j)
+                {
+                    r_vector2d_t p;
+
+                    r_transform2d_transform(local_to_absolute, &(*triangle)[j], &p);
+
+                    if (i == 0 && j == 0)
+                    {
+                        entity->bound_min[0] = p[0];
+                        entity->bound_min[1] = p[1];
+
+                        entity->bound_max[0] = p[0];
+                        entity->bound_max[1] = p[1];
+                    }
+                    else
+                    {
+                        entity->bound_min[0] = R_MIN(entity->bound_min[0], p[0]);
+                        entity->bound_min[1] = R_MIN(entity->bound_min[1], p[1]);
+
+                        entity->bound_max[0] = R_MAX(entity->bound_max[0], p[0]);
+                        entity->bound_max[1] = R_MAX(entity->bound_max[1], p[1]);
+                    }
+                }
+            }
+
+            /* Update version */
+            entity->bounds_version = entity->version;
+        }
+    }
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Return bounds */
+        *min = &entity->bound_min;
+        *max = &entity->bound_max;
     }
 
     return status;

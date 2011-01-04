@@ -13,6 +13,8 @@ libradius_engine_a_SOURCES = \
                              r_audio_decoder.c \
                              r_collision_detector.c \
                              r_collision_detector.h \
+                             r_collision_tree.c \
+                             r_collision_tree.h \
                              r_color.c \
                              r_color.h \
                              r_defs.h \

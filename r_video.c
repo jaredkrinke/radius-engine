@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -43,6 +43,7 @@ THE SOFTWARE.
 #include "r_layer_stack.h"
 #include "r_string_buffer.h"
 #include "r_mesh.h"
+#include "r_collision_detector.h"
 
 /* Height of the entire view (i.e. the max y coordinate is R_VIDEO_HEIGHT / 2 since the origin is in the center) */
 #define R_VIDEO_HEIGHT            (480.0)
@@ -901,72 +902,6 @@ static r_status_t r_video_draw_entity(r_state_t *rs, r_entity_t *entity)
                             status = r_video_draw_entity_list(rs, &entity->children);
                         }
                     }
-
-                    /* TODO: This shouldn't be on by default */
-                    /* Draw meshes */
-                    if (R_SUCCEEDED(status))
-                    {
-                        r_mesh_t *mesh = (r_mesh_t*)entity->mesh.value.object;
-
-                        if (mesh != NULL)
-                        {
-                            const r_transform2d_t *transform;
-
-                            status = r_entity_get_absolute_transform(rs, entity, &transform);
-
-                            if (R_SUCCEEDED(status))
-                            {
-                                glColor4f(0.25f, 1.0f, 0.25f, 0.25f);
-                                glDisable(GL_TEXTURE_2D);
-
-                                /* Use "absolute" coordinates to draw mesh triangles */
-                                glPushMatrix();
-                                glLoadIdentity();
-                                glTranslatef(0, 0, (GLfloat)(-R_VIDEO_HEIGHT / (2 * R_TAN_PI_OVER_8)));
-
-                                for (i = 0; i < mesh->triangles.count && R_SUCCEEDED(status); ++i)
-                                {
-                                    r_triangle_t *triangle = (r_triangle_t*)&mesh->triangles.items[i];
-                                    r_vector2d_t a;
-                                    r_vector2d_t b;
-                                    r_vector2d_t c;
-
-                                    r_transform2d_transform(transform, &(*triangle)[0], &a);
-                                    r_transform2d_transform(transform, &(*triangle)[1], &b);
-                                    r_transform2d_transform(transform, &(*triangle)[2], &c);
-
-                                    glBegin(GL_POLYGON);
-                                    glVertex3f(a[0], a[1], 0.0f);
-                                    glVertex3f(b[0], b[1], 0.0f);
-                                    glVertex3f(c[0], c[1], 0.0f);
-                                    glEnd();
-                                }
-
-                                /* Draw bounding rectangle */
-                                {
-                                    const r_vector2d_t *min = NULL;
-                                    const r_vector2d_t *max = NULL;
-
-                                    status = r_entity_get_bounds(rs, entity, &min, &max);
-
-                                    if (R_SUCCEEDED(status))
-                                    {
-                                        glColor4f(0.25f, 0.25f, 1.0f, 0.4f);
-
-                                        glBegin(GL_POLYGON);
-                                        glVertex3f((*min)[0], (*max)[1], 0.0f);
-                                        glVertex3f((*min)[0], (*min)[1], 0.0f);
-                                        glVertex3f((*max)[0], (*min)[1], 0.0f);
-                                        glVertex3f((*max)[0], (*max)[1], 0.0f);
-                                        glEnd();
-                                    }
-                                }
-
-                                glPopMatrix();
-                                glEnable(GL_TEXTURE_2D);
-                            }
-                        }
-                    }
                 }
 
                 glPopMatrix();
@@ -1000,6 +935,137 @@ static r_status_t r_video_draw_entity_list(r_state_t *rs, r_entity_list_t *entit
 
             status = r_video_draw_entity(rs, entity);
         }
+    }
+
+    return status;
+}
+
+r_real_t r_collision_tree_colors[][3] = {
+    { 1, 0, 0 },
+    { 0, 1, 0 },
+    { 0, 0, 1 },
+    { 1, 1, 0 },
+    { 1, 0, 1 },
+    { 0, 1, 1 },
+    { 1, 0.5f, 0 },
+    { 1, 0, 0.5f },
+    { 0, 1, 0.5f },
+    { 0.5f, 1, 0 },
+    { 0.5f, 0, 1 },
+    { 0, 0.5f, 1 },
+    { 1, 1, 1 }
+};
+
+int r_collision_tree_color_index = 0;
+
+static r_status_t r_video_draw_collision_tree_node(r_state_t *rs, r_collision_tree_node_t *node)
+{
+    r_status_t status = R_SUCCESS;
+
+    if (node->children != NULL)
+    {
+        int i;
+
+        for (i = 0; i < R_COLLISION_TREE_CHILD_COUNT && R_SUCCEEDED(status); ++i)
+        {
+            status = r_video_draw_collision_tree_node(rs, &node->children[i]);
+        }
+    }
+    else
+    {
+        r_real_t *color = r_collision_tree_colors[r_collision_tree_color_index];
+        r_vector2d_t min = { R_MAX(-320, node->min[0]), R_MAX(-240, node->min[1]) };
+        r_vector2d_t max = { R_MIN(320, node->max[0]), R_MIN(240, node->max[1]) };
+
+        glColor4f(color[0], color[1], color[2], 0.2f);
+        glDisable(GL_TEXTURE_2D);
+        glBegin(GL_POLYGON);
+        glVertex3f(min[0], max[1], 0.0f);
+        glVertex3f(min[0], min[1], 0.0f);
+        glVertex3f(max[0], min[1], 0.0f);
+        glVertex3f(max[0], max[1], 0.0f);
+        glEnd();
+        glEnable(GL_TEXTURE_2D);
+
+        r_collision_tree_color_index = (r_collision_tree_color_index + 1) % R_ARRAY_SIZE(r_collision_tree_colors);
+    }
+
+    return status;
+}
+
+static r_status_t r_video_draw_collision_detector(r_state_t *rs, r_collision_detector_t *collision_detector)
+{
+    unsigned int i;
+    r_status_t status = R_SUCCESS;
+
+    /* Draw meshes for all children */
+    for (i = 0; i < collision_detector->children.count && R_SUCCEEDED(status); ++i)
+    {
+        r_entity_t *entity = (r_entity_t*)collision_detector->children.items[i].value.object;
+
+        r_mesh_t *mesh = (r_mesh_t*)entity->mesh.value.object;
+
+        if (mesh != NULL)
+        {
+            const r_transform2d_t *transform;
+
+            status = r_entity_get_absolute_transform(rs, entity, &transform);
+
+            if (R_SUCCEEDED(status))
+            {
+                unsigned int j;
+
+                glColor4f(0.25f, 1.0f, 0.25f, 0.25f);
+                glDisable(GL_TEXTURE_2D);
+
+                for (j = 0; j < mesh->triangles.count && R_SUCCEEDED(status); ++j)
+                {
+                    r_triangle_t *triangle = r_triangle_list_get_index(rs, &mesh->triangles, j);
+                    r_vector2d_t a;
+                    r_vector2d_t b;
+                    r_vector2d_t c;
+
+                    r_transform2d_transform(transform, &(*triangle)[0], &a);
+                    r_transform2d_transform(transform, &(*triangle)[1], &b);
+                    r_transform2d_transform(transform, &(*triangle)[2], &c);
+
+                    glBegin(GL_POLYGON);
+                    glVertex3f(a[0], a[1], 0.0f);
+                    glVertex3f(b[0], b[1], 0.0f);
+                    glVertex3f(c[0], c[1], 0.0f);
+                    glEnd();
+                }
+
+                /* Draw bounding rectangle */
+                {
+                    const r_vector2d_t *min = NULL;
+                    const r_vector2d_t *max = NULL;
+
+                    status = r_entity_get_bounds(rs, entity, &min, &max);
+
+                    if (R_SUCCEEDED(status))
+                    {
+                        glColor4f(0.25f, 0.25f, 1.0f, 0.4f);
+
+                        glBegin(GL_POLYGON);
+                        glVertex3f((*min)[0], (*max)[1], 0.0f);
+                        glVertex3f((*min)[0], (*min)[1], 0.0f);
+                        glVertex3f((*max)[0], (*min)[1], 0.0f);
+                        glVertex3f((*max)[0], (*max)[1], 0.0f);
+                        glEnd();
+                    }
+                }
+
+                glEnable(GL_TEXTURE_2D);
+            }
+        }
+    }
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Draw collision tree */
+        r_collision_tree_color_index = 0;
+        status = r_video_draw_collision_tree_node(rs, &collision_detector->tree.root);
     }
 
     return status;
@@ -1042,7 +1108,12 @@ r_status_t r_video_draw(r_state_t *rs)
                 {
                     if (layer->entities.object_list.count > 0)
                     {
-                        r_video_draw_entity_list(rs, &layer->entities);
+                        status = r_video_draw_entity_list(rs, &layer->entities);
+                    }
+
+                    if (layer->debug_collision_detector.value.object != NULL)
+                    {
+                        status = r_video_draw_collision_detector(rs, (r_collision_detector_t*)layer->debug_collision_detector.value.object);
                     }
                 }
             }

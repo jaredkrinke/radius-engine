@@ -517,7 +517,7 @@ r_status_t r_entity_get_bounds(r_state_t *rs, r_entity_t *entity, const r_vector
             /* Find min/max bounds (in absolute coordinates) */
             for (i = 0; i < mesh->triangles.count; ++i)
             {
-                const r_triangle_t *triangle = (r_triangle_t*)&mesh->triangles.items[i];
+                const r_triangle_t *triangle = r_triangle_list_get_index(rs, &mesh->triangles, i);
                 int j;
 
                 for (j = 0; j < 3; ++j)

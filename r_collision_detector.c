@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -195,111 +195,6 @@ static r_boolean_t r_triangle_intersect_ccw(const r_triangle_t *t1, const r_tria
     return intersect;
 }
 
-static r_status_t r_collision_detector_intersect_entities(r_state_t *rs, r_entity_t *e1, r_entity_t *e2, r_boolean_t *intersect_out)
-{
-    const r_mesh_t *m1 = (r_mesh_t*)e1->mesh.value.object;
-    const r_mesh_t *m2 = (r_mesh_t*)e2->mesh.value.object;
-    r_boolean_t intersect = R_FALSE;
-    r_status_t status = R_SUCCESS;
-
-    /* Check for meshes with triangles */
-    if (m1 != NULL && m1->triangles.count > 0 && m2 != NULL && m2->triangles.count > 0)
-    {
-        /* Get local-to-absolute transformations */
-        const r_transform2d_t *transform1 = NULL;
-
-        status = r_entity_get_absolute_transform(rs, e1, &transform1);
-
-        if (R_SUCCEEDED(status))
-        {
-            const r_transform2d_t *transform2 = NULL;
-
-            status = r_entity_get_absolute_transform(rs, e2, &transform2);
-
-            if (R_SUCCEEDED(status))
-            {
-                /* Check bounding rectangles for overlap */
-                r_boolean_t intersection_possible = R_FALSE;
-                const r_vector2d_t *min1 = NULL;
-                const r_vector2d_t *max1 = NULL;
-
-                status = r_entity_get_bounds(rs, e1, &min1, &max1);
-
-                if (R_SUCCEEDED(status))
-                {
-                    const r_vector2d_t *min2 = NULL;
-                    const r_vector2d_t *max2 = NULL;
-
-                    status = r_entity_get_bounds(rs, e2, &min2, &max2);
-
-                    if (R_SUCCEEDED(status))
-                    {
-                        int i;
-
-                        for (i = 0; i == 0 || (i == 1 && intersection_possible); ++i)
-                        {
-                            intersection_possible = R_FALSE;
-
-                            if ((*min1)[i] <= (*min2)[i])
-                            {
-                                if ((*min2)[i] <= (*max1)[i])
-                                {
-                                    intersection_possible = R_TRUE;
-                                }
-                            }
-                            else
-                            {
-                                if ((*min1)[i] <= (*max2)[i])
-                                {
-                                    intersection_possible = R_TRUE;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (intersection_possible)
-                {
-                    /* Check for intersections between all triangles */
-                    unsigned int i;
-
-                    for (i = 0; i < m1->triangles.count && !intersect; ++i)
-                    {
-                        /* TODO: Cache transformed mesh triangle coordinates somehow (at least in the caller, if not elsewhere) */
-                        const r_triangle_t *lt1 = (r_triangle_t*)&m1->triangles.items[i];
-                        r_triangle_t t1;
-                        unsigned int j;
-
-                        r_transform2d_transform(transform1, &(*lt1)[0], &t1[0]);
-                        r_transform2d_transform(transform1, &(*lt1)[1], &t1[1]);
-                        r_transform2d_transform(transform1, &(*lt1)[2], &t1[2]);
-
-                        for (j = 0; j < m2->triangles.count && !intersect; ++j)
-                        {
-                            const r_triangle_t *lt2 = (r_triangle_t*)&m2->triangles.items[j];
-                            r_triangle_t t2;
-
-                            r_transform2d_transform(transform2, &(*lt2)[0], &t2[0]);
-                            r_transform2d_transform(transform2, &(*lt2)[1], &t2[1]);
-                            r_transform2d_transform(transform2, &(*lt2)[2], &t2[2]);
-
-                            /* Note: Mesh triangles have points ordered counterclockwise (enforced by r_mesh_t) */
-                            intersect = (intersect || r_triangle_intersect_ccw(&t1, &t2));
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (R_SUCCEEDED(status))
-    {
-        *intersect_out = intersect;
-    }
-
-    return status;
-}
-
 r_object_ref_t r_collision_detector_ref_for_each_collision = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_collision_detector_ref_add_child = { R_OBJECT_REF_INVALID, { NULL } };
 /* TODO: forEach (child)? Clear? Remove? */
@@ -315,8 +210,15 @@ static r_status_t r_collision_detector_init(r_state_t *rs, r_object_t *object)
     r_collision_detector_t *collision_detector = (r_collision_detector_t*)object;
     r_status_t status = r_object_list_init(rs, (r_object_t*)&collision_detector->children, R_OBJECT_TYPE_MAX, R_OBJECT_TYPE_ENTITY);
 
+    if (R_SUCCEEDED(status))
+    {
+        status = r_collision_tree_init(rs, &collision_detector->tree);
+    }
+
     return status;
 }
+
+/* TODO: Cleanup function (tree needs to be cleaned up) */
 
 r_object_header_t r_collision_detector_header = { R_OBJECT_TYPE_COLLISION_DETECTOR, sizeof(r_collision_detector_t), R_TRUE, r_collision_detector_fields, r_collision_detector_init, NULL, NULL};
 
@@ -327,8 +229,95 @@ static int l_CollisionDetector_new(lua_State *ls)
 
 static int l_CollisionDetector_addChild(lua_State *ls)
 {
-    return l_ObjectList_add_internal(ls, R_OBJECT_TYPE_COLLISION_DETECTOR, offsetof(r_collision_detector_t, children), NULL);
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TUSERDATA, R_OBJECT_TYPE_COLLISION_DETECTOR },
+        { LUA_TUSERDATA, R_OBJECT_TYPE_ENTITY }
+    };
+
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+    int result_count = 0;
+
+    if (R_SUCCEEDED(status))
+    {
+        r_collision_detector_t *collision_detector = (r_collision_detector_t*)lua_touserdata(ls, 1);
+        r_entity_t *entity = (r_entity_t*)lua_touserdata(ls, 2);
+
+        result_count = l_ObjectList_add_internal(ls, R_OBJECT_TYPE_COLLISION_DETECTOR, offsetof(r_collision_detector_t, children), NULL);
+
+        if (result_count == 1)
+        {
+            /* Insert into the tree as well */
+            status = r_collision_tree_insert(rs, &collision_detector->tree, entity);
+        }
+    }
+
+    lua_pop(ls, lua_gettop(ls) - result_count);
+
+    return result_count;
 }
+
+typedef struct {
+    lua_State *ls;
+    r_collision_detector_t *collision_detector;
+    int function_index;
+} r_collision_detector_for_each_args_t;
+
+static r_status_t r_collision_detector_for_each_callback(r_state_t *rs, r_entity_t *e1, r_entity_t *e2, void *data)
+{
+    r_collision_detector_for_each_args_t *args = (r_collision_detector_for_each_args_t*)data;
+    lua_State *ls = args->ls;
+    r_status_t status = R_SUCCESS;
+
+    lua_pushvalue(ls, args->function_index);
+    status = r_object_push(rs, (r_object_t*)e1);
+
+    if (R_SUCCEEDED(status))
+    {
+        status = r_object_push(rs, (r_object_t*)e2);
+
+        if (R_SUCCEEDED(status))
+        {
+            status = r_script_call(rs, 2, 0);
+        }
+        else
+        {
+            lua_pop(ls, 1);
+        }
+    }
+    else
+    {
+        lua_pop(ls, 1);
+    }
+
+    return status;
+}
+
+/* TODO: Finish up collision tree implementation first */
+//static int l_CollisionDetector_forEachCollision(lua_State *ls)
+//{
+//    const r_script_argument_t expected_arguments[] = {
+//        { LUA_TUSERDATA, R_OBJECT_TYPE_COLLISION_DETECTOR },
+//        { LUA_TFUNCTION, 0 }
+//    };
+//
+//    r_state_t *rs = r_script_get_r_state(ls);
+//    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+//
+//    if (R_SUCCEEDED(status))
+//    {
+//        const int collision_detector_index = 1;
+//        const int function_index = 2;
+//        r_collision_detector_t *collision_detector = (r_collision_detector_t*)lua_touserdata(ls, collision_detector_index);
+//        r_collision_detector_for_each_args_t args = { ls, collision_detector, function_index };
+//
+//        status = r_collision_tree_for_each_collision(rs, &collision_detector->tree, r_collision_detector_for_each_callback, &args);
+//    }
+//
+//    lua_pop(ls, lua_gettop(ls));
+//
+//    return 0;
+//}
 
 static int l_CollisionDetector_forEachCollision(lua_State *ls)
 {
@@ -408,6 +397,112 @@ r_status_t r_collision_detector_setup(r_state_t *rs)
         };
 
         status = r_script_register_nodes(rs, roots);
+    }
+
+    return status;
+}
+
+
+r_status_t r_collision_detector_intersect_entities(r_state_t *rs, r_entity_t *e1, r_entity_t *e2, r_boolean_t *intersect_out)
+{
+    const r_mesh_t *m1 = (r_mesh_t*)e1->mesh.value.object;
+    const r_mesh_t *m2 = (r_mesh_t*)e2->mesh.value.object;
+    r_boolean_t intersect = R_FALSE;
+    r_status_t status = R_SUCCESS;
+
+    /* Check for meshes with triangles */
+    if (m1 != NULL && m1->triangles.count > 0 && m2 != NULL && m2->triangles.count > 0)
+    {
+        /* Get local-to-absolute transformations */
+        const r_transform2d_t *transform1 = NULL;
+
+        status = r_entity_get_absolute_transform(rs, e1, &transform1);
+
+        if (R_SUCCEEDED(status))
+        {
+            const r_transform2d_t *transform2 = NULL;
+
+            status = r_entity_get_absolute_transform(rs, e2, &transform2);
+
+            if (R_SUCCEEDED(status))
+            {
+                /* Check bounding rectangles for overlap */
+                r_boolean_t intersection_possible = R_FALSE;
+                const r_vector2d_t *min1 = NULL;
+                const r_vector2d_t *max1 = NULL;
+
+                status = r_entity_get_bounds(rs, e1, &min1, &max1);
+
+                if (R_SUCCEEDED(status))
+                {
+                    const r_vector2d_t *min2 = NULL;
+                    const r_vector2d_t *max2 = NULL;
+
+                    status = r_entity_get_bounds(rs, e2, &min2, &max2);
+
+                    if (R_SUCCEEDED(status))
+                    {
+                        int i;
+
+                        for (i = 0; i == 0 || (i == 1 && intersection_possible); ++i)
+                        {
+                            intersection_possible = R_FALSE;
+
+                            if ((*min1)[i] <= (*min2)[i])
+                            {
+                                if ((*min2)[i] <= (*max1)[i])
+                                {
+                                    intersection_possible = R_TRUE;
+                                }
+                            }
+                            else
+                            {
+                                if ((*min1)[i] <= (*max2)[i])
+                                {
+                                    intersection_possible = R_TRUE;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (intersection_possible)
+                {
+                    /* Check for intersections between all triangles */
+                    unsigned int i;
+
+                    for (i = 0; i < m1->triangles.count && !intersect; ++i)
+                    {
+                        /* TODO: Cache transformed mesh triangle coordinates somehow (at least in the caller, if not elsewhere) */
+                        const r_triangle_t *lt1 = (r_triangle_t*)r_triangle_list_get_index(rs, &m1->triangles, i);
+                        r_triangle_t t1;
+                        unsigned int j;
+
+                        r_transform2d_transform(transform1, &(*lt1)[0], &t1[0]);
+                        r_transform2d_transform(transform1, &(*lt1)[1], &t1[1]);
+                        r_transform2d_transform(transform1, &(*lt1)[2], &t1[2]);
+
+                        for (j = 0; j < m2->triangles.count && !intersect; ++j)
+                        {
+                            const r_triangle_t *lt2 = (r_triangle_t*)r_triangle_list_get_index(rs, &m2->triangles, j);
+                            r_triangle_t t2;
+
+                            r_transform2d_transform(transform2, &(*lt2)[0], &t2[0]);
+                            r_transform2d_transform(transform2, &(*lt2)[1], &t2[1]);
+                            r_transform2d_transform(transform2, &(*lt2)[2], &t2[2]);
+
+                            /* Note: Mesh triangles have points ordered counterclockwise (enforced by r_mesh_t) */
+                            intersect = (intersect || r_triangle_intersect_ccw(&t1, &t2));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (R_SUCCEEDED(status))
+    {
+        *intersect_out = intersect;
     }
 
     return status;

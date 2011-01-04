@@ -12,6 +12,27 @@
 
 * r_video.c: Debug collisions by drawing bounding rectangles as well
 
+* Makefile.am: Added r_collision_tree.c/h
+
+* r_collision_detector.c: Exposed r_collision_detector_intersect_entities
+
+* r_list.h: List should be const for r_list_get_index
+* r_list.c (r_list_get_index): List should be const
+
+* r_mesh.h: Expose r_triangle_list_get_index for iteration
+* r_mesh.c (r_triangle_list_get_index): Implementation
+* r_entity.c: Fix mesh triangle iteration
+
+* r_layer.h: Added member of graphically viewing collision detection
+* r_layer.c: Added (self-explanatory) debugCollisionDetector field to layer
+* r_video.c: Added facility for graphically viewing collision detection
+
+* r_collision_tree.h: Added space-divided collision detection tree
+* r_collision_tree.c: (Partial) Implementation of collision tree
+
+* r_collision_detector.h: Add collision tree
+* r_collision_detector.c: Use collision tree in for-each
+
 2011-01-02 deraj@users.sourceforge.net
 
 * r_object.h: Field init/read/write now receive a pointer to the field

@@ -108,7 +108,7 @@ r_status_t r_list_add(r_state_t *rs, r_list_t *list, void *item, const r_list_de
     return status;
 }
 
-void *r_list_get_index(r_state_t *rs, r_list_t *list, unsigned int index, const r_list_def_t *list_def)
+void *r_list_get_index(r_state_t *rs, const r_list_t *list, unsigned int index, const r_list_def_t *list_def)
 {
     /* Ensure the index is valid */
     r_status_t status = (index >= 0 && index < list->count) ? R_SUCCESS : R_F_INVALID_INDEX;

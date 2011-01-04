@@ -58,6 +58,7 @@ r_object_field_t r_layer_fields[] = {
     { "joystickAxisMoved",     LUA_TFUNCTION, 0,                         offsetof(r_layer_t, joystick_axis_moved),     R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
     { "errorOccurred",         LUA_TFUNCTION, 0,                         offsetof(r_layer_t, error_occurred),          R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
     { "propagateAudio",        LUA_TBOOLEAN,  0,                         offsetof(r_layer_t, propagate_audio),         R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "debugCollisionDetector", LUA_TUSERDATA, R_OBJECT_TYPE_COLLISION_DETECTOR, offsetof(r_layer_t, debug_collision_detector), R_TRUE, R_OBJECT_INIT_EXCLUDED, NULL,             NULL, NULL, NULL },
     { "addChild",              LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_add_child, NULL },
     { "removeChild",           LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_remove_child, NULL },
     { "forEachChild",          LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_for_each_child, NULL },
@@ -85,6 +86,7 @@ static r_status_t r_layer_init(r_state_t *rs, r_object_t *object)
     r_object_ref_init(&layer->joystick_button_pressed);
     r_object_ref_init(&layer->joystick_axis_moved);
     r_object_ref_init(&layer->error_occurred);
+    r_object_ref_init(&layer->debug_collision_detector);
 
     layer->last_update_ms = 0;
 

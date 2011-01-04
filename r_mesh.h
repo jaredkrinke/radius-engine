@@ -2,7 +2,7 @@
 #define __R_MESH_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,8 @@ THE SOFTWARE.
 
 typedef r_real_t r_triangle_t[3][2];
 typedef r_list_t r_triangle_list_t;
+
+extern r_triangle_t *r_triangle_list_get_index(r_state_t *rs, const r_triangle_list_t *list, unsigned int index);
 
 typedef struct
 {

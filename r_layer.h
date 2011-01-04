@@ -50,6 +50,9 @@ typedef struct
     r_object_ref_t      joystick_axis_moved;
     r_object_ref_t      error_occurred;
 
+    /* Collision handling */
+    r_object_ref_t      debug_collision_detector;
+
     unsigned int        last_update_ms;
     /* TODO: Should have a reference to parent layer for drawing everything and using parent layer's audio state */
 } r_layer_t;

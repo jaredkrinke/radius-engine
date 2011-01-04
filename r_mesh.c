@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -135,6 +135,11 @@ static int l_Mesh_addTriangle(lua_State *ls)
     lua_pop(ls, lua_gettop(ls));
 
     return 0;
+}
+
+r_triangle_t *r_triangle_list_get_index(r_state_t *rs, const r_triangle_list_t *list, unsigned int index)
+{
+    return (r_triangle_t*)r_list_get_index(rs, (r_list_t*)list, index, &r_triangle_list_def);
 }
 
 r_status_t r_mesh_setup(r_state_t *rs)

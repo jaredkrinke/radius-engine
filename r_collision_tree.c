@@ -82,9 +82,23 @@ static r_status_t r_collision_tree_node_init(r_state_t *rs, r_collision_tree_nod
 
 static r_status_t r_collision_tree_node_insert(r_state_t *rs, r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max);
 
-static R_INLINE r_boolean_t r_collision_tree_node_validate_entity(const r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max)
+static R_INLINE r_boolean_t r_collision_tree_node_validate_entity_internal(const r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max)
 {
     return ((*min)[0] > node->min[0] && (*min)[1] > node->min[1] && (*max)[0] < node->max[0] && (*max)[1] < node->max[1]);
+}
+
+static r_status_t r_collision_tree_node_validate_entity(r_state_t *rs, const r_collision_tree_node_t *node, r_entity_t *entity, r_boolean_t *valid)
+{
+    const r_vector2d_t *min = NULL;
+    const r_vector2d_t *max = NULL;
+    r_status_t status = r_entity_get_bounds(rs, entity, &min, &max);
+
+    if (R_SUCCEEDED(status))
+    {
+        *valid = r_collision_tree_node_validate_entity_internal(node, entity, min, max);
+    }
+
+    return status;
 }
 
 static r_status_t r_collision_tree_node_try_insert_into_child(r_state_t *rs, r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max, r_boolean_t *inserted)
@@ -98,7 +112,7 @@ static r_status_t r_collision_tree_node_try_insert_into_child(r_state_t *rs, r_c
 
         for (i = 0; i < R_COLLISION_TREE_CHILD_COUNT; ++i)
         {
-            if (r_collision_tree_node_validate_entity(&node->children[i], entity, min, max))
+            if (r_collision_tree_node_validate_entity_internal(&node->children[i], entity, min, max))
             {
                 child = &node->children[i];
                 break;
@@ -268,6 +282,123 @@ static r_status_t r_collision_tree_node_insert(r_state_t *rs, r_collision_tree_n
     return status;
 }
 
+static r_status_t r_collision_tree_node_validate(r_state_t *rs, r_collision_tree_node_t *node, unsigned int *invalid_count)
+{
+    r_status_t status = R_SUCCESS;
+    unsigned int i;
+
+    for (i = 0; i < node->entries.count && R_SUCCEEDED(status); ++i)
+    {
+        r_collision_tree_entry_t *entry = r_collision_tree_entry_list_get_index(rs, &node->entries, i);
+
+        if (entry->entity_version != entry->entity->version)
+        {
+            /* Entity's version has changed, need to re-check bounds */
+            r_boolean_t valid = R_FALSE;
+
+            status = r_collision_tree_node_validate_entity(rs, node, entry->entity, &valid);
+
+            if (valid)
+            {
+                /* Update entry version since it is still valid */
+                entry->entity_version = entry->entity->version;
+            }
+            else
+            {
+                /* Use a special version of zero to mark invalid */
+                entry->entity_version = 0;
+                *invalid_count += 1;
+            }
+        }
+    }
+
+    if (node->children != NULL)
+    {
+        for (i = 0; i < R_COLLISION_TREE_CHILD_COUNT && R_SUCCEEDED(status); ++i)
+        {
+            status = r_collision_tree_node_validate(rs, &node->children[i], invalid_count);
+        }
+    }
+
+    return status;
+}
+
+static r_status_t r_collision_tree_node_purge_invalid(r_state_t *rs, r_collision_tree_node_t *node, r_entity_t **invalid_entities, unsigned int *invalid_index, unsigned int invalid_count)
+{
+    r_status_t status = R_SUCCESS;
+    unsigned int i;
+
+    for (i = 0; i < node->entries.count && R_SUCCEEDED(status); ++i)
+    {
+        r_collision_tree_entry_t *entry = r_collision_tree_entry_list_get_index(rs, &node->entries, i);
+
+        if (entry->entity_version == 0)
+        {
+            /* This entity was marked as invalid (version = 0), so remove it */
+            r_entity_t *entity = entry->entity;
+
+            status = r_list_remove_index(rs, &node->entries, i, &r_collision_tree_entry_list_def);
+
+            if (R_SUCCEEDED(status))
+            {
+                if (*invalid_index < invalid_count)
+                {
+                    invalid_entities[*invalid_index] = entity;
+                    *invalid_index += 1;
+                }
+            }
+        }
+    }
+
+    if (node->children != NULL)
+    {
+        for (i = 0; i < R_COLLISION_TREE_CHILD_COUNT && R_SUCCEEDED(status); ++i)
+        {
+            status = r_collision_tree_node_purge_invalid(rs, &node->children[i], invalid_entities, invalid_index, invalid_count);
+        }
+    }
+
+    return status;
+}
+
+static r_status_t r_collision_tree_update(r_state_t *rs, r_collision_tree_t *tree)
+{
+    /* First get a count of invalid entries */
+    unsigned int invalid_count = 0;
+    r_status_t status = r_collision_tree_node_validate(rs, &tree->root, &invalid_count);
+
+    if (invalid_count > 0)
+    {
+        /* There are invalid entities that must be removed and replaced */
+        r_entity_t **invalid_entities = (r_entity_t**)malloc(invalid_count * sizeof(r_entity_t));
+
+        status = (invalid_entities != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+        if (R_SUCCEEDED(status))
+        {
+            unsigned int invalid_index = 0;
+
+            /* Remove invalid entries and store the entities in invalid_entities */
+            status = r_collision_tree_node_purge_invalid(rs, &tree->root, invalid_entities, &invalid_index, invalid_count);
+
+            if (R_SUCCEEDED(status))
+            {
+                /* Now re-insert them all */
+                unsigned int i;
+
+                for (i = 0; i < invalid_index && R_SUCCEEDED(status); ++i)
+                {
+                    status = r_collision_tree_insert(rs, tree, invalid_entities[i]);
+                }
+            }
+
+            free(invalid_entities);
+        }
+    }
+
+    return status;
+}
+
 r_status_t r_collision_tree_init(r_state_t *rs, r_collision_tree_t *tree)
 {
     return r_collision_tree_node_init(rs, &tree->root);
@@ -345,6 +476,14 @@ r_status_t r_collision_tree_node_for_each_collision(r_state_t *rs, r_collision_t
 
 r_status_t r_collision_tree_for_each_collision(r_state_t *rs, r_collision_tree_t *tree, r_collision_handler_t collide, void *data)
 {
-    /* TODO: This should very likely call update first! */
-    return r_collision_tree_node_for_each_collision(rs, &tree->root, collide, data);
+    /* First, validate all changed entries */
+    r_status_t status = r_collision_tree_update(rs, tree);
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Now do the collision detection */
+        status = r_collision_tree_node_for_each_collision(rs, &tree->root, collide, data);
+    }
+
+    return status;
 }

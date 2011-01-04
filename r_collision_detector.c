@@ -293,32 +293,6 @@ static r_status_t r_collision_detector_for_each_callback(r_state_t *rs, r_entity
     return status;
 }
 
-/* TODO: Finish up collision tree implementation first */
-//static int l_CollisionDetector_forEachCollision(lua_State *ls)
-//{
-//    const r_script_argument_t expected_arguments[] = {
-//        { LUA_TUSERDATA, R_OBJECT_TYPE_COLLISION_DETECTOR },
-//        { LUA_TFUNCTION, 0 }
-//    };
-//
-//    r_state_t *rs = r_script_get_r_state(ls);
-//    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
-//
-//    if (R_SUCCEEDED(status))
-//    {
-//        const int collision_detector_index = 1;
-//        const int function_index = 2;
-//        r_collision_detector_t *collision_detector = (r_collision_detector_t*)lua_touserdata(ls, collision_detector_index);
-//        r_collision_detector_for_each_args_t args = { ls, collision_detector, function_index };
-//
-//        status = r_collision_tree_for_each_collision(rs, &collision_detector->tree, r_collision_detector_for_each_callback, &args);
-//    }
-//
-//    lua_pop(ls, lua_gettop(ls));
-//
-//    return 0;
-//}
-
 static int l_CollisionDetector_forEachCollision(lua_State *ls)
 {
     const r_script_argument_t expected_arguments[] = {
@@ -334,46 +308,9 @@ static int l_CollisionDetector_forEachCollision(lua_State *ls)
         const int collision_detector_index = 1;
         const int function_index = 2;
         r_collision_detector_t *collision_detector = (r_collision_detector_t*)lua_touserdata(ls, collision_detector_index);
-        unsigned int i;
+        r_collision_detector_for_each_args_t args = { ls, collision_detector, function_index };
 
-        /* TODO: Need a much better algorithm (and data structure) than this (O(n^2) entity-entity tests are done) */
-        for (i = 0; i < collision_detector->children.count && R_SUCCEEDED(status); ++i)
-        {
-            r_entity_t *e1 = (r_entity_t*)collision_detector->children.items[i].value.object;
-            unsigned int j;
-
-            for (j = i + 1; j < collision_detector->children.count && R_SUCCEEDED(status); ++j)
-            {
-                r_entity_t *e2 = (r_entity_t*)collision_detector->children.items[j].value.object;
-                r_boolean_t intersect = R_FALSE;
-
-                status = r_collision_detector_intersect_entities(rs, e1, e2, &intersect);
-
-                if (R_SUCCEEDED(status) && intersect)
-                {
-                    lua_pushvalue(ls, function_index);
-                    status = r_object_ref_push(rs, (r_object_t*)collision_detector, &collision_detector->children.items[i]);
-
-                    if (R_SUCCEEDED(status))
-                    {
-                        status = r_object_ref_push(rs, (r_object_t*)collision_detector, &collision_detector->children.items[j]);
-
-                        if (R_SUCCEEDED(status))
-                        {
-                            status = r_script_call(rs, 2, 0);
-                        }
-                        else
-                        {
-                            lua_pop(ls, 1);
-                        }
-                    }
-                    else
-                    {
-                        lua_pop(ls, 1);
-                    }
-                }
-            }
-        }
+        status = r_collision_tree_for_each_collision(rs, &collision_detector->tree, r_collision_detector_for_each_callback, &args);
     }
 
     lua_pop(ls, lua_gettop(ls));

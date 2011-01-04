@@ -33,6 +33,9 @@
 * r_collision_detector.h: Add collision tree
 * r_collision_detector.c: Use collision tree in for-each
 
+* r_collision_tree.c: Update collision tree before finding collisions
+* r_collision_detector.c: Use collision tree internally
+
 2011-01-02 deraj@users.sourceforge.net
 
 * r_object.h: Field init/read/write now receive a pointer to the field

@@ -226,7 +226,6 @@ static r_status_t r_collision_tree_node_split(r_state_t *rs, r_collision_tree_no
 
                     if (R_SUCCEEDED(status) && inserted)
                     {
-                        /* TODO: Ideally, all these removes would be queued and then done at once... */
                         /* Remove from this node and effectively skip incrementing i */
                         status = r_list_remove_index(rs, &node->entries, i, &r_collision_tree_entry_list_def);
                         --i;
@@ -361,6 +360,76 @@ static r_status_t r_collision_tree_node_purge_invalid(r_state_t *rs, r_collision
     return status;
 }
 
+static r_status_t r_collision_tree_node_cleanup(r_state_t *rs, r_collision_tree_node_t *node)
+{
+    r_status_t status = R_SUCCESS;
+
+    if (node->children != NULL)
+    {
+        unsigned int i;
+
+        for (i = 0; i < R_COLLISION_TREE_CHILD_COUNT && R_SUCCEEDED(status); ++i)
+        {
+            status = r_collision_tree_node_cleanup(rs, &node->children[i]);
+        }
+
+        if (R_SUCCEEDED(status))
+        {
+            free(node->children);
+        }
+    }
+
+    if (R_SUCCEEDED(status))
+    {
+        status = r_list_cleanup(rs, &node->entries, &r_collision_tree_entry_list_def);
+    }
+
+    return status;
+}
+
+static r_status_t r_collision_tree_node_prune(r_state_t *rs, r_collision_tree_node_t *node)
+{
+    r_status_t status = R_SUCCESS;
+
+    /* Check to see if children are extraneous (i.e. leaves with no entries) */
+    if (node->children != NULL)
+    {
+        r_boolean_t children_empty = R_TRUE;
+        unsigned int i;
+
+        for (i = 0; i < R_COLLISION_TREE_CHILD_COUNT; ++i)
+        {
+            if (node->children[i].children != NULL || node->children[i].entries.count > 0)
+            {
+                children_empty = R_FALSE;
+                break;
+            }
+        }
+
+        if (children_empty)
+        {
+            /* Remove children */
+            for (i = 0; i < R_COLLISION_TREE_CHILD_COUNT && R_SUCCEEDED(status); ++i)
+            {
+                status = r_collision_tree_node_cleanup(rs, &node->children[i]);
+            }
+
+            free(node->children);
+            node->children = NULL;
+        }
+        else
+        {
+            /* Otherwise recursively process children */
+            for (i = 0; i < R_COLLISION_TREE_CHILD_COUNT && R_SUCCEEDED(status); ++i)
+            {
+                status = r_collision_tree_node_prune(rs, &node->children[i]);
+            }
+        }
+    }
+
+    return status;
+}
+
 static r_status_t r_collision_tree_update(r_state_t *rs, r_collision_tree_t *tree)
 {
     /* First get a count of invalid entries */
@@ -394,6 +463,12 @@ static r_status_t r_collision_tree_update(r_state_t *rs, r_collision_tree_t *tre
 
             free(invalid_entities);
         }
+    }
+
+    /* Prune empty branches */
+    if (R_SUCCEEDED(status))
+    {
+        status = r_collision_tree_node_prune(rs, &tree->root);
     }
 
     return status;

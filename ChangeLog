@@ -1,3 +1,7 @@
+2011-01-04 deraj@users.sourceforge.net
+
+* r_collision_tree.c: Added r_collision_tree_node_prune for pruning tree
+
 2011-01-03 deraj@users.sourceforge.net
 
 * r_transform2d.h: Expose r_transform2d_invert

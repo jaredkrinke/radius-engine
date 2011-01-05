@@ -2,6 +2,8 @@
 
 * r_collision_tree.c: Added r_collision_tree_node_prune for pruning tree
 
+* r_collision_tree.c: Push modified entries down to children when possible
+
 2011-01-03 deraj@users.sourceforge.net
 
 * r_transform2d.h: Expose r_transform2d_invert

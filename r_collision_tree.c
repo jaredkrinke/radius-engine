@@ -82,23 +82,9 @@ static r_status_t r_collision_tree_node_init(r_state_t *rs, r_collision_tree_nod
 
 static r_status_t r_collision_tree_node_insert(r_state_t *rs, r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max);
 
-static R_INLINE r_boolean_t r_collision_tree_node_validate_entity_internal(const r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max)
+static R_INLINE r_boolean_t r_collision_tree_node_validate_entity(const r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max)
 {
     return ((*min)[0] > node->min[0] && (*min)[1] > node->min[1] && (*max)[0] < node->max[0] && (*max)[1] < node->max[1]);
-}
-
-static r_status_t r_collision_tree_node_validate_entity(r_state_t *rs, const r_collision_tree_node_t *node, r_entity_t *entity, r_boolean_t *valid)
-{
-    const r_vector2d_t *min = NULL;
-    const r_vector2d_t *max = NULL;
-    r_status_t status = r_entity_get_bounds(rs, entity, &min, &max);
-
-    if (R_SUCCEEDED(status))
-    {
-        *valid = r_collision_tree_node_validate_entity_internal(node, entity, min, max);
-    }
-
-    return status;
 }
 
 static r_status_t r_collision_tree_node_try_insert_into_child(r_state_t *rs, r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max, r_boolean_t *inserted)
@@ -112,7 +98,7 @@ static r_status_t r_collision_tree_node_try_insert_into_child(r_state_t *rs, r_c
 
         for (i = 0; i < R_COLLISION_TREE_CHILD_COUNT; ++i)
         {
-            if (r_collision_tree_node_validate_entity_internal(&node->children[i], entity, min, max))
+            if (r_collision_tree_node_validate_entity(&node->children[i], entity, min, max))
             {
                 child = &node->children[i];
                 break;
@@ -293,20 +279,46 @@ static r_status_t r_collision_tree_node_validate(r_state_t *rs, r_collision_tree
         if (entry->entity_version != entry->entity->version)
         {
             /* Entity's version has changed, need to re-check bounds */
-            r_boolean_t valid = R_FALSE;
+            const r_vector2d_t *min = NULL;
+            const r_vector2d_t *max = NULL;
+            
+            status = r_entity_get_bounds(rs, entry->entity, &min, &max);
 
-            status = r_collision_tree_node_validate_entity(rs, node, entry->entity, &valid);
+            if (R_SUCCEEDED(status))
+            {
+                r_boolean_t valid = r_collision_tree_node_validate_entity(node, entry->entity, min, max);
 
-            if (valid)
-            {
-                /* Update entry version since it is still valid */
-                entry->entity_version = entry->entity->version;
-            }
-            else
-            {
-                /* Use a special version of zero to mark invalid */
-                entry->entity_version = 0;
-                *invalid_count += 1;
+                if (valid)
+                {
+                    /* If there are a lot of entries, check to see if the entity is completely contained by a child */
+                    r_boolean_t inserted = R_FALSE;
+
+                    if (node->entries.count > R_COLLISION_TREE_MAX_ENTRIES_BEFORE_SPLIT)
+                    {
+                        status = r_collision_tree_node_try_insert_into_child(rs, node, entry->entity, min, max, &inserted);
+                    }
+
+                    if (R_SUCCEEDED(status))
+                    {
+                        if (inserted)
+                        {
+                            /* This entry was inserted into a child, remove from this node and effectively skip incrementing i */
+                            status = r_list_remove_index(rs, &node->entries, i, &r_collision_tree_entry_list_def);
+                            --i;
+                        }
+                        else
+                        {
+                            /* Update entry version since it is still valid */
+                            entry->entity_version = entry->entity->version;
+                        }
+                    }
+                }
+                else
+                {
+                    /* Use a special version of zero to mark invalid */
+                    entry->entity_version = 0;
+                    *invalid_count += 1;
+                }
             }
         }
     }

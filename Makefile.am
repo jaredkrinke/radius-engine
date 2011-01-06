@@ -36,6 +36,8 @@ libradius_engine_a_SOURCES = \
                              r_file_internal.h \
                              r_file_system.c \
                              r_file_system.h \
+                             r_hash_table.c \
+                             r_hash_table.h \
                              r_image_cache.c \
                              r_image_cache.h \
                              r_layer.c \

@@ -25,6 +25,7 @@ THE SOFTWARE.
 
 #include "r_entity.h"
 #include "r_list.h"
+#include "r_hash_table.h"
 
 typedef struct
 {
@@ -55,13 +56,15 @@ typedef struct _r_collision_tree_node
 typedef struct
 {
     r_collision_tree_node_t root;
+    r_hash_table_t          entity_to_node;
 } r_collision_tree_t;
 
 typedef r_status_t (*r_collision_handler_t)(r_state_t *rs, r_entity_t *e1, r_entity_t *e2, void *data);
 
 extern r_status_t r_collision_tree_init(r_state_t *rs, r_collision_tree_t *tree);
+/* TODO: It should not be possible to insert/remove while iterating! */
 extern r_status_t r_collision_tree_insert(r_state_t *rs, r_collision_tree_t *tree, r_entity_t *entity);
-//extern r_status_t r_collision_tree_update(r_state_t *rs, r_collision_tree_t *tree, r_entity_t *entity);
+extern r_status_t r_collision_tree_remove(r_state_t *rs, r_collision_tree_t *tree, r_entity_t *entity);
 extern r_status_t r_collision_tree_for_each_collision(r_state_t *rs, r_collision_tree_t *tree, r_collision_handler_t collide, void *data);
 //extern r_status_t r_collision_tree_cleanup(r_state_t *rs, r_collision_tree_t *tree);
 /* TODO: Removal */

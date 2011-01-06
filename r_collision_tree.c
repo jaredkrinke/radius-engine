@@ -59,6 +59,18 @@ static void r_collision_tree_entry_copy(r_state_t *rs, void *to, const void *fro
 
 r_list_def_t r_collision_tree_entry_list_def = { sizeof(r_collision_tree_entry_t), r_collision_tree_entry_null, r_collision_tree_entry_free, r_collision_tree_entry_copy };
 
+static unsigned int r_entity_to_node_key_hash(const void *key)
+{
+    return (unsigned int)key;
+}
+
+static r_status_t r_entity_to_node_free(r_state_t *rs, void *value)
+{
+    return R_SUCCESS;
+}
+
+r_hash_table_def_t r_entity_to_node_def = { sizeof(r_collision_tree_node_t*), 5, 0.75, r_entity_to_node_key_hash, r_entity_to_node_free };
+
 static r_collision_tree_entry_t *r_collision_tree_entry_list_get_index(r_state_t *rs, const r_collision_tree_entry_list_t *list, unsigned int index)
 {
     return (r_collision_tree_entry_t*)r_list_get_index(rs, list, index, &r_collision_tree_entry_list_def);
@@ -80,14 +92,14 @@ static r_status_t r_collision_tree_node_init(r_state_t *rs, r_collision_tree_nod
     return status;
 }
 
-static r_status_t r_collision_tree_node_insert(r_state_t *rs, r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max);
-
 static R_INLINE r_boolean_t r_collision_tree_node_validate_entity(const r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max)
 {
     return ((*min)[0] > node->min[0] && (*min)[1] > node->min[1] && (*max)[0] < node->max[0] && (*max)[1] < node->max[1]);
 }
 
-static r_status_t r_collision_tree_node_try_insert_into_child(r_state_t *rs, r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max, r_boolean_t *inserted)
+static r_status_t r_collision_tree_node_insert(r_state_t *rs, r_collision_tree_t *tree, r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max);
+
+static r_status_t r_collision_tree_node_try_insert_into_child(r_state_t *rs, r_collision_tree_t *tree, r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max, r_boolean_t *inserted)
 {
     r_status_t status = R_SUCCESS;
     r_collision_tree_node_t *child = NULL;
@@ -109,7 +121,7 @@ static r_status_t r_collision_tree_node_try_insert_into_child(r_state_t *rs, r_c
     if (child != NULL)
     {
         /* The entity fits entirely in a child node; insert it there */
-        status = r_collision_tree_node_insert(rs, child, entity, min, max);
+        status = r_collision_tree_node_insert(rs, tree, child, entity, min, max);
         *inserted = R_TRUE;
     }
     else
@@ -120,7 +132,7 @@ static r_status_t r_collision_tree_node_try_insert_into_child(r_state_t *rs, r_c
     return status;
 }
 
-static r_status_t r_collision_tree_node_split(r_state_t *rs, r_collision_tree_node_t *node)
+static r_status_t r_collision_tree_node_split(r_state_t *rs, r_collision_tree_t *tree, r_collision_tree_node_t *node)
 {
     r_collision_tree_node_t *children = (r_collision_tree_node_t*)malloc(R_COLLISION_TREE_CHILD_COUNT * sizeof(r_collision_tree_node_t));
     r_status_t status = (children != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
@@ -208,7 +220,8 @@ static r_status_t r_collision_tree_node_split(r_state_t *rs, r_collision_tree_no
                 {
                     r_boolean_t inserted = R_FALSE;
 
-                    status = r_collision_tree_node_try_insert_into_child(rs, node, entry->entity, min, max, &inserted);
+                    /* Note: This also updates the hash table entry, if inserted */
+                    status = r_collision_tree_node_try_insert_into_child(rs, tree, node, entry->entity, min, max, &inserted);
 
                     if (R_SUCCEEDED(status) && inserted)
                     {
@@ -231,7 +244,7 @@ static r_status_t r_collision_tree_node_split(r_state_t *rs, r_collision_tree_no
     return status;
 }
 
-static r_status_t r_collision_tree_node_insert(r_state_t *rs, r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max)
+static r_status_t r_collision_tree_node_insert(r_state_t *rs, r_collision_tree_t *tree, r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max)
 {
     /* Check to see if this node is split */
     r_boolean_t inserted = R_FALSE;
@@ -240,7 +253,7 @@ static r_status_t r_collision_tree_node_insert(r_state_t *rs, r_collision_tree_n
     if (node->children != NULL)
     {
         /* This node is split, check to see if this entity fits entirely in one of the child quadrants */
-        status = r_collision_tree_node_try_insert_into_child(rs, node, entity, min, max, &inserted);
+        status = r_collision_tree_node_try_insert_into_child(rs, tree, node, entity, min, max, &inserted);
     }
 
     if (R_SUCCEEDED(status))
@@ -254,11 +267,16 @@ static r_status_t r_collision_tree_node_insert(r_state_t *rs, r_collision_tree_n
 
             if (R_SUCCEEDED(status))
             {
+                status = r_hash_table_insert(rs, &tree->entity_to_node, entity, &node, &r_entity_to_node_def);
+            }
+
+            if (R_SUCCEEDED(status))
+            {
                 /* Check to see if this node should be split after insertion */
                 /* TODO: Should splits really be triggered on insertion? I'm not totally convinced that's ideal... */
                 if (node->children == NULL && node->entries.count > R_COLLISION_TREE_MAX_ENTRIES_BEFORE_SPLIT)
                 {
-                    status = r_collision_tree_node_split(rs, node);
+                    status = r_collision_tree_node_split(rs, tree, node);
                 }
             }
         }
@@ -267,7 +285,7 @@ static r_status_t r_collision_tree_node_insert(r_state_t *rs, r_collision_tree_n
     return status;
 }
 
-static r_status_t r_collision_tree_node_validate(r_state_t *rs, r_collision_tree_node_t *node, unsigned int *invalid_count)
+static r_status_t r_collision_tree_node_validate(r_state_t *rs, r_collision_tree_t *tree, r_collision_tree_node_t *node, unsigned int *invalid_count)
 {
     r_status_t status = R_SUCCESS;
     unsigned int i;
@@ -295,7 +313,8 @@ static r_status_t r_collision_tree_node_validate(r_state_t *rs, r_collision_tree
 
                     if (node->entries.count > R_COLLISION_TREE_MAX_ENTRIES_BEFORE_SPLIT)
                     {
-                        status = r_collision_tree_node_try_insert_into_child(rs, node, entry->entity, min, max, &inserted);
+                        /* Note: This also updates the hash table entry, if inserted */
+                        status = r_collision_tree_node_try_insert_into_child(rs, tree, node, entry->entity, min, max, &inserted);
                     }
 
                     if (R_SUCCEEDED(status))
@@ -327,7 +346,7 @@ static r_status_t r_collision_tree_node_validate(r_state_t *rs, r_collision_tree
     {
         for (i = 0; i < R_COLLISION_TREE_CHILD_COUNT && R_SUCCEEDED(status); ++i)
         {
-            status = r_collision_tree_node_validate(rs, &node->children[i], invalid_count);
+            status = r_collision_tree_node_validate(rs, tree, &node->children[i], invalid_count);
         }
     }
 
@@ -345,7 +364,7 @@ static r_status_t r_collision_tree_node_purge_invalid(r_state_t *rs, r_collision
 
         if (entry->entity_version == 0)
         {
-            /* This entity was marked as invalid (version = 0), so remove it */
+            /* This entity was marked as invalid (version = 0), so remove it (it will be added back later) */
             r_entity_t *entity = entry->entity;
 
             status = r_list_remove_index(rs, &node->entries, i, &r_collision_tree_entry_list_def);
@@ -446,7 +465,7 @@ static r_status_t r_collision_tree_update(r_state_t *rs, r_collision_tree_t *tre
 {
     /* First get a count of invalid entries */
     unsigned int invalid_count = 0;
-    r_status_t status = r_collision_tree_node_validate(rs, &tree->root, &invalid_count);
+    r_status_t status = r_collision_tree_node_validate(rs, tree, &tree->root, &invalid_count);
 
     if (invalid_count > 0)
     {
@@ -486,26 +505,7 @@ static r_status_t r_collision_tree_update(r_state_t *rs, r_collision_tree_t *tre
     return status;
 }
 
-r_status_t r_collision_tree_init(r_state_t *rs, r_collision_tree_t *tree)
-{
-    return r_collision_tree_node_init(rs, &tree->root);
-}
-
-r_status_t r_collision_tree_insert(r_state_t *rs, r_collision_tree_t *tree, r_entity_t *entity)
-{
-    const r_vector2d_t *min = NULL;
-    const r_vector2d_t *max = NULL;
-    r_status_t status = r_entity_get_bounds(rs, entity, &min, &max);
-
-    if (R_SUCCEEDED(status))
-    {
-        status = r_collision_tree_node_insert(rs, &tree->root, entity, min, max);
-    }
-
-    return status;
-}
-
-r_status_t r_collision_tree_node_test(r_state_t *rs, r_collision_tree_node_t *node, r_entity_t *e1, const unsigned int *index, r_collision_handler_t collide, void *data)
+static r_status_t r_collision_tree_node_test(r_state_t *rs, r_collision_tree_node_t *node, r_entity_t *e1, const unsigned int *index, r_collision_handler_t collide, void *data)
 {
     r_status_t status = R_SUCCESS;
     unsigned int i;
@@ -531,6 +531,76 @@ r_status_t r_collision_tree_node_test(r_state_t *rs, r_collision_tree_node_t *no
         {
             status = r_collision_tree_node_test(rs, &node->children[i], e1, NULL, collide, data);
         }
+    }
+
+    return status;
+}
+
+r_status_t r_collision_tree_init(r_state_t *rs, r_collision_tree_t *tree)
+{
+    r_status_t status = r_collision_tree_node_init(rs, &tree->root);
+
+    if (R_SUCCEEDED(status))
+    {
+        status = r_hash_table_init(rs, &tree->entity_to_node, &r_entity_to_node_def);
+
+        if (R_FAILED(status))
+        {
+            r_collision_tree_node_cleanup(rs, &tree->root);
+        }
+    }
+
+    return status;
+}
+
+r_status_t r_collision_tree_insert(r_state_t *rs, r_collision_tree_t *tree, r_entity_t *entity)
+{
+    const r_vector2d_t *min = NULL;
+    const r_vector2d_t *max = NULL;
+    r_status_t status = r_entity_get_bounds(rs, entity, &min, &max);
+
+    if (R_SUCCEEDED(status))
+    {
+        status = r_collision_tree_node_insert(rs, tree, &tree->root, entity, min, max);
+    }
+
+    return status;
+}
+
+r_status_t r_collision_tree_remove(r_state_t *rs, r_collision_tree_t *tree, r_entity_t *entity)
+{
+    /* Find the entity's containing node */
+    r_collision_tree_node_t **node_ptr = NULL;
+    r_status_t status = r_hash_table_retrieve(rs, &tree->entity_to_node, entity, (void**)&node_ptr, &r_entity_to_node_def);
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Find the index of the entity */
+        r_collision_tree_node_t *node = *node_ptr;
+        unsigned int i;
+
+        status = R_F_NOT_FOUND;
+
+        for (i = 0; i < node->entries.count; ++i)
+        {
+            r_collision_tree_entry_t *entry = r_collision_tree_entry_list_get_index(rs, &node->entries, i);
+
+            if (entry->entity == entity)
+            {
+                /* Remove from this node and from the hash table */
+                status = r_list_remove_index(rs, &node->entries, i, &r_collision_tree_entry_list_def);
+
+                if (R_SUCCEEDED(status))
+                {
+                    status = r_hash_table_remove(rs, &tree->entity_to_node, entity, &r_entity_to_node_def);
+                }
+                break;
+            }
+        }
+
+        /* If this is hit, figure out why we're trying to remove a child that isn't found. If the child exists under a
+           different node, something is broken. */
+        R_ASSERT(status != R_F_NOT_FOUND);
     }
 
     return status;

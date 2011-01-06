@@ -1,8 +1,23 @@
+2011-01-05 deraj@users.sourceforge.net
+
+* Makefile.am: Added r_hash_table.c/h
+
+* r_collision_detector.c: Added CollisionDetector.removeChild
+
+* r_collision_tree.h: Added hash from entity to node, removal
+* r_collision_tree.c: Keep hash up-to-date, simple (but flawed) removal
+
 2011-01-04 deraj@users.sourceforge.net
 
 * r_collision_tree.c: Added r_collision_tree_node_prune for pruning tree
 
 * r_collision_tree.c: Push modified entries down to children when possible
+
+* r_hash_table.h: Simple pointer to struct hash table
+* r_hash_table.c: Chained hash table implementation
+
+* r_collision_tree.h: Added entity-to-node hash table
+* r_collision_tree.c: Initialize/update entity-to-node hash table
 
 2011-01-03 deraj@users.sourceforge.net
 

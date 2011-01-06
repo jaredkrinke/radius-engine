@@ -195,12 +195,14 @@ static r_boolean_t r_triangle_intersect_ccw(const r_triangle_t *t1, const r_tria
     return intersect;
 }
 
-r_object_ref_t r_collision_detector_ref_for_each_collision = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_collision_detector_ref_add_child = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_collision_detector_ref_remove_child = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_collision_detector_ref_for_each_collision = { R_OBJECT_REF_INVALID, { NULL } };
 /* TODO: forEach (child)? Clear? Remove? */
 
 r_object_field_t r_collision_detector_fields[] = {
     { "addChild",         LUA_TFUNCTION, 0, 0, R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_collision_detector_ref_add_child, NULL },
+    { "removeChild",      LUA_TFUNCTION, 0, 0, R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_collision_detector_ref_remove_child, NULL },
     { "forEachCollision", LUA_TFUNCTION, 0, 0, R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_collision_detector_ref_for_each_collision, NULL },
     { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
 };
@@ -249,6 +251,35 @@ static int l_CollisionDetector_addChild(lua_State *ls)
         {
             /* Insert into the tree as well */
             status = r_collision_tree_insert(rs, &collision_detector->tree, entity);
+        }
+    }
+
+    lua_pop(ls, lua_gettop(ls) - result_count);
+
+    return result_count;
+}
+
+static int l_CollisionDetector_removeChild(lua_State *ls)
+{
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TUSERDATA, R_OBJECT_TYPE_COLLISION_DETECTOR },
+        { LUA_TUSERDATA, R_OBJECT_TYPE_ENTITY }
+    };
+
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+    int result_count = 0;
+
+    if (R_SUCCEEDED(status))
+    {
+        r_collision_detector_t *collision_detector = (r_collision_detector_t*)lua_touserdata(ls, 1);
+        r_entity_t *entity = (r_entity_t*)lua_touserdata(ls, 2);
+
+        status = r_collision_tree_remove(rs, &collision_detector->tree, entity);
+
+        if (R_SUCCEEDED(status))
+        {
+            result_count = l_ObjectList_remove_internal(ls, R_OBJECT_TYPE_COLLISION_DETECTOR, offsetof(r_collision_detector_t, children), R_OBJECT_TYPE_ENTITY);
         }
     }
 
@@ -329,6 +360,7 @@ r_status_t r_collision_detector_setup(r_state_t *rs)
         r_script_node_root_t roots[] = {
             { LUA_GLOBALSINDEX, NULL,                          { "CollisionDetector", R_SCRIPT_NODE_TYPE_TABLE, collision_detector_nodes } },
             { 0, &r_collision_detector_ref_add_child,          { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_CollisionDetector_addChild } },
+            { 0, &r_collision_detector_ref_remove_child,       { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_CollisionDetector_removeChild } },
             { 0, &r_collision_detector_ref_for_each_collision, { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_CollisionDetector_forEachCollision } },
             { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
         };

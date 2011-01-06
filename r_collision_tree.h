@@ -29,8 +29,9 @@ THE SOFTWARE.
 
 typedef struct
 {
-    r_entity_t   *entity;
-    unsigned int entity_version;
+    r_entity_t      *entity;
+    unsigned int    entity_version;
+    r_boolean_t     deleted;
 } r_collision_tree_entry_t;
 
 typedef r_list_t r_collision_tree_entry_list_t;
@@ -62,12 +63,11 @@ typedef struct
 typedef r_status_t (*r_collision_handler_t)(r_state_t *rs, r_entity_t *e1, r_entity_t *e2, void *data);
 
 extern r_status_t r_collision_tree_init(r_state_t *rs, r_collision_tree_t *tree);
-/* TODO: It should not be possible to insert/remove while iterating! */
 extern r_status_t r_collision_tree_insert(r_state_t *rs, r_collision_tree_t *tree, r_entity_t *entity);
 extern r_status_t r_collision_tree_remove(r_state_t *rs, r_collision_tree_t *tree, r_entity_t *entity);
 extern r_status_t r_collision_tree_for_each_collision(r_state_t *rs, r_collision_tree_t *tree, r_collision_handler_t collide, void *data);
 //extern r_status_t r_collision_tree_cleanup(r_state_t *rs, r_collision_tree_t *tree);
-/* TODO: Removal */
+/* TODO: clear */
 
 #endif
 

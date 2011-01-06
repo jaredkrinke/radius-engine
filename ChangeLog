@@ -1,3 +1,8 @@
+2011-01-06 deraj@users.sourceforge.net
+
+* r_collision_tree.h (r_collision_tree_entry_t): Added deleted flag
+* r_collision_tree.c: Skip "deleted" entry collisions (really delete on update)
+
 2011-01-05 deraj@users.sourceforge.net
 
 * Makefile.am: Added r_hash_table.c/h

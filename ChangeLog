@@ -3,6 +3,13 @@
 * r_collision_tree.h (r_collision_tree_entry_t): Added deleted flag
 * r_collision_tree.c: Skip "deleted" entry collisions (really delete on update)
 
+* r_hash_table.c (r_hash_table_clear): Implementation
+
+* r_collision_tree.h: Added r_collision_tree_clear
+* r_collision_tree.c (r_collision_tree_clear): Implementation
+
+* r_collision_detector.c: Added CollisionDetector.clearChildren
+
 2011-01-05 deraj@users.sourceforge.net
 
 * Makefile.am: Added r_hash_table.c/h

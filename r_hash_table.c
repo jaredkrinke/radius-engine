@@ -125,23 +125,7 @@ r_status_t r_hash_table_init(r_state_t *rs, r_hash_table_t *hash_table, const r_
 
 r_status_t r_hash_table_cleanup(r_state_t *rs, r_hash_table_t *hash_table, const r_hash_table_def_t *hash_table_def)
 {
-    r_status_t status = R_SUCCESS;
-    unsigned int i;
-
-    for (i = 0; i < hash_table->allocated && R_SUCCEEDED(status); ++i)
-    {
-        r_hash_table_entry_t *entry = hash_table->entries[i];
-
-        while (entry != NULL && R_SUCCEEDED(status))
-        {
-            r_hash_table_entry_t *next = entry->next;
-
-            status = hash_table_def->value_free(rs, &entry->value);
-
-            free(entry);
-            entry = next;
-        }
-    }
+    r_status_t status = r_hash_table_clear(rs, hash_table, hash_table_def);
 
     if (R_SUCCEEDED(status))
     {
@@ -224,6 +208,39 @@ r_status_t r_hash_table_retrieve(r_state_t *rs, r_hash_table_t *hash_table, cons
     if (R_SUCCEEDED(status))
     {
         *value = &entry->value;
+    }
+
+    return status;
+}
+
+r_status_t r_hash_table_clear(r_state_t *rs, r_hash_table_t *hash_table, const r_hash_table_def_t *hash_table_def)
+{
+    r_status_t status = R_SUCCESS;
+    unsigned int i;
+
+    for (i = 0; i < hash_table->allocated && R_SUCCEEDED(status); ++i)
+    {
+        r_hash_table_entry_t *entry = hash_table->entries[i];
+
+        while (entry != NULL && R_SUCCEEDED(status))
+        {
+            r_hash_table_entry_t *next = entry->next;
+
+            status = hash_table_def->value_free(rs, &entry->value);
+
+            free(entry);
+            entry = next;
+        }
+
+        if (R_SUCCEEDED(status))
+        {
+            hash_table->entries[i] = NULL;
+        }
+    }
+
+    if (R_SUCCEEDED(status))
+    {
+        hash_table->count = 0;
     }
 
     return status;

@@ -590,6 +590,34 @@ static r_status_t r_collision_tree_node_for_each_collision(r_state_t *rs, r_coll
     return status;
 }
 
+static r_status_t r_collision_tree_node_clear(r_state_t *rs, r_collision_tree_node_t *node)
+{
+    r_status_t status = R_SUCCESS;
+    unsigned int i;
+
+    /* Mark entries at this node for removal */
+    for (i = 0; i < node->entries.count; ++i)
+    {
+        r_collision_tree_entry_t *entry = r_collision_tree_entry_list_get_index(rs, &node->entries, i);
+
+        if (!entry->deleted)
+        {
+            entry->deleted = R_TRUE;
+        }
+    }
+
+    /* Recursively process children */
+    if (node->children != NULL)
+    {
+        for (i = 0; i < R_COLLISION_TREE_CHILD_COUNT && R_SUCCEEDED(status); ++i)
+        {
+            status = r_collision_tree_node_clear(rs, &node->children[i]);
+        }
+    }
+
+    return status;
+}
+
 r_status_t r_collision_tree_init(r_state_t *rs, r_collision_tree_t *tree)
 {
     r_status_t status = r_collision_tree_node_init(rs, &tree->root);
@@ -665,6 +693,18 @@ r_status_t r_collision_tree_for_each_collision(r_state_t *rs, r_collision_tree_t
     {
         /* Now do the collision detection */
         status = r_collision_tree_node_for_each_collision(rs, &tree->root, collide, data);
+    }
+
+    return status;
+}
+
+r_status_t r_collision_tree_clear(r_state_t *rs, r_collision_tree_t *tree)
+{
+    r_status_t status = r_collision_tree_node_clear(rs, &tree->root);
+
+    if (R_SUCCEEDED(status))
+    {
+        status = r_hash_table_clear(rs, &tree->entity_to_node, &r_entity_to_node_def);
     }
 
     return status;

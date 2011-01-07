@@ -37,7 +37,6 @@ typedef r_object_list_t r_collision_object_list_t;
 typedef struct
 {
     r_object_t                  object;
-    /* TODO: "children" should probably be called "entities" to reduce confusion with the tree */
     r_collision_object_list_t   children;
     r_collision_tree_t          tree;
 } r_collision_detector_t;

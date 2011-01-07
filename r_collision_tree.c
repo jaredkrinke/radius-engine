@@ -384,11 +384,12 @@ static r_status_t r_collision_tree_node_purge_invalid(r_state_t *rs, r_collision
 
             if (R_SUCCEEDED(status) && !deleted)
             {
-                if (*invalid_index < invalid_count)
-                {
-                    invalid_entities[*invalid_index] = entity;
-                    *invalid_index += 1;
-                }
+                R_ASSERT(*invalid_index < invalid_count);
+
+                /* Effectively skip incrementing i since this entry was removed */
+                --i;
+                invalid_entities[*invalid_index] = entity;
+                *invalid_index += 1;
             }
         }
     }

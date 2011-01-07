@@ -17,6 +17,8 @@
 
 * r_collision_detector.c: Added CollisionDetector.checkCollision
 
+* r_collision_tree.c (r_collision_tree_node_purge_invalid): Fixed update bug
+
 2011-01-05 deraj@users.sourceforge.net
 
 * Makefile.am: Added r_hash_table.c/h

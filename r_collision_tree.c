@@ -408,6 +408,7 @@ static r_status_t r_collision_tree_node_cleanup(r_state_t *rs, r_collision_tree_
 {
     r_status_t status = R_SUCCESS;
 
+    /* Process children first */
     if (node->children != NULL)
     {
         unsigned int i;
@@ -423,6 +424,7 @@ static r_status_t r_collision_tree_node_cleanup(r_state_t *rs, r_collision_tree_
         }
     }
 
+    /* Clear this node's list */
     if (R_SUCCEEDED(status))
     {
         status = r_list_cleanup(rs, &node->entries, &r_collision_tree_entry_list_def);
@@ -705,6 +707,18 @@ r_status_t r_collision_tree_clear(r_state_t *rs, r_collision_tree_t *tree)
     if (R_SUCCEEDED(status))
     {
         status = r_hash_table_clear(rs, &tree->entity_to_node, &r_entity_to_node_def);
+    }
+
+    return status;
+}
+
+r_status_t r_collision_tree_cleanup(r_state_t *rs, r_collision_tree_t *tree)
+{
+    r_status_t status = r_collision_tree_node_cleanup(rs, &tree->root);
+
+    if (R_SUCCEEDED(status))
+    {
+        status = r_hash_table_cleanup(rs, &tree->entity_to_node, &r_entity_to_node_def);
     }
 
     return status;

@@ -222,9 +222,20 @@ static r_status_t r_collision_detector_init(r_state_t *rs, r_object_t *object)
     return status;
 }
 
-/* TODO: Cleanup function (tree needs to be cleaned up) */
+static r_status_t r_collision_detector_cleanup(r_state_t *rs, r_object_t *object)
+{
+    r_collision_detector_t *collision_detector = (r_collision_detector_t*)object;
+    r_status_t status = r_object_list_cleanup(rs, (r_object_t*)&collision_detector->children, R_OBJECT_TYPE_ENTITY);
 
-r_object_header_t r_collision_detector_header = { R_OBJECT_TYPE_COLLISION_DETECTOR, sizeof(r_collision_detector_t), R_TRUE, r_collision_detector_fields, r_collision_detector_init, NULL, NULL};
+    if (R_SUCCEEDED(status))
+    {
+        status = r_collision_tree_cleanup(rs, &collision_detector->tree);
+    }
+
+    return status;
+}
+
+r_object_header_t r_collision_detector_header = { R_OBJECT_TYPE_COLLISION_DETECTOR, sizeof(r_collision_detector_t), R_TRUE, r_collision_detector_fields, r_collision_detector_init, NULL, r_collision_detector_cleanup};
 
 static int l_CollisionDetector_new(lua_State *ls)
 {

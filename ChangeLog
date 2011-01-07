@@ -10,6 +10,11 @@
 
 * r_collision_detector.c: Added CollisionDetector.clearChildren
 
+* r_collision_tree.h: Added r_collision_tree_cleanup
+* r_collision_tree.c (r_collision_tree_cleanup): Implementation
+
+* r_collision_detector.c: Added cleanup for CollisionDetector
+
 2011-01-05 deraj@users.sourceforge.net
 
 * Makefile.am: Added r_hash_table.c/h

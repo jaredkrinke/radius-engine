@@ -67,8 +67,7 @@ extern r_status_t r_collision_tree_insert(r_state_t *rs, r_collision_tree_t *tre
 extern r_status_t r_collision_tree_remove(r_state_t *rs, r_collision_tree_t *tree, r_entity_t *entity);
 extern r_status_t r_collision_tree_for_each_collision(r_state_t *rs, r_collision_tree_t *tree, r_collision_handler_t collide, void *data);
 extern r_status_t r_collision_tree_clear(r_state_t *rs, r_collision_tree_t *tree);
-//extern r_status_t r_collision_tree_cleanup(r_state_t *rs, r_collision_tree_t *tree);
-/* TODO: clear */
+extern r_status_t r_collision_tree_cleanup(r_state_t *rs, r_collision_tree_t *tree);
 
 #endif
 

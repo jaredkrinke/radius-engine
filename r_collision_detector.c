@@ -199,13 +199,14 @@ r_object_ref_t r_collision_detector_ref_add_child = { R_OBJECT_REF_INVALID, { NU
 r_object_ref_t r_collision_detector_ref_remove_child = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_collision_detector_ref_for_each_collision = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_collision_detector_ref_clear_children = { R_OBJECT_REF_INVALID, { NULL } };
-/* TODO: forEach (child)? */
+r_object_ref_t r_collision_detector_ref_check_collision = { R_OBJECT_REF_INVALID, { NULL } };
 
 r_object_field_t r_collision_detector_fields[] = {
     { "addChild",         LUA_TFUNCTION, 0, 0, R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_collision_detector_ref_add_child, NULL },
     { "removeChild",      LUA_TFUNCTION, 0, 0, R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_collision_detector_ref_remove_child, NULL },
     { "forEachCollision", LUA_TFUNCTION, 0, 0, R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_collision_detector_ref_for_each_collision, NULL },
     { "clearChildren",    LUA_TFUNCTION, 0, 0, R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_collision_detector_ref_clear_children, NULL },
+    { "checkCollision",   LUA_TFUNCTION, 0, 0, R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_collision_detector_ref_check_collision, NULL },
     { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
 };
 
@@ -328,6 +329,40 @@ static int l_CollisionDetector_clearChildren(lua_State *ls)
     return result_count;
 }
 
+static int l_CollisionDetector_checkCollision(lua_State *ls)
+{
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TUSERDATA, R_OBJECT_TYPE_COLLISION_DETECTOR },
+        { LUA_TUSERDATA, R_OBJECT_TYPE_ENTITY },
+        { LUA_TUSERDATA, R_OBJECT_TYPE_ENTITY }
+    };
+
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+    int result_count = 0;
+
+    if (R_SUCCEEDED(status))
+    {
+        r_collision_detector_t *collision_detector = (r_collision_detector_t*)lua_touserdata(ls, 1);
+        r_entity_t *e1 = (r_entity_t*)lua_touserdata(ls, 2);
+        r_entity_t *e2 = (r_entity_t*)lua_touserdata(ls, 3);
+        r_boolean_t intersect = R_FALSE;
+
+        status = r_collision_detector_intersect_entities(rs, e1, e2, &intersect);
+
+        if (R_SUCCEEDED(status))
+        {
+            lua_pushboolean(ls, intersect);
+            lua_insert(ls, 1);
+            result_count = 1;
+        }
+    }
+
+    lua_pop(ls, lua_gettop(ls) - result_count);
+
+    return result_count;
+}
+
 typedef struct {
     lua_State *ls;
     r_collision_detector_t *collision_detector;
@@ -403,6 +438,7 @@ r_status_t r_collision_detector_setup(r_state_t *rs)
             { 0, &r_collision_detector_ref_remove_child,       { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_CollisionDetector_removeChild } },
             { 0, &r_collision_detector_ref_for_each_collision, { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_CollisionDetector_forEachCollision } },
             { 0, &r_collision_detector_ref_clear_children,     { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_CollisionDetector_clearChildren } },
+            { 0, &r_collision_detector_ref_check_collision,    { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_CollisionDetector_checkCollision } },
             { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
         };
 

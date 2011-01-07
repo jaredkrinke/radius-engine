@@ -19,6 +19,10 @@
 
 * r_collision_tree.c (r_collision_tree_node_purge_invalid): Fixed update bug
 
+* r_entity.h: Added flag to indicate if an entity has children
+* r_entity.c: Initialize children entity list on demand
+* r_video.c: Check for child entities before rendering them
+
 2011-01-05 deraj@users.sourceforge.net
 
 * Makefile.am: Added r_hash_table.c/h

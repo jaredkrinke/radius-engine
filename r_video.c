@@ -897,7 +897,7 @@ static r_status_t r_video_draw_entity(r_state_t *rs, r_entity_t *entity)
                     /* Draw children, if necessary */
                     if (R_SUCCEEDED(status))
                     {
-                        if (entity->children.object_list.count > 0)
+                        if (entity->has_children && entity->children.object_list.count > 0)
                         {
                             status = r_video_draw_entity_list(rs, &entity->children);
                         }

@@ -34,7 +34,7 @@ static void r_entity_increment_version(r_entity_t *entity)
     entity->version = entity->version + 1;
 
     /* Update children as well */
-    if (entity->children.object_list.count > 0)
+    if (entity->has_children && entity->children.object_list.count > 0)
     {
         unsigned int i;
 
@@ -89,14 +89,14 @@ r_object_field_t r_entity_fields[] = {
 static r_status_t r_entity_init(r_state_t *rs, r_object_t *object)
 {
     r_entity_t *entity = (r_entity_t*)object;
-    r_status_t status = R_FAILURE;
 
     r_object_ref_init(&entity->elements);
     r_object_ref_init(&entity->update);
     r_object_ref_init(&entity->mesh);
     r_object_ref_init(&entity->parent);
 
-    status = r_entity_list_init(rs, &entity->children);
+    /* Children list is initialized on demand */
+    entity->has_children = R_FALSE;
 
     entity->absolute_to_local_version = 0;
     entity->local_to_absolute_version = 0;
@@ -115,14 +115,20 @@ static r_status_t r_entity_init(r_state_t *rs, r_object_t *object)
     entity->color.ref           = R_OBJECT_REF_INVALID;
     entity->color.value.object  = (r_object_t*)(&r_color_white);
 
-    return status;
+    return R_SUCCESS;
 }
 
 static r_status_t r_entity_cleanup(r_state_t *rs, r_object_t *object)
 {
     r_entity_t *entity = (r_entity_t*)object;
+    r_status_t status = R_SUCCESS;
 
-    return r_entity_list_cleanup(rs, &entity->children);
+    if (entity->has_children)
+    {
+        status = r_entity_list_cleanup(rs, &entity->children);
+    }
+
+    return status;
 }
 
 r_object_header_t r_entity_header = { R_OBJECT_TYPE_ENTITY, sizeof(r_entity_t), R_TRUE, r_entity_fields, r_entity_init, NULL, NULL};
@@ -173,15 +179,31 @@ static int l_Entity_addChild(lua_State *ls)
     {
         /* Set parent */
         int parent_index = 1;
-        int child_index = 2;
-        r_entity_t *child = (r_entity_t*)lua_touserdata(ls, child_index);
+        r_entity_t *parent = (r_entity_t*)lua_touserdata(ls, parent_index);
 
-        status = r_object_ref_write(rs, (r_object_t*)child, &child->parent, R_OBJECT_TYPE_ENTITY, parent_index);
+        /* Initialize children list on demand, if necessary */
+        if (!parent->has_children)
+        {
+            status = r_entity_list_init(rs, &parent->children);
+
+            if (R_SUCCEEDED(status))
+            {
+                parent->has_children = R_TRUE;
+            }
+        }
 
         if (R_SUCCEEDED(status))
         {
-            /* Add to the list */
-            result_count = l_ZList_add_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children));
+            int child_index = 2;
+            r_entity_t *child = (r_entity_t*)lua_touserdata(ls, child_index);
+
+            status = r_object_ref_write(rs, (r_object_t*)child, &child->parent, R_OBJECT_TYPE_ENTITY, parent_index);
+
+            if (R_SUCCEEDED(status))
+            {
+                /* Add to the list */
+                result_count = l_ZList_add_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children));
+            }
         }
     }
 
@@ -204,14 +226,19 @@ static int l_Entity_removeChild(lua_State *ls)
     if (R_SUCCEEDED(status))
     {
         /* Clear parent reference */
-        r_entity_t *child = (r_entity_t*)lua_touserdata(ls, 2);
+        r_entity_t *parent = (r_entity_t*)lua_touserdata(ls, 1);
 
-        status = r_object_ref_write(rs, (r_object_t*)child, &child->parent, R_OBJECT_TYPE_ENTITY, 0);
-
-        if (R_SUCCEEDED(status))
+        if (parent->has_children)
         {
-            /* Remove from the list */
-            result_count = l_ZList_remove_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children), R_OBJECT_TYPE_ENTITY);
+            r_entity_t *child = (r_entity_t*)lua_touserdata(ls, 2);
+
+            status = r_object_ref_write(rs, (r_object_t*)child, &child->parent, R_OBJECT_TYPE_ENTITY, 0);
+
+            if (R_SUCCEEDED(status))
+            {
+                /* Remove from the list */
+                result_count = l_ZList_remove_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children), R_OBJECT_TYPE_ENTITY);
+            }
         }
     }
 
@@ -222,7 +249,29 @@ static int l_Entity_removeChild(lua_State *ls)
 
 static int l_Entity_forEachChild(lua_State *ls)
 {
-    return l_ZList_forEach_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children));
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TUSERDATA, R_OBJECT_TYPE_ENTITY },
+        { LUA_TFUNCTION, 0 }
+    };
+
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+    int result_count = 0;
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Clear parent reference */
+        r_entity_t *parent = (r_entity_t*)lua_touserdata(ls, 1);
+
+        if (parent->has_children)
+        {
+            result_count = l_ZList_forEach_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children));
+        }
+    }
+
+    lua_pop(ls, lua_gettop(ls) - result_count);
+
+    return result_count;
 }
 
 static int l_Entity_clearChildren(lua_State *ls)
@@ -239,20 +288,24 @@ static int l_Entity_clearChildren(lua_State *ls)
     {
         /* Clear parent references */
         r_entity_t *parent = (r_entity_t*)lua_touserdata(ls, 1);
-        unsigned int i;
 
-        for (i = 0; i < parent->children.object_list.count && R_SUCCEEDED(status); ++i)
+        if (parent->has_children)
         {
-            r_object_ref_t *entity_ref = &parent->children.object_list.items[i];
-            r_entity_t *child = (r_entity_t*)entity_ref->value.object;
+            unsigned int i;
 
-            status = r_object_ref_write(rs, (r_object_t*)child, &child->parent, R_OBJECT_TYPE_ENTITY, 0);
-        }
+            for (i = 0; i < parent->children.object_list.count && R_SUCCEEDED(status); ++i)
+            {
+                r_object_ref_t *entity_ref = &parent->children.object_list.items[i];
+                r_entity_t *child = (r_entity_t*)entity_ref->value.object;
 
-        if (R_SUCCEEDED(status))
-        {
-            /* Clear the list */
-            result_count = l_ZList_clear_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children));
+                status = r_object_ref_write(rs, (r_object_t*)child, &child->parent, R_OBJECT_TYPE_ENTITY, 0);
+            }
+
+            if (R_SUCCEEDED(status))
+            {
+                /* Clear the list */
+                result_count = l_ZList_clear_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children));
+            }
         }
     }
 
@@ -364,7 +417,7 @@ r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int diffe
     /* Update children, if necessary */
     if (R_SUCCEEDED(status))
     {
-        if (entity->children.object_list.count > 0)
+        if (entity->has_children && entity->children.object_list.count > 0)
         {
             status = r_entity_list_update(rs, &entity->children, difference_ms);
         }

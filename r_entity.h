@@ -39,6 +39,7 @@ typedef struct
     r_object_ref_t      parent;
 
     /* TODO: Should I ensure that there are no cycles in an entity graph? */
+    r_boolean_t         has_children;
     r_entity_list_t     children;
 
     /* Transformations between local and absolute coordinates--these are cached and only updated when necessary */

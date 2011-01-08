@@ -75,6 +75,7 @@ r_object_field_t r_entity_fields[] = {
     { "color",             LUA_TUSERDATA, R_OBJECT_TYPE_COLOR,        offsetof(r_entity_t, color),    R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, NULL },
     { "elements",          LUA_TUSERDATA, R_OBJECT_TYPE_ELEMENT_LIST, offsetof(r_entity_t, elements), R_TRUE,  R_OBJECT_INIT_OPTIONAL, r_element_list_field_init, NULL, NULL, NULL },
     { "update",            LUA_TFUNCTION, 0,                          offsetof(r_entity_t, update),   R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, NULL },
+    { "group",             LUA_TNUMBER,   0,                          offsetof(r_entity_t, group),    R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      r_object_field_read_unsigned_int, NULL, r_object_field_write_unsigned_int },
     { "mesh",              LUA_TUSERDATA, R_OBJECT_TYPE_MESH,         offsetof(r_entity_t, mesh),     R_TRUE,  R_OBJECT_INIT_EXCLUDED, NULL,                      NULL, NULL, NULL },
     { "parent",            LUA_TUSERDATA, R_OBJECT_TYPE_ENTITY,       offsetof(r_entity_t, parent),   R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL,                      NULL, NULL, NULL },
     { "addChild",          LUA_TFUNCTION, 0,                          0,                              R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_entity_ref_add_child, NULL },
@@ -114,6 +115,8 @@ static r_status_t r_entity_init(r_state_t *rs, r_object_t *object)
 
     entity->color.ref           = R_OBJECT_REF_INVALID;
     entity->color.value.object  = (r_object_t*)(&r_color_white);
+
+    entity->group = 0;
 
     return R_SUCCESS;
 }

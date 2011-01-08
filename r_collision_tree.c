@@ -530,7 +530,7 @@ static r_status_t r_collision_tree_update(r_state_t *rs, r_collision_tree_t *tre
     return status;
 }
 
-static r_status_t r_collision_tree_node_test(r_state_t *rs, r_collision_tree_node_t *node, r_collision_tree_entry_t *e1, const unsigned int *index, r_collision_handler_t collide, void *data)
+static r_status_t r_collision_tree_node_test(r_state_t *rs, r_collision_tree_node_t *node, r_boolean_t filter_either, const unsigned int group1, const unsigned int group2, r_collision_tree_entry_t *e1, const unsigned int *index, r_collision_handler_t collide, void *data)
 {
     r_status_t status = R_SUCCESS;
     unsigned int i;
@@ -542,13 +542,41 @@ static r_status_t r_collision_tree_node_test(r_state_t *rs, r_collision_tree_nod
 
         if (!e2->deleted)
         {
-            r_boolean_t intersect = R_FALSE;
+            r_boolean_t match_filter = !filter_either;
+            r_boolean_t reversed = R_FALSE;
+            const unsigned int e1group = e1->entity->group;
+            const unsigned int e2group = e2->entity->group;
 
-            status = r_collision_detector_intersect_entities(rs, e1->entity, e2->entity, &intersect);
-
-            if (R_SUCCEEDED(status) && intersect)
+            if (!match_filter)
             {
-                status = collide(rs, e1->entity, e2->entity, data);
+                if ((!group1 || (e1group & group1) != 0) && (!group2 || (e2group & group2) != 0))
+                {
+                    match_filter = R_TRUE;
+                }
+                else if ((!group2 || (e1group & group2) != 0) && (!group1 || (e2group & group1) != 0))
+                {
+                    match_filter = R_TRUE;
+                    reversed = R_TRUE;
+                }
+            }
+
+            if (match_filter)
+            {
+                r_boolean_t intersect = R_FALSE;
+
+                status = r_collision_detector_intersect_entities(rs, e1->entity, e2->entity, &intersect);
+
+                if (R_SUCCEEDED(status) && intersect)
+                {
+                    if (!reversed)
+                    {
+                        status = collide(rs, e1->entity, e2->entity, data);
+                    }
+                    else
+                    {
+                        status = collide(rs, e2->entity, e1->entity, data);
+                    }
+                }
             }
         }
     }
@@ -558,14 +586,14 @@ static r_status_t r_collision_tree_node_test(r_state_t *rs, r_collision_tree_nod
     {
         for (i = 0; i < R_COLLISION_TREE_CHILD_COUNT && !e1->deleted && R_SUCCEEDED(status); ++i)
         {
-            status = r_collision_tree_node_test(rs, &node->children[i], e1, NULL, collide, data);
+            status = r_collision_tree_node_test(rs, &node->children[i], filter_either, group1, group2, e1, NULL, collide, data);
         }
     }
 
     return status;
 }
 
-static r_status_t r_collision_tree_node_for_each_collision(r_state_t *rs, r_collision_tree_node_t *node, r_collision_handler_t collide, void *data)
+static r_status_t r_collision_tree_node_for_each_collision(r_state_t *rs, r_collision_tree_node_t *node, r_boolean_t filter_either, const unsigned int group1, const unsigned int group2, r_collision_handler_t collide, void *data)
 {
     r_status_t status = R_SUCCESS;
     unsigned int i;
@@ -575,9 +603,9 @@ static r_status_t r_collision_tree_node_for_each_collision(r_state_t *rs, r_coll
     {
         r_collision_tree_entry_t *e1 = r_collision_tree_entry_list_get_index(rs, &node->entries, i);
 
-        if (!e1->deleted)
+        if (!e1->deleted && (!filter_either || (e1->entity->group & (group1 | group2)) != 0))
         {
-            status = r_collision_tree_node_test(rs, node, e1, &i, collide, data);
+            status = r_collision_tree_node_test(rs, node, filter_either, group1, group2, e1, &i, collide, data);
         }
     }
 
@@ -586,7 +614,7 @@ static r_status_t r_collision_tree_node_for_each_collision(r_state_t *rs, r_coll
     {
         for (i = 0; i < R_COLLISION_TREE_CHILD_COUNT && R_SUCCEEDED(status); ++i)
         {
-            status = r_collision_tree_node_for_each_collision(rs, &node->children[i], collide, data);
+            status = r_collision_tree_node_for_each_collision(rs, &node->children[i], filter_either, group1, group2, collide, data);
         }
     }
 
@@ -687,15 +715,17 @@ r_status_t r_collision_tree_remove(r_state_t *rs, r_collision_tree_t *tree, r_en
     return status;
 }
 
-r_status_t r_collision_tree_for_each_collision(r_state_t *rs, r_collision_tree_t *tree, r_collision_handler_t collide, void *data)
+r_status_t r_collision_tree_for_each_collision(r_state_t *rs, r_collision_tree_t *tree, unsigned int group1, unsigned int group2, r_collision_handler_t collide, void *data)
 {
     /* First, validate all changed entries */
     r_status_t status = r_collision_tree_update(rs, tree);
 
     if (R_SUCCEEDED(status))
     {
+        const r_boolean_t filter_either = (group1 != 0 || group2 != 0);
+
         /* Now do the collision detection */
-        status = r_collision_tree_node_for_each_collision(rs, &tree->root, collide, data);
+        status = r_collision_tree_node_for_each_collision(rs, &tree->root, filter_either, group1, group2, collide, data);
     }
 
     return status;

@@ -1,3 +1,16 @@
+2011-01-08 deraj@users.sourceforge.net
+
+* r_object.h: Export functions for reading/writing unsigned int fields
+* r_object.c: Implemented helpers for reading/writing unsigned int fields
+
+* r_entity.h: Added "group" field to r_entity_t
+* r_entity.c: Expose Entity.group
+
+* r_collision_tree.h: Group filtering for r_collision_tree_for_each_collision
+* r_collision_tree.c: Collision tree now supports filtering based on group
+
+* r_collision_detector.c (l_CollisionDetector_forEachCollision): Opt. filters
+
 2011-01-06 deraj@users.sourceforge.net
 
 * r_collision_tree.h (r_collision_tree_entry_t): Added deleted flag

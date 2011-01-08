@@ -423,6 +423,34 @@ static r_status_t r_object_setup_environment(r_state_t *rs, r_object_t *object, 
     return status;
 }
 
+r_status_t r_object_field_read_unsigned_int(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value)
+{
+    r_status_t status = (rs != NULL && rs->script_state != NULL && object != NULL && field != NULL && value != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        lua_State *ls = rs->script_state;
+
+        lua_pushnumber(ls, (double)(*((unsigned int*)value)));
+    }
+
+    return status;
+}
+
+r_status_t r_object_field_write_unsigned_int(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value, int value_index)
+{
+    lua_State *ls = rs->script_state;
+    r_status_t status = (lua_type(ls, value_index) == LUA_TNUMBER) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
+
+    if (R_SUCCEEDED(status))
+    {
+        *((unsigned int*)value) = (unsigned int)(lua_tonumber(ls, value_index));
+    }
+
+    return status;
+}
+
 r_status_t r_object_field_write_default(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value, int value_index)
 {
     /* Write to the field, but first verify the type */

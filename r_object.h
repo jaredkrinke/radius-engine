@@ -98,6 +98,8 @@ typedef struct _r_object
     unsigned int            id;
 } r_object_t;
 
+extern r_status_t r_object_field_read_unsigned_int(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value);
+extern r_status_t r_object_field_write_unsigned_int(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value, int value_index);
 extern r_status_t r_object_field_write_default(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value, int value_index);
 
 extern r_status_t r_object_push(r_state_t *rs, r_object_t *object);

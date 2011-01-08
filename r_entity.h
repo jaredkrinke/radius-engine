@@ -63,6 +63,8 @@ typedef struct
     r_real_t            height;
     r_real_t            angle;
     r_object_ref_t      color;
+
+    unsigned int        group;
 } r_entity_t;
 
 extern r_status_t r_entity_setup(r_state_t *rs);

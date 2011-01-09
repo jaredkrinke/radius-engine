@@ -414,16 +414,25 @@ static int l_CollisionDetector_forEachCollision(lua_State *ls)
     if (R_SUCCEEDED(status))
     {
         const int argument_count = lua_gettop(ls);
-
         const int collision_detector_index = 1;
         const int function_index = 2;
-        const int group1 = (argument_count >= 3) ? ((unsigned int)lua_tonumber(ls, 3)) : 0;
-        const int group2 = (argument_count >= 4) ? ((unsigned int)lua_tonumber(ls, 4)) : 0;
-
         r_collision_detector_t *collision_detector = (r_collision_detector_t*)lua_touserdata(ls, collision_detector_index);
         r_collision_detector_for_each_args_t args = { ls, collision_detector, function_index };
 
-        status = r_collision_tree_for_each_collision(rs, &collision_detector->tree, group1, group2, r_collision_detector_for_each_callback, &args);
+
+        if (argument_count >= 3)
+        {
+            /* Group filtering */
+            const int group1 = (unsigned int)lua_tonumber(ls, 3);
+            const int group2 = (argument_count >= 4) ? ((unsigned int)lua_tonumber(ls, 4)) : 0;
+
+            status = r_collision_tree_for_each_collision_filtered(rs, &collision_detector->tree, group1, group2, r_collision_detector_for_each_callback, &args);
+        }
+        else
+        {
+            /* No filtering--just all collisions */
+            status = r_collision_tree_for_each_collision(rs, &collision_detector->tree, r_collision_detector_for_each_callback, &args);
+        }
     }
 
     lua_pop(ls, lua_gettop(ls));

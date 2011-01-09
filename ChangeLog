@@ -1,3 +1,13 @@
+2011-01-09 deraj@users.sourceforge.net
+
+* r_collision_detector.h: Removed unused type
+
+* r_collision_detector.c (l_CollisionDetector_forEachCollision): Use a
+    different iteration mechanism when filtering based on groups
+
+* r_collision_tree.h: Nodes track their parent, filtered collision test
+* r_collision_tree.c: Added filtered test that can process fewer entries
+
 2011-01-08 deraj@users.sourceforge.net
 
 * r_object.h: Export functions for reading/writing unsigned int fields
@@ -5,9 +15,6 @@
 
 * r_entity.h: Added "group" field to r_entity_t
 * r_entity.c: Expose Entity.group
-
-* r_collision_tree.h: Group filtering for r_collision_tree_for_each_collision
-* r_collision_tree.c: Collision tree now supports filtering based on group
 
 * r_collision_detector.c (l_CollisionDetector_forEachCollision): Opt. filters
 

@@ -32,13 +32,11 @@ THE SOFTWARE.
 /* "Signed area" of a triangle (> 0 implies counterclockwise ordering, < 0 implies clockwise, 0 implies colinear */
 #define R_TRIANGLE_SIGNED_AREA(p, q, r)    (((p)[0] - (r)[0]) * ((q)[1] - (r)[1]) - ((p)[1] - (r)[1]) * ((q)[0] - (r)[0]))
 
-typedef r_object_list_t r_collision_object_list_t;
-
 typedef struct
 {
-    r_object_t                  object;
-    r_collision_object_list_t   children;
-    r_collision_tree_t          tree;
+    r_object_t          object;
+    r_object_list_t     children;
+    r_collision_tree_t  tree;
 } r_collision_detector_t;
 
 extern r_status_t r_collision_detector_setup(r_state_t *rs);

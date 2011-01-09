@@ -51,6 +51,7 @@ typedef struct _r_collision_tree_node
     r_vector2d_t                    max;
     r_collision_tree_entry_list_t   entries;
 
+    struct _r_collision_tree_node   *parent;
     struct _r_collision_tree_node   *children;
 } r_collision_tree_node_t;
 
@@ -65,7 +66,8 @@ typedef r_status_t (*r_collision_handler_t)(r_state_t *rs, r_entity_t *e1, r_ent
 extern r_status_t r_collision_tree_init(r_state_t *rs, r_collision_tree_t *tree);
 extern r_status_t r_collision_tree_insert(r_state_t *rs, r_collision_tree_t *tree, r_entity_t *entity);
 extern r_status_t r_collision_tree_remove(r_state_t *rs, r_collision_tree_t *tree, r_entity_t *entity);
-extern r_status_t r_collision_tree_for_each_collision(r_state_t *rs, r_collision_tree_t *tree, unsigned int group1, unsigned int group2, r_collision_handler_t collide, void *data);
+extern r_status_t r_collision_tree_for_each_collision(r_state_t *rs, r_collision_tree_t *tree, r_collision_handler_t collide, void *data);
+extern r_status_t r_collision_tree_for_each_collision_filtered(r_state_t *rs, r_collision_tree_t *tree, unsigned int group1, unsigned int group2, r_collision_handler_t collide, void *data);
 extern r_status_t r_collision_tree_clear(r_state_t *rs, r_collision_tree_t *tree);
 extern r_status_t r_collision_tree_cleanup(r_state_t *rs, r_collision_tree_t *tree);
 

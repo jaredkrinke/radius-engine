@@ -1,3 +1,7 @@
+2011-01-15 deraj@users.sourceforge.net
+
+* r_video.c: Improvements to collision debugging
+
 2011-01-09 deraj@users.sourceforge.net
 
 * r_collision_detector.h: Removed unused type

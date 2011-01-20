@@ -1,3 +1,7 @@
+2011-01-18 deraj@users.sourceforge.net
+
+* r_audio.c: Clamp instead of overflow audio
+
 2011-01-15 deraj@users.sourceforge.net
 
 * r_video.c: Improvements to collision debugging

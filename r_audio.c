@@ -300,7 +300,7 @@ static r_status_t r_audio_music_set_volume_internal(r_state_t *rs, unsigned char
     return status;
 }
 
-static R_INLINE void r_audio_mix_channel_frame(int global_volume, int channel, Sint16 *sample, const Sint16 *clip_frame, int volume, int position)
+static R_INLINE void r_audio_mix_channel_frame(int global_volume, int channel, Sint32 *sample, const Sint16 *clip_frame, int volume, int position)
 {
     /* TODO: Some of these calculations can be skipped if position is min, zero, max or volume is max */
     const int fade_factor = ((int)R_AUDIO_POSITION_MAX) + ((channel == 0) ? -1 : 1) * position;
@@ -333,7 +333,7 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
                 /* Mix each channel for the frame */
                 for (channel = 0; channel < R_AUDIO_CHANNELS; ++channel)
                 {
-                    Sint16 sample = 0;
+                    Sint32 sample = 0;
                     unsigned int i = 0;
                     r_audio_clip_instance_t **clip_instances = (r_audio_clip_instance_t**)audio_state->clip_instances.items;
 
@@ -348,7 +348,7 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
                                 const Sint16 *clip_frame = (Sint16*)&((unsigned char*)data->data.cached.sample->buffer)[clip_instances[i]->state.cached.position];
 
                                 /* TODO: Most effects should probably be mono (and positioning does the rest...) */
-                                /* TODO: Check for clipping and avoid it */
+                                /* Clipping distortion is applied below (as opposed to integer overflow) */
                                 if (clip_instances[i]->volume > 0)
                                 {
                                     r_audio_mix_channel_frame(global_volume, channel, &sample, clip_frame, clip_instances[i]->volume, clip_instances[i]->position);
@@ -434,12 +434,13 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
                         }
                     }
 
-                    frame[channel] = sample;
+                    /* This adds a clipping distortion that, while not as good as a limiter, sounds fine */
+                    frame[channel] = R_CLAMP(sample, -32768, 32767);
                 }
             }
 
             /* Remove completed clips (volume = 0) */
-            /* TODO: This should queue all delets and do them in a loop */
+            /* TODO: This should queue all deletes and do them in a loop */
             for (i = 0; i < audio_state->clip_instances.count && R_SUCCEEDED(status); ++i)
             {
                 r_audio_clip_instance_t *clip_instance = ((r_audio_clip_instance_t**)audio_state->clip_instances.items)[i];

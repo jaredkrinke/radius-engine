@@ -289,7 +289,7 @@ r_status_t r_audio_clip_manager_load(r_state_t *rs, const char *audio_clip_path,
                 clip_data->type = R_AUDIO_CLIP_TYPE_CACHED;
 
                 clip_data->data.cached.sample = sample;
-                clip_data->data.cached.samples = samples;
+                clip_data->data.cached.samples = samples / R_AUDIO_BYTES_PER_SAMPLE;
                 sample = NULL;
             }
             else if (samples == sample->buffer_size)

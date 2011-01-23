@@ -1,3 +1,12 @@
+2011-01-20 deraj@users.sourceforge.net
+
+* r_audio.h: Renamed r_audio_clip_instance_t positions to indicate units
+* r_audio_decoder.h: Use samples instead of bytes for clip size
+* r_audio_decoder.c: Use samples instead of bytes for clip size
+* r_audio_clip_manager.c: Use samples instead of bytes for clip size
+
+* r_audio.c (r_audio_callback): Rewrote mixing for better data locality
+
 2011-01-18 deraj@users.sourceforge.net
 
 * r_audio.c: Clamp instead of overflow audio

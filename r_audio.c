@@ -35,7 +35,11 @@ THE SOFTWARE.
 #include "r_audio_clip_cache.h"
 #include "r_audio_decoder.h"
 
-#define R_AUDIO_BUFFER_LENGTH       2048
+#define R_AUDIO_BUFFER_FRAMES       2048
+
+/* (Global) Temporary audio buffer (note: each sample is twice as many bytes in this buffer to allow for accumulation) */
+/* TODO: This should be stored in r_state_t */
+int r_audio_buffer_temp[R_AUDIO_BUFFER_FRAMES * R_AUDIO_CHANNELS];
 
 /* Audio clip instance list data type */
 static void r_audio_clip_instance_ptr_null(r_state_t *rs, void *item)
@@ -121,7 +125,7 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
                 {
                 case R_AUDIO_CLIP_TYPE_CACHED:
                     /* Start at the beginning of the clip */
-                    clip_instance->state.cached.position = 0;
+                    clip_instance->state.cached.sample_index = 0;
                     break;
 
                 case R_AUDIO_CLIP_TYPE_ON_DEMAND:
@@ -154,13 +158,13 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
                                 /* Fill in on-demand clip fields */
                                 clip_instance->state.on_demand.sample                = sample;
                                 clip_instance->state.on_demand.buffer_index          = 0;
-                                clip_instance->state.on_demand.buffer_position       = 0;
+                                clip_instance->state.on_demand.sample_index          = 0;
 
                                 for (i = 0; i < R_AUDIO_CLIP_ON_DEMAND_BUFFERS; ++i)
                                 {
                                     clip_instance->state.on_demand.buffers[i] = buffers[i];
                                     clip_instance->state.on_demand.buffer_status[i] = RA_F_DECODE_PENDING;
-                                    clip_instance->state.on_demand.buffer_bytes[i] = 0;
+                                    clip_instance->state.on_demand.buffer_samples[i] = 0;
                                 }
 
                                 /* Schedule decoding tasks for each buffer */
@@ -171,7 +175,7 @@ static r_status_t r_audio_state_queue_clip_internal(r_state_t *rs, r_audio_state
                                                                                   clip_instance,
                                                                                   clip_instance->state.on_demand.buffers[i],
                                                                                   &clip_instance->state.on_demand.buffer_status[i],
-                                                                                  &clip_instance->state.on_demand.buffer_bytes[i]);
+                                                                                  &clip_instance->state.on_demand.buffer_samples[i]);
                                 }
                             }
 
@@ -300,13 +304,20 @@ static r_status_t r_audio_music_set_volume_internal(r_state_t *rs, unsigned char
     return status;
 }
 
-static R_INLINE void r_audio_mix_channel_frame(int global_volume, int channel, Sint32 *sample, const Sint16 *clip_frame, int volume, int position)
+/* First scale global and clip volume (denominator is 2 ^ 16 to ensure no loss of 16-bit sample data) */
+static R_INLINE int r_audio_compute_volume_numerator(const int global_volume, const int volume)
 {
-    /* TODO: Some of these calculations can be skipped if position is min, zero, max or volume is max */
-    const int fade_factor = ((int)R_AUDIO_POSITION_MAX) + ((channel == 0) ? -1 : 1) * position;
-
-    *sample += ((int)clip_frame[channel]) * global_volume / 256 * (((int)volume) + 1) / 256 * fade_factor / 256;
+    return global_volume * (((int)volume) + 1);
 }
+
+/* Then scale by channel volume (denominator is 2 ^ 8) */
+static R_INLINE int r_audio_compute_channel_numerator(const int channel, const int position)
+{
+    return (((int)R_AUDIO_POSITION_MAX) + ((channel == 0) ? -1 : 1) * position);
+}
+
+/* Scale a given sample using global volume, clip volume, and channel volume */
+#define R_AUDIO_SAMPLE_SCALE(sample, volume_numerator, channel_numerator) ((((volume_numerator) * (sample)) >> 16) * (channel_numerator)) >> 8
 
 static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
 {
@@ -317,126 +328,160 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
 
     if (R_SUCCEEDED(status))
     {
-        if (audio_state != NULL && rs->audio_volume > 0)
+        if (audio_state != NULL && rs->audio_volume > 0 && audio_state->clip_instances.count > 0)
         {
-            /* Mix each frame */
-            const unsigned int frames = bytes / (R_AUDIO_BYTES_PER_SAMPLE * R_AUDIO_CHANNELS);
-            unsigned int i;
+            /* Clear 32-bit buffer */
+            const unsigned int samples = bytes / R_AUDIO_BYTES_PER_SAMPLE;
+            r_audio_clip_instance_t ** const clip_instances = (r_audio_clip_instance_t**)audio_state->clip_instances.items;
+            Sint16 *buffer_samples = (Sint16*)buffer;
             int global_volume = (int)(rs->audio_volume) + 1;
+            unsigned int i;
 
-            /* TODO: This could certainly be optimized better */
-            for (i = 0; i < frames; ++i)
+            for (i = 0; i < samples; ++i)
             {
-                Sint16 *frame = (Sint16*)&buffer[i * R_AUDIO_BYTES_PER_SAMPLE * R_AUDIO_CHANNELS];
-                int channel = 0;
+                r_audio_buffer_temp[i] = 0;
+            }
 
-                /* Mix each channel for the frame */
-                for (channel = 0; channel < R_AUDIO_CHANNELS; ++channel)
+            /* Mix each clip */
+            for (i = 0; i < audio_state->clip_instances.count; ++i)
+            {
+                int volume_numerator = r_audio_compute_volume_numerator(global_volume, clip_instances[i]->volume);
+                int channel_numerators[] = {
+                    r_audio_compute_channel_numerator(0, clip_instances[i]->position),
+                    r_audio_compute_channel_numerator(1, clip_instances[i]->position)
+                };
+
+                switch (clip_instances[i]->clip_data->type)
                 {
-                    Sint32 sample = 0;
-                    unsigned int i = 0;
-                    r_audio_clip_instance_t **clip_instances = (r_audio_clip_instance_t**)audio_state->clip_instances.items;
-
-                    /* Mix all clip instances */
-                    for (i = 0; i < audio_state->clip_instances.count; ++i)
+                case R_AUDIO_CLIP_TYPE_CACHED:
                     {
-                        switch (clip_instances[i]->clip_data->type)
+                        const r_audio_clip_data_t * const data = clip_instances[i]->clip_data;
+                        const Sint16 *clip_samples = (Sint16*)data->data.cached.sample->buffer;
+                        const unsigned int clip_sample_count = data->data.cached.samples;
+                        const unsigned int clip_sample_index = clip_instances[i]->state.cached.sample_index;
+                        const r_boolean_t loop = ((clip_instances[i]->flags & R_AUDIO_CLIP_INSTANCE_FLAGS_LOOP) != 0) ? R_TRUE : R_FALSE;
+                        const unsigned int j_max = loop ? samples : R_MIN(samples, data->data.cached.samples - clip_sample_index);
+
+                        unsigned int j = 0;
+                        unsigned int k = clip_sample_index;
+
+                        while (j < j_max)
                         {
-                        case R_AUDIO_CLIP_TYPE_CACHED:
+                            /* TODO: Most effects should probably be mono (and positioning does the rest...) */
+                            /* Clipping distortion is applied outside these loops (as opposed to integer overflow) */
+                            const unsigned int channel = j & 0x00000001;
+
+                            r_audio_buffer_temp[j] += R_AUDIO_SAMPLE_SCALE(clip_samples[k], volume_numerator, channel_numerators[channel]);
+
+                            ++j;
+                            k = (k + 1) % clip_sample_count;
+                        }
+
+                        /* Update position */
+                        clip_instances[i]->state.cached.sample_index += j_max;
+
+                        /* Check for end of clip */
+                        if (clip_instances[i]->state.cached.sample_index >= clip_sample_count)
+                        {
+                            if ((clip_instances[i]->flags & R_AUDIO_CLIP_INSTANCE_FLAGS_LOOP) != 0)
                             {
-                                const r_audio_clip_data_t *data = clip_instances[i]->clip_data;
-                                const Sint16 *clip_frame = (Sint16*)&((unsigned char*)data->data.cached.sample->buffer)[clip_instances[i]->state.cached.position];
+                                /* Looping */
+                                clip_instances[i]->state.cached.sample_index = clip_instances[i]->state.cached.sample_index % clip_sample_count;
+                            }
+                            else
+                            {
+                                /* Not looping; set volume to zero */
+                                clip_instances[i]->volume = 0;
+                            }
+                        }
+                    }
+                    break;
 
-                                /* TODO: Most effects should probably be mono (and positioning does the rest...) */
-                                /* Clipping distortion is applied below (as opposed to integer overflow) */
-                                if (clip_instances[i]->volume > 0)
+                case R_AUDIO_CLIP_TYPE_ON_DEMAND:
+                    {
+                        r_audio_clip_instance_t *clip_instance = clip_instances[i];
+                        unsigned int buffer_index = clip_instance->state.on_demand.buffer_index;
+
+                        if (R_SUCCEEDED(clip_instance->state.on_demand.buffer_status[buffer_index]))
+                        {
+                            const Sint16 *clip_samples = (Sint16*)clip_instance->state.on_demand.buffers[buffer_index];
+                            unsigned int buffer_samples = clip_instance->state.on_demand.buffer_samples[buffer_index];
+                            unsigned int j;
+                            unsigned int k = clip_instance->state.on_demand.sample_index;
+
+                            for (j = 0; j < samples; ++j)
+                            {
+                                const unsigned int channel = j & 0x00000001;
+
+                                r_audio_buffer_temp[j] += R_AUDIO_SAMPLE_SCALE(clip_samples[k], volume_numerator, channel_numerators[channel]);
+                                ++k;
+
+                                if (k >= buffer_samples)
                                 {
-                                    r_audio_mix_channel_frame(global_volume, channel, &sample, clip_frame, clip_instances[i]->volume, clip_instances[i]->position);
-
-                                    /* Update clip instance's position if this is the last channel */
-                                    if (channel == (R_AUDIO_CHANNELS - 1))
+                                    if (clip_instance->state.on_demand.buffer_status[buffer_index] == RA_S_FULLY_DECODED
+                                        && (clip_instance->flags & R_AUDIO_CLIP_INSTANCE_FLAGS_LOOP) == 0)
                                     {
-                                        clip_instances[i]->state.cached.position += R_AUDIO_BYTES_PER_SAMPLE * R_AUDIO_CHANNELS;
-                                    }
-                                }
-
-                                /* Check for end of clip */
-                                if (clip_instances[i]->state.cached.position >= clip_instances[i]->clip_data->data.cached.samples)
-                                {
-                                    if ((clip_instances[i]->flags & R_AUDIO_CLIP_INSTANCE_FLAGS_LOOP) != 0)
-                                    {
-                                        /* Loop the clip by resetting position */
-                                        clip_instances[i]->state.cached.position = 0;
+                                        /* The entire clip has completed and the clip should not be looped */
+                                        clip_instance->volume = 0;
+                                        break;
                                     }
                                     else
                                     {
-                                        /* Not looping; set volume to zero */
-                                        clip_instances[i]->volume = 0;
-                                    }
-                                }
-                            }
-                            break;
+                                        /* End of a buffer has been reached, swap buffers and schedule decoding */
+                                        const unsigned int next_buffer_index = (buffer_index + 1) % R_AUDIO_CLIP_ON_DEMAND_BUFFERS;
 
-                        case R_AUDIO_CLIP_TYPE_ON_DEMAND:
-                            {
-                                r_audio_clip_instance_t *clip_instance = clip_instances[i];
-                                const unsigned int buffer_index = clip_instance->state.on_demand.buffer_index;
+                                        clip_instance->state.on_demand.buffer_status[buffer_index] = RA_F_DECODE_PENDING;
 
-                                if (R_SUCCEEDED(clip_instance->state.on_demand.buffer_status[buffer_index]))
-                                {
-                                    const Sint16 *clip_frame = (Sint16*)&((unsigned char*)clip_instance->state.on_demand.buffers[buffer_index])[clip_instance->state.on_demand.buffer_position];
-
-                                    if (clip_instance->volume > 0)
-                                    {
-                                        r_audio_mix_channel_frame(global_volume, channel, &sample, clip_frame, clip_instance->volume, clip_instance->position);
-
-                                        /* Update clip instance's position if this is the last channel */
-                                        if (channel == (R_AUDIO_CHANNELS - 1))
+                                        /* Schedule decoding of next block */
                                         {
-                                            clip_instance->state.on_demand.buffer_position += R_AUDIO_BYTES_PER_SAMPLE * R_AUDIO_CHANNELS;
+                                            r_status_t status_schedule = r_audio_decoder_schedule_decode_task(rs,
+                                                                                                              R_FALSE,
+                                                                                                              clip_instance,
+                                                                                                              clip_instance->state.on_demand.buffers[buffer_index],
+                                                                                                              &clip_instance->state.on_demand.buffer_status[buffer_index],
+                                                                                                              &clip_instance->state.on_demand.buffer_samples[buffer_index]);
+
+                                            if (R_FAILED(status_schedule))
+                                            {
+                                                /* Abort this clip completely since scheduling failed */
+                                                clip_instance->volume = 0;
+                                                break;
+                                            }
                                         }
-                                    }
 
-                                    if (clip_instance->state.on_demand.buffer_position >= clip_instance->state.on_demand.buffer_bytes[buffer_index])
-                                    {
-                                        if (clip_instance->state.on_demand.buffer_status[buffer_index] == RA_S_FULLY_DECODED
-                                            && (clip_instance->flags & R_AUDIO_CLIP_INSTANCE_FLAGS_LOOP) == 0)
+                                        /* Move to next buffer */
+                                        buffer_index = next_buffer_index;
+                                        clip_samples = (Sint16*)clip_instance->state.on_demand.buffers[buffer_index];
+                                        buffer_samples = clip_instance->state.on_demand.buffer_samples[buffer_index];
+                                        k = 0;
+
+                                        /* Check that new buffer is ready */
+                                        if (R_FAILED(clip_instance->state.on_demand.buffer_status[buffer_index]))
                                         {
-                                            /* The entire clip has completed and the clip should not be looped */
-                                            clip_instance->volume = 0;
-                                        }
-                                        else
-                                        {
-                                            /* End of a buffer has been reached, swap buffers and schedule decoding */
-                                            const unsigned int next_buffer_index = (buffer_index + 1) % R_AUDIO_CLIP_ON_DEMAND_BUFFERS;
-
-                                            clip_instance->state.on_demand.buffer_index = next_buffer_index;
-                                            clip_instance->state.on_demand.buffer_position = 0;
-
-                                            clip_instance->state.on_demand.buffer_status[buffer_index] = RA_F_DECODE_PENDING;
-
-                                            /* Schedule decoding of next block */
-                                            status = r_audio_decoder_schedule_decode_task(rs,
-                                                                                          R_FALSE,
-                                                                                          clip_instance,
-                                                                                          clip_instance->state.on_demand.buffers[buffer_index],
-                                                                                          &clip_instance->state.on_demand.buffer_status[buffer_index],
-                                                                                          &clip_instance->state.on_demand.buffer_bytes[buffer_index]);
+                                            /* Skip further decoding since the new buffer is not yet ready */
+                                            break;
                                         }
                                     }
                                 }
                             }
-                            break;
 
-                        default:
-                            R_ASSERT(0); /* Invalid clip type */
-                            break;
+                            /* Update position */
+                            clip_instance->state.on_demand.buffer_index = buffer_index;
+                            clip_instance->state.on_demand.sample_index = k;
                         }
                     }
+                    break;
 
-                    /* This adds a clipping distortion that, while not as good as a limiter, sounds fine */
-                    frame[channel] = R_CLAMP(sample, -32768, 32767);
+                default:
+                    R_ASSERT(0); /* Invalid clip type */
+                    break;
                 }
+            }
+
+            /* Clip each frame from the 32-bit buffer; this adds a clipping distortion that, while not as good as a limiter, sounds fine */
+            for (i = 0; i < samples; ++i)
+            {
+                buffer_samples[i] = R_CLAMP(r_audio_buffer_temp[i], -32768, 32767);
             }
 
             /* Remove completed clips (volume = 0) */
@@ -589,7 +634,10 @@ r_status_t r_audio_set_volume(r_state_t *rs, unsigned char volume)
                 desired_spec.freq = R_AUDIO_FREQUENCY;
                 desired_spec.format = R_AUDIO_FORMAT;
                 desired_spec.channels = R_AUDIO_CHANNELS;
-                desired_spec.samples = R_AUDIO_BUFFER_LENGTH;
+
+                /* Note: This sample count is actually the number of stereo frames */
+                desired_spec.samples = R_AUDIO_BUFFER_FRAMES;
+
                 desired_spec.callback = &r_audio_callback;
                 desired_spec.userdata = (void*)rs;
 

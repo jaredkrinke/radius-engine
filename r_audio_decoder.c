@@ -48,7 +48,7 @@ typedef struct
         {
             Sint16          *buffer;
             r_status_t      *status;
-            unsigned int    *bytes_decoded;
+            unsigned int    *samples_decoded;
         } decode;
 
         struct
@@ -203,10 +203,10 @@ static r_status_t r_audio_decoder_schedule_decode_task_internal(r_state_t *rs,
                                                                 r_audio_clip_instance_t *clip_instance,
                                                                 Sint16 *buffer,
                                                                 r_status_t *task_status,
-                                                                unsigned int *bytes_decoded)
+                                                                unsigned int *samples_decoded)
 {
     r_audio_decoder_t *decoder = (r_audio_decoder_t*)rs->audio_decoder;
-    r_status_t status = (rs != NULL && decoder != NULL && clip_instance != NULL && buffer != NULL && task_status != NULL && bytes_decoded != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    r_status_t status = (rs != NULL && decoder != NULL && clip_instance != NULL && buffer != NULL && task_status != NULL && samples_decoded != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
 
     R_ASSERT(R_SUCCEEDED(status));
 
@@ -214,11 +214,11 @@ static r_status_t r_audio_decoder_schedule_decode_task_internal(r_state_t *rs,
     {
         r_audio_decoder_task_t task;
 
-        task.type                       = R_AUDIO_DECODER_TASK_TYPE_DECODE;
-        task.clip_instance              = clip_instance;
-        task.data.decode.buffer         = buffer;
-        task.data.decode.status         = task_status;
-        task.data.decode.bytes_decoded  = bytes_decoded;
+        task.type                           = R_AUDIO_DECODER_TASK_TYPE_DECODE;
+        task.clip_instance                  = clip_instance;
+        task.data.decode.buffer             = buffer;
+        task.data.decode.status             = task_status;
+        task.data.decode.samples_decoded    = samples_decoded;
 
         status = r_audio_decoder_schedule_task_internal(rs, decoder, lock_audio, lock_decoder, &task);
     }
@@ -295,7 +295,7 @@ static r_status_t r_audio_decoder_process_task(r_state_t *rs, r_audio_decoder_t 
                 /* Propagate status */
                 if (R_SUCCEEDED(status))
                 {
-                    *(task->data.decode.bytes_decoded) = bytes_decoded;
+                    *(task->data.decode.samples_decoded) = bytes_decoded / R_AUDIO_BYTES_PER_SAMPLE;
 
                     if (!decoded || (sample->flags & SOUND_SAMPLEFLAG_EOF) != 0)
                     {
@@ -353,14 +353,14 @@ static r_status_t r_audio_decoder_process_task(r_state_t *rs, r_audio_decoder_t 
                                                                                task->clip_instance,
                                                                                task->clip_instance->state.on_demand.buffers[i],
                                                                                &task->clip_instance->state.on_demand.buffer_status[i],
-                                                                               &task->clip_instance->state.on_demand.buffer_bytes[i]);
+                                                                               &task->clip_instance->state.on_demand.buffer_samples[i]);
                     }
 
                     if (R_SUCCEEDED(status))
                     {
                         /* Move to the first buffer immediately */
                         task->clip_instance->state.on_demand.buffer_index = 0;
-                        task->clip_instance->state.on_demand.buffer_position = 0;
+                        task->clip_instance->state.on_demand.sample_index = 0;
                     }
 
                     r_audio_decoder_unlock(decoder);
@@ -548,9 +548,9 @@ r_status_t r_audio_decoder_stop(r_state_t *rs)
     return status;
 }
 
-r_status_t r_audio_decoder_schedule_decode_task(r_state_t *rs, r_boolean_t lock_audio, r_audio_clip_instance_t *clip_instance, Sint16 *buffer, r_status_t *task_status, unsigned int *bytes_decoded)
+r_status_t r_audio_decoder_schedule_decode_task(r_state_t *rs, r_boolean_t lock_audio, r_audio_clip_instance_t *clip_instance, Sint16 *buffer, r_status_t *task_status, unsigned int *samples_decoded)
 {
-    return r_audio_decoder_schedule_decode_task_internal(rs, lock_audio, R_TRUE, clip_instance, buffer, task_status, bytes_decoded);
+    return r_audio_decoder_schedule_decode_task_internal(rs, lock_audio, R_TRUE, clip_instance, buffer, task_status, samples_decoded);
 }
 
 r_status_t r_audio_decoder_schedule_seek_task(r_state_t *rs, r_boolean_t lock_audio, r_audio_clip_instance_t *clip_instance, unsigned int ms)

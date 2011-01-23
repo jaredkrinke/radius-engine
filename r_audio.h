@@ -2,7 +2,7 @@
 #define __R_AUDIO_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -88,7 +88,8 @@ typedef struct
     {
         struct
         {
-            Uint32 position;
+            /* TODO: Rename to better indicate units (bytes, samples, frames, etc.)... */
+            Uint32 sample_index;
         } cached;
 
         struct
@@ -96,9 +97,9 @@ typedef struct
             Sound_Sample    *sample;
             Sint16          *buffers[R_AUDIO_CLIP_ON_DEMAND_BUFFERS];
             r_status_t      buffer_status[R_AUDIO_CLIP_ON_DEMAND_BUFFERS];
-            unsigned int    buffer_bytes[R_AUDIO_CLIP_ON_DEMAND_BUFFERS];
+            unsigned int    buffer_samples[R_AUDIO_CLIP_ON_DEMAND_BUFFERS];
             unsigned int    buffer_index;
-            Uint32          buffer_position;
+            Uint32          sample_index;
         } on_demand;
     } state;
 } r_audio_clip_instance_t;

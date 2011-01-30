@@ -1,3 +1,7 @@
+2011-01-29 deraj@users.sourceforge.net
+
+* r_collision_detector.h: Removed unused header
+
 2011-01-20 deraj@users.sourceforge.net
 
 * r_audio.h: Renamed r_audio_clip_instance_t positions to indicate units

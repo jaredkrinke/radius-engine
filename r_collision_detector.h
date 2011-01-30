@@ -26,7 +26,6 @@ THE SOFTWARE.
 #include "r_object.h"
 #include "r_object_list.h"
 #include "r_entity.h"
-#include "r_list.h"
 #include "r_collision_tree.h"
 
 /* "Signed area" of a triangle (> 0 implies counterclockwise ordering, < 0 implies clockwise, 0 implies colinear */

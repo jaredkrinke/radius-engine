@@ -889,7 +889,8 @@ static r_status_t r_video_draw_entity(r_state_t *rs, r_entity_t *entity)
                     /* Draw all elements */
                     for (i = 0; i < element_list->object_list.count && R_SUCCEEDED(status); ++i)
                     {
-                        r_element_t *element = (r_element_t*)element_list->object_list.items[i].value.object;
+                        /* Assume the entity list is not locked (it shouldn't be when drawing) */
+                        r_element_t *element = (r_element_t*)element_list->object_list.items[i].object_ref.value.object;
 
                         status = r_video_draw_element(rs, element);
                     }
@@ -930,7 +931,8 @@ static r_status_t r_video_draw_entity_list(r_state_t *rs, r_entity_list_t *entit
         for (i = 0; i < entity_list->object_list.count && R_SUCCEEDED(status); ++i)
         {
             /* Get the entity */
-            r_object_ref_t *entity_ref = &entity_list->object_list.items[i];
+            /* Assume the entity list is not locked (it shouldn't be when drawing) */
+            r_object_ref_t *entity_ref = &entity_list->object_list.items[i].object_ref;
             r_entity_t *entity = (r_entity_t*)entity_ref->value.object;
 
             status = r_video_draw_entity(rs, entity);
@@ -1009,7 +1011,8 @@ static r_status_t r_video_draw_collision_detector(r_state_t *rs, r_collision_det
     /* Draw meshes for all children */
     for (i = 0; i < collision_detector->children.count && R_SUCCEEDED(status); ++i)
     {
-        r_entity_t *entity = (r_entity_t*)collision_detector->children.items[i].value.object;
+        /* Assume the entity list is not locked (it shouldn't be when drawing) */
+        r_entity_t *entity = (r_entity_t*)collision_detector->children.items[i].object_ref.value.object;
         r_mesh_t *mesh = (r_mesh_t*)entity->mesh.value.object;
 
         if (mesh != NULL)

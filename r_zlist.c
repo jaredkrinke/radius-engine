@@ -31,25 +31,22 @@ THE SOFTWARE.
 static R_INLINE r_status_t r_zlist_sort_insert(r_state_t *rs, r_object_list_t *object_list, int insert_index)
 {
     /* Insert an item into the already-ordered sublist preceding the item */
-    int compare_index = insert_index - 1;
-
-    while (compare_index >= 0)
+    while (insert_index > 0)
     {
         r_zlist_t *zlist = (r_zlist_t*)object_list;
-        r_object_ref_t *insert_item = &zlist->object_list.items[insert_index];
-        r_object_ref_t *compare_item = &zlist->object_list.items[compare_index];
+        r_object_list_item_t *insert_item = &zlist->object_list.items[insert_index];
+        r_object_list_item_t *compare_item = &zlist->object_list.items[insert_index - 1];
 
-        if (zlist->item_compare(insert_item->value.object, compare_item->value.object) < 0)
+        if (zlist->item_compare(insert_item->object_ref.value.object, compare_item->object_ref.value.object) < 0)
         {
-            r_object_ref_swap(insert_item, compare_item);
-            insert_index = compare_index;
+            r_object_list_item_swap(insert_item, compare_item);
         }
         else
         {
             break;
         }
 
-        compare_index--;
+        insert_index--;
     }
 
     return R_SUCCESS;
@@ -61,9 +58,9 @@ int l_ZList_add_internal(lua_State *ls, r_object_type_t parent_type, int zlist_o
     return l_ObjectList_add_internal(ls, parent_type, zlist_offset, r_zlist_sort_insert);
 }
 
-int l_ZList_forEach_internal(lua_State *ls, r_object_type_t parent_type, int zlist_offset)
+int l_ZList_forEach_internal(lua_State *ls, r_object_type_t parent_type, int zlist_offset, r_object_type_t item_type)
 {
-    return l_ObjectList_forEach_internal(ls, parent_type, zlist_offset);
+    return l_ObjectList_forEach_internal(ls, parent_type, zlist_offset, item_type);
 }
 
 int l_ZList_remove_internal(lua_State *ls, r_object_type_t parent_type, int zlist_offset, r_object_type_t item_type)
@@ -114,4 +111,14 @@ r_status_t r_zlist_process_arguments(r_state_t *rs, r_object_t *object, int argu
 r_status_t r_zlist_cleanup(r_state_t *rs, r_object_t *object, r_object_type_t list_type)
 {
     return r_object_list_cleanup(rs, object, list_type);
+}
+
+r_status_t r_zlist_lock(r_state_t *rs, r_object_t *parent, r_zlist_t *zlist)
+{
+    return r_object_list_lock(rs, parent, (r_object_list_t*)zlist);
+}
+
+r_zlist_unlock(r_state_t *rs, r_object_t *parent, r_zlist_t *zlist)
+{
+    return r_object_list_unlock(rs, parent, (r_object_list_t*)zlist, r_zlist_sort_insert);
 }

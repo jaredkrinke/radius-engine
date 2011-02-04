@@ -55,13 +55,65 @@ r_status_t r_entity_list_update(r_state_t *rs, r_entity_list_t *entity_list, uns
     if (R_SUCCEEDED(status))
     {
         unsigned int i;
+        r_boolean_t locked = (entity_list->object_list.locks > 0);
 
         /* Update each entity */
         for (i = 0; i < entity_list->object_list.count && R_SUCCEEDED(status); ++i)
         {
-            r_entity_t *entity = (r_entity_t*)entity_list->object_list.items[i].value.object;
+            if (!locked || entity_list->object_list.items[i].valid)
+            {
+                r_entity_t *entity = (r_entity_t*)entity_list->object_list.items[i].object_ref.value.object;
 
-            status = r_entity_update(rs, entity, difference_ms);
+                status = r_entity_update(rs, entity, difference_ms);
+            }
+        }
+    }
+
+    return status;
+}
+
+r_status_t r_entity_list_lock(r_state_t *rs, r_entity_list_t *entity_list)
+{
+    r_status_t status = (rs != NULL && rs->script_state != NULL && entity_list != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        unsigned int i;
+        r_boolean_t locked = (entity_list->object_list.locks > 0);
+
+        for (i = 0; i < entity_list->object_list.count && R_SUCCEEDED(status); ++i)
+        {
+            if (!locked || entity_list->object_list.items[i].valid)
+            {
+                r_entity_t *entity = (r_entity_t*)entity_list->object_list.items[i].object_ref.value.object;
+
+                status = r_entity_lock(rs, entity);
+            }
+        }
+    }
+
+    return status;
+}
+
+r_status_t r_entity_list_unlock(r_state_t *rs, r_entity_list_t *entity_list)
+{
+    r_status_t status = (rs != NULL && rs->script_state != NULL && entity_list != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        unsigned int i;
+        r_boolean_t locked = (entity_list->object_list.locks > 0);
+
+        for (i = 0; i < entity_list->object_list.count && R_SUCCEEDED(status); ++i)
+        {
+            if (!locked || entity_list->object_list.items[i].valid)
+            {
+                r_entity_t *entity = (r_entity_t*)entity_list->object_list.items[i].object_ref.value.object;
+
+                status = r_entity_unlock(rs, entity);
+            }
         }
     }
 

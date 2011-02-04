@@ -23,6 +23,7 @@ THE SOFTWARE.
 #include <lua.h>
 #include <lauxlib.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "r_assert.h"
 #include "r_object_list.h"
@@ -33,34 +34,42 @@ THE SOFTWARE.
 #define R_OBJECT_LIST_DEFAULT_ALLOCATED    (8)
 #define R_OBJECT_LIST_SCALING_FACTOR       (2)
 
-static void r_object_ref_copy(r_state_t *rs, r_object_ref_t *to, const r_object_ref_t *from)
+static void r_object_list_item_copy(r_state_t *rs, r_object_list_item_t *to, const r_object_list_item_t *from)
 {
-    to->ref = from->ref;
-    to->value.pointer = from->value.pointer;
+    memcpy(to, from, sizeof(r_object_list_item_t));
 }
 
-static void r_object_ref_null(r_state_t *rs, r_object_ref_t *object_ref)
+static void r_object_list_item_null(r_state_t *rs, r_object_list_item_t *item)
 {
-    object_ref->ref = R_OBJECT_REF_INVALID;
-    object_ref->value.pointer = NULL;
+    item->valid = R_FALSE;
+    item->op = R_OBJECT_LIST_OP_NONE;
+    r_object_ref_init(&item->object_ref);
 }
 
 /* TODO: Order all helper functions before exported functions */
-void r_object_ref_swap(r_object_ref_t *a, r_object_ref_t *b)
+void r_object_list_item_swap(r_object_list_item_t *a, r_object_list_item_t *b)
 {
     /* Use XOR swap (only valid if addresses differ) */
     void *tmp;
 
     R_ASSERT(a != b);
 
-    a->ref      ^= b->ref;
-    b->ref      ^= a->ref;
-    a->ref      ^= b->ref;
+    a->valid ^= b->valid;
+    b->valid ^= a->valid;
+    a->valid ^= b->valid;
+
+    a->op ^= b->op;
+    b->op ^= a->op;
+    a->op ^= b->op;
+
+    a->object_ref.ref ^= b->object_ref.ref;
+    b->object_ref.ref ^= a->object_ref.ref;
+    a->object_ref.ref ^= b->object_ref.ref;
 
     /* Avoid bit arithmetic on pointers */
-    tmp = a->value.pointer;
-    a->value.pointer = b->value.pointer;
-    b->value.pointer = tmp;
+    tmp = a->object_ref.value.pointer;
+    a->object_ref.value.pointer = b->object_ref.value.pointer;
+    b->object_ref.value.pointer = tmp;
 }
 
 /* TODO: Check all script functions to ensure errors are reported somehow! */
@@ -73,7 +82,7 @@ static r_status_t r_object_list_add(r_state_t *rs, r_object_t *parent, r_object_
     {
         /* Allocate a larger array */
         unsigned int new_allocated = object_list->allocated * R_OBJECT_LIST_SCALING_FACTOR;
-        r_object_ref_t *new_items = (r_object_ref_t*)malloc(new_allocated * sizeof(r_object_ref_t));
+        r_object_list_item_t *new_items = (r_object_list_item_t*)malloc(new_allocated * sizeof(r_object_list_item_t));
 
         status = (new_items != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
 
@@ -84,13 +93,12 @@ static r_status_t r_object_list_add(r_state_t *rs, r_object_t *parent, r_object_
 
             for (i = 0; i < object_list->count; ++i)
             {
-                new_items[i].ref = object_list->items[i].ref;
-                new_items[i].value.object = object_list->items[i].value.object;
+                r_object_list_item_copy(rs, &new_items[i], &object_list->items[i]);
             }
 
             for (i = object_list->count; i < new_allocated; ++i)
             {
-                r_object_ref_init(&new_items[i]);
+                r_object_list_item_null(rs, &new_items[i]);
             }
 
             /* Replace old data */
@@ -103,21 +111,30 @@ static r_status_t r_object_list_add(r_state_t *rs, r_object_t *parent, r_object_
     if (R_SUCCEEDED(status))
     {
         r_object_t *owner = (parent != NULL) ? parent : (r_object_t*)object_list;
+        r_object_list_item_t *const item = &object_list->items[object_list->count];
 
-        status = r_object_ref_write(rs, owner, &object_list->items[object_list->count], object_list->item_type, item_index);
+        status = r_object_ref_write(rs, owner, &item->object_ref, object_list->item_type, item_index);
 
         if (R_SUCCEEDED(status))
         {
             object_list->count = object_list->count + 1;
 
-            if (insert != NULL)
+            if (object_list->locks <= 0)
             {
-                status = insert(rs, object_list, object_list->count - 1);
-            }
+                /* Immediately add the item and insert, if necessary */
+                item->valid = R_TRUE;
+                item->op = R_OBJECT_LIST_OP_NONE;
 
-            if (R_FAILED(status))
+                if (insert != NULL)
+                {
+                    status = insert(rs, object_list, object_list->count - 1);
+                }
+            }
+            else
             {
-                /* TODO: Handle failure here */
+                /* Queue the item for addition (and insertion) */
+                item->valid = R_FALSE;
+                item->op = R_OBJECT_LIST_OP_ADD;
             }
         }
     }
@@ -132,26 +149,36 @@ static r_status_t r_object_list_remove(r_state_t *rs, r_object_t *parent, r_obje
 
     if (R_SUCCEEDED(status))
     {
-        /* Clear the reference */
-        r_object_t *owner = (parent != NULL) ? parent : (r_object_t*)object_list;
+        R_ASSERT(object_list->items[item].valid);
 
-        status = r_object_ref_clear(rs, owner, &object_list->items[item]);
-
-        if (R_SUCCEEDED(status))
+        if (object_list->locks <= 0)
         {
-            /* Shift down remaining items */
-            unsigned int i;
+            /* Clear the reference and shift down remaining items */
+            r_object_t *owner = (parent != NULL) ? parent : (r_object_t*)object_list;
 
-            for (i = item; i < object_list->count - 1; ++i)
+            status = r_object_ref_clear(rs, owner, &object_list->items[item].object_ref);
+
+            if (R_SUCCEEDED(status))
             {
-                r_object_ref_copy(rs, &object_list->items[i], &object_list->items[i + 1]);
+                /* Shift down remaining items */
+                unsigned int i;
+
+                for (i = item; i < object_list->count - 1; ++i)
+                {
+                    r_object_list_item_copy(rs, &object_list->items[i], &object_list->items[i + 1]);
+                }
+
+                /* Make sure any trailing items are nulled out */
+                r_object_list_item_null(rs, &object_list->items[object_list->count - 1]);
+
+                /* Decrement count */
+                object_list->count = object_list->count - 1;
             }
-
-            /* Make sure any trailing reference is NULL */
-            r_object_ref_null(rs, &object_list->items[object_list->count - 1]);
-
-            /* Decrement count */
-            object_list->count = object_list->count - 1;
+        }
+        else
+        {
+            /* Queue the item for removal */
+            object_list->items[item].op = R_OBJECT_LIST_OP_REMOVE;
         }
     }
 
@@ -163,14 +190,18 @@ static r_status_t r_object_list_find(r_state_t *rs, r_object_list_t *object_list
     /* Find the item by a linear scan */
     r_status_t status = R_F_NOT_FOUND;
     unsigned int i;
+    r_boolean_t locked = (object_list->locks > 0);
 
     for (i = 0; i < object_list->count; ++i)
     {
-        if (object == object_list->items[i].value.object)
+        if (!locked || object_list->items[i].valid)
         {
-            *index = i;
-            status = R_SUCCESS;
-            break;
+            if (object == object_list->items[i].object_ref.value.object)
+            {
+                *index = i;
+                status = R_SUCCESS;
+                break;
+            }
         }
     }
 
@@ -181,14 +212,30 @@ static r_status_t r_object_list_clear(r_state_t *rs, r_object_t *parent, r_objec
 {
     r_status_t status = R_SUCCESS;
 
-    /* Don't clear if there are no items (avoiding underflow for i) */
-    if (object_list->count > 0)
+    if (object_list->locks <= 0)
     {
+        /* Don't clear if there are no items (avoiding underflow for i) */
+        if (object_list->count > 0)
+        {
+            unsigned int i;
+
+            for (i = object_list->count - 1; object_list->count > 0 && R_SUCCEEDED(status); --i)
+            {
+                status = r_object_list_remove(rs, parent, object_list, i);
+            }
+        }
+    }
+    else
+    {
+        /* Queue all valid items for removal */
         unsigned int i;
 
-        for (i = object_list->count - 1; object_list->count > 0 && R_SUCCEEDED(status); --i)
+        for (i = 0; i < object_list->count; ++i)
         {
-            status = r_object_list_remove(rs, parent, object_list, i);
+            if (object_list->items[i].valid)
+            {
+                object_list->items[i].op = R_OBJECT_LIST_OP_REMOVE;
+            }
         }
     }
 
@@ -250,7 +297,7 @@ int l_ObjectList_add_internal(lua_State *ls, r_object_type_t parent_type, int ob
     return result_count;
 }
 
-int l_ObjectList_forEach_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset)
+int l_ObjectList_forEach_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset, r_object_type_t item_type)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -283,19 +330,27 @@ int l_ObjectList_forEach_internal(lua_State *ls, r_object_type_t parent_type, in
             /* Iterate through items and apply function */
             r_object_list_t *object_list = (r_object_list_t*)(((r_byte_t*)parent) + object_list_offset);
             unsigned int i;
+            r_boolean_t locked = (object_list->locks > 0);
 
             for (i = 0; i < object_list->count && R_SUCCEEDED(status); ++i)
             {
-                lua_pushvalue(ls, function_index);
-                status = r_object_ref_push(rs, parent, &object_list->items[i]);
+                if (!locked || object_list->items[i].valid)
+                {
+                    lua_pushvalue(ls, function_index);
+                    status = r_object_ref_push(rs, parent, &object_list->items[i].object_ref);
 
-                if (R_SUCCEEDED(status))
-                {
-                    status = r_script_call(rs, 1, 0);
-                }
-                else
-                {
-                    lua_pop(ls, 1);
+                    if (R_SUCCEEDED(status))
+                    {
+                        /* Verify child type */
+                        R_ASSERT(lua_isuserdata(ls, -1));
+                        R_ASSERT(((r_object_t*)lua_touserdata(ls, -1))->header->type == item_type);
+
+                        status = r_script_call(rs, 1, 0);
+                    }
+                    else
+                    {
+                        lua_pop(ls, 1);
+                    }
                 }
             }
         }
@@ -346,23 +401,48 @@ int l_ObjectList_pop_internal(lua_State *ls, r_object_type_t parent_type, int ob
             if (R_SUCCEEDED(status))
             {
                 /* Push the last item and remove it from the list */
-                const unsigned int item = object_list->count - 1;
+                unsigned int item = object_list->count - 1;
+                r_boolean_t valid = R_TRUE;
 
-                status = r_object_ref_push(rs, parent, &object_list->items[item]);
-
-                if (R_SUCCEEDED(status))
+                /* If the object list is locked, then scan for last valid */
+                if (object_list->locks > 0)
                 {
-                    status = r_object_list_remove(rs, parent, object_list, item);
+                    valid = R_FALSE;
+
+                    while (item >= 0)
+                    {
+                        if (object_list->items[item].valid)
+                        {
+                            valid = R_TRUE;
+                            break;
+                        }
+
+                        --item;
+                    }
+                }
+
+                if (valid)
+                {
+                    status = r_object_ref_push(rs, parent, &object_list->items[item].object_ref);
 
                     if (R_SUCCEEDED(status))
                     {
-                        lua_insert(ls, 1);
-                        result_count = 1;
+                        status = r_object_list_remove(rs, parent, object_list, item);
+
+                        if (R_SUCCEEDED(status))
+                        {
+                            lua_insert(ls, 1);
+                            result_count = 1;
+                        }
+                        else
+                        {
+                            lua_pop(ls, 1);
+                        }
                     }
-                    else
-                    {
-                        lua_pop(ls, 1);
-                    }
+                }
+                else
+                {
+                    status = RS_F_INVALID_INDEX;
                 }
             }
         }
@@ -430,7 +510,7 @@ int l_ObjectList_add(lua_State *ls, r_object_type_t list_type, r_object_list_ins
 
 int l_ObjectList_forEach(lua_State *ls, r_object_type_t list_type)
 {
-    return l_ObjectList_forEach_internal(ls, list_type, 0);
+    return l_ObjectList_forEach_internal(ls, list_type, 0, list_type);
 }
 
 int l_ObjectList_pop(lua_State *ls, r_object_type_t list_type)
@@ -455,9 +535,10 @@ r_status_t r_object_list_init(r_state_t *rs, r_object_t *object, r_object_type_t
 
     object_list->item_type  = item_type;
 
+    object_list->locks      = 0;
     object_list->count      = 0;
     object_list->allocated  = R_OBJECT_LIST_DEFAULT_ALLOCATED;
-    object_list->items      = (r_object_ref_t*)malloc(object_list->allocated * sizeof(r_object_ref_t));
+    object_list->items      = (r_object_list_item_t*)malloc(object_list->allocated * sizeof(r_object_list_item_t));
 
     status = (object_list->items != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
 
@@ -467,7 +548,7 @@ r_status_t r_object_list_init(r_state_t *rs, r_object_t *object, r_object_type_t
 
         for (i = 0; i < object_list->allocated; ++i)
         {
-            r_object_ref_init(&object_list->items[i]);
+            r_object_list_item_null(rs, &object_list->items[i]);
         }
     }
 
@@ -521,6 +602,94 @@ r_status_t r_object_list_cleanup(r_state_t *rs, r_object_t *object, r_object_typ
         if (object_list->items != NULL)
         {
             free(object_list->items);
+        }
+    }
+
+    return status;
+}
+
+r_status_t r_object_list_lock(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list)
+{
+    object_list->locks++;
+
+    return R_SUCCESS;
+}
+
+r_status_t r_object_list_unlock(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, r_object_list_insert_function_t insert)
+{
+    r_status_t status = R_SUCCESS;
+
+    R_ASSERT(object_list->locks > 0);
+    object_list->locks--;
+
+    if (object_list->locks == 0)
+    {
+        /* Commit changes */
+        r_object_t *owner = (parent != NULL) ? parent : (r_object_t*)object_list;
+        unsigned int i;
+        unsigned int removed_count = 0;
+
+        for (i = 0; i < object_list->count && R_SUCCEEDED(status); ++i)
+        {
+            r_boolean_t removed = R_FALSE;
+
+            /* If this item is being removed, this index will be re-processed */
+            do
+            {
+                r_object_list_item_t *item = &object_list->items[i + removed_count];
+                r_boolean_t added = R_FALSE;
+
+                removed = R_FALSE;
+
+                switch (item->op)
+                {
+                case R_OBJECT_LIST_OP_ADD:
+                    R_ASSERT(!item->valid);
+
+                    /* Mark as valid */
+                    item->valid = R_TRUE;
+                    item->op = R_OBJECT_LIST_OP_NONE;
+                    added = R_TRUE;
+                    break;
+
+                case R_OBJECT_LIST_OP_REMOVE:
+                    R_ASSERT(item->valid);
+
+                    /* Clear reference */
+                    status = r_object_ref_clear(rs, owner, &item->object_ref);
+
+                    /* Mark as removed (so this isn't copied), increment removal count (for subsequent copies), decrement total count */
+                    removed = R_TRUE;
+                    removed_count++;
+                    object_list->count--;
+                    break;
+
+                case R_OBJECT_LIST_OP_NONE:
+                    R_ASSERT(item->valid);
+                    break;
+                }
+
+                if (R_SUCCEEDED(status))
+                {
+                    /* Only shift down (copy) when not being removed */
+                    if (!removed && removed_count > 0)
+                    {
+                        r_object_list_item_copy(rs, &object_list->items[i], item);
+                    }
+
+                    /* If this item was newly added, it must now be inserted in sorted order */
+                    if (added && insert != NULL)
+                    {
+                        status = insert(rs, object_list, i);
+                    }
+                }
+            } while (removed && i < object_list->count && R_SUCCEEDED(status));
+        }
+
+        /* Clear all trailing items */
+        for (i = object_list->count; i < object_list->count + removed_count; ++i)
+        {
+            r_object_list_item_null(rs, &object_list->items[i]);
         }
     }
 

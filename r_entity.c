@@ -40,7 +40,10 @@ static void r_entity_increment_version(r_entity_t *entity)
 
         for (i = 0; i < entity->children.object_list.count; ++i)
         {
-            r_entity_increment_version((r_entity_t*)entity->children.object_list.items[i].value.object);
+            if (entity->children.object_list.items[i].object_ref.ref != R_OBJECT_REF_INVALID)
+            {
+                r_entity_increment_version((r_entity_t*)entity->children.object_list.items[i].object_ref.value.object);
+            }
         }
     }
 }
@@ -263,12 +266,18 @@ static int l_Entity_forEachChild(lua_State *ls)
 
     if (R_SUCCEEDED(status))
     {
-        /* Clear parent reference */
         r_entity_t *parent = (r_entity_t*)lua_touserdata(ls, 1);
 
         if (parent->has_children)
         {
-            result_count = l_ZList_forEach_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children));
+            /* Need to lock the entity list for iteration */
+            status = r_entity_list_lock(rs, &parent->children);
+
+            if (R_SUCCEEDED(status))
+            {
+                result_count = l_ZList_forEach_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children), R_OBJECT_TYPE_ENTITY);
+                r_entity_list_unlock(rs, &parent->children);
+            }
         }
     }
 
@@ -298,7 +307,7 @@ static int l_Entity_clearChildren(lua_State *ls)
 
             for (i = 0; i < parent->children.object_list.count && R_SUCCEEDED(status); ++i)
             {
-                r_object_ref_t *entity_ref = &parent->children.object_list.items[i];
+                r_object_ref_t *entity_ref = &parent->children.object_list.items[i].object_ref;
                 r_entity_t *child = (r_entity_t*)entity_ref->value.object;
 
                 status = r_object_ref_write(rs, (r_object_t*)child, &child->parent, R_OBJECT_TYPE_ENTITY, 0);
@@ -457,6 +466,52 @@ r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int diffe
                 lua_pop(ls, 1);
             }
         }
+    }
+
+    return status;
+}
+
+r_status_t r_entity_lock(r_state_t *rs, r_entity_t *entity)
+{
+    r_status_t status = (rs != NULL && rs->script_state != NULL && entity != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    /* Lock children, if necessary */
+    if (R_SUCCEEDED(status))
+    {
+        if (entity->has_children && entity->children.object_list.count > 0)
+        {
+            status = r_entity_list_lock(rs, &entity->children);
+        }
+    }
+
+    /* Lock this entity */
+    if (R_SUCCEEDED(status))
+    {
+        status = r_zlist_lock(rs, (r_object_t*)entity, &entity->children);
+    }
+
+    return status;
+}
+
+r_status_t r_entity_unlock(r_state_t *rs, r_entity_t *entity)
+{
+    r_status_t status = (rs != NULL && rs->script_state != NULL && entity != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    /* Unlock children, if necessary */
+    if (R_SUCCEEDED(status))
+    {
+        if (entity->has_children && entity->children.object_list.count > 0)
+        {
+            status = r_entity_list_unlock(rs, &entity->children);
+        }
+    }
+
+    /* Unlock this entity */
+    if (R_SUCCEEDED(status))
+    {
+        status = r_zlist_unlock(rs, (r_object_t*)entity, &entity->children);
     }
 
     return status;

@@ -32,6 +32,8 @@ typedef r_zlist_t r_entity_list_t;
 extern r_status_t r_entity_list_init(r_state_t *rs, r_entity_list_t *entity_list);
 extern r_status_t r_entity_list_cleanup(r_state_t *rs, r_entity_list_t *entity_list);
 extern r_status_t r_entity_list_update(r_state_t *rs, r_entity_list_t *entity_list, unsigned int difference_ms);
+extern r_status_t r_entity_list_lock(r_state_t *rs, r_entity_list_t *entity_list);
+extern r_status_t r_entity_list_unlock(r_state_t *rs, r_entity_list_t *entity_list);
 
 #endif
 

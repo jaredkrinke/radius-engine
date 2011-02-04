@@ -129,7 +129,7 @@ r_status_t r_layer_stack_get_active_layer(r_state_t *rs, r_layer_t **layer)
 
                 if (layer != NULL)
                 {
-                    *layer = (r_layer_t*)(layer_stack->items[item].value.object);
+                    *layer = (r_layer_t*)(layer_stack->items[item].object_ref.value.object);
                 }
             }
             else
@@ -163,7 +163,7 @@ r_status_t r_layer_stack_process(r_state_t *rs, r_boolean_t ascending, r_layer_p
 
             for (i = (ascending ? 0 : layer_stack->count - 1); i >= 0 && i < layer_stack->count; ascending ? ++i : --i)
             {
-                status = process(rs, (r_layer_t*)layer_stack->items[i].value.pointer, i, data);
+                status = process(rs, (r_layer_t*)layer_stack->items[i].object_ref.value.pointer, i, data);
 
                 if (status == R_S_STOP_ENUMERATION)
                 {

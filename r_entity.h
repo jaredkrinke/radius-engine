@@ -70,6 +70,8 @@ typedef struct
 extern r_status_t r_entity_setup(r_state_t *rs);
 
 extern r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int difference_ms);
+extern r_status_t r_entity_lock(r_state_t *rs, r_entity_t *entity);
+extern r_status_t r_entity_unlock(r_state_t *rs, r_entity_t *entity);
 
 extern r_status_t r_entity_get_local_transform(r_state_t *rs, r_entity_t *entity, const r_transform2d_t **transform);
 extern r_status_t r_entity_get_absolute_transform(r_state_t *rs, r_entity_t *entity, const r_transform2d_t **transform);

@@ -157,7 +157,32 @@ static int l_Layer_removeChild(lua_State *ls)
 
 static int l_Layer_forEachChild(lua_State *ls)
 {
-    return l_ZList_forEach_internal(ls, R_OBJECT_TYPE_LAYER, offsetof(r_layer_t, entities));
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TUSERDATA, R_OBJECT_TYPE_LAYER },
+        { LUA_TFUNCTION, 0 }
+    };
+
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+    int result_count = 0;
+
+    if (R_SUCCEEDED(status))
+    {
+        r_layer_t *parent = (r_layer_t*)lua_touserdata(ls, 1);
+
+        /* Need to lock the entity list for iteration */
+        status = r_entity_list_lock(rs, &parent->entities);
+
+        if (R_SUCCEEDED(status))
+        {
+            result_count = l_ZList_forEach_internal(ls, R_OBJECT_TYPE_LAYER, offsetof(r_layer_t, entities), R_OBJECT_TYPE_ENTITY);
+            r_entity_list_unlock(rs, &parent->entities);
+        }
+    }
+
+    lua_pop(ls, lua_gettop(ls) - result_count);
+
+    return result_count;
 }
 
 static int l_Layer_clearChildren(lua_State *ls)
@@ -231,7 +256,26 @@ r_status_t r_layer_update(r_state_t *rs, r_layer_t *layer, unsigned int current_
 
             r_event_get_time_difference(current_time_ms, layer->last_update_ms, &difference_ms);
 
-            status = r_entity_list_update(rs, &layer->entities, difference_ms);
+            /* First lock all entity lists */
+            status = r_entity_list_lock(rs, &layer->entities);
+
+            if (R_SUCCEEDED(status))
+            {
+                /* Lock this list as well */
+                status = r_zlist_lock(rs, (r_object_t*)layer, &layer->entities);
+
+                if (R_SUCCEEDED(status))
+                {
+                    /* Update all entities */
+                    status = r_entity_list_update(rs, &layer->entities, difference_ms);
+
+                    /* Unlock top-level list */
+                    r_zlist_unlock(rs, (r_object_t*)layer, &layer->entities);
+                }
+
+                /* Unlock all entity lists */
+                r_entity_list_unlock(rs, &layer->entities);
+            }
         }
 
         layer->last_update_ms = current_time_ms;

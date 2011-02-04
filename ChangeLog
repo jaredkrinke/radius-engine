@@ -1,3 +1,23 @@
+2011-02-01 deraj@users.sourceforge.net
+
+* r_entity.h: Added entity lock/unlock functions
+* r_entity.c: Lock children when iterating, implement children locking
+
+* r_entity_list.h: Add entity list lock/unlock
+* r_entity_list.c: Locking, only update valid (for this frame) children
+
+* r_layer.c: Lock entities when iterating, only update valid children
+
+* r_layer_stack.c: Use updated references to object list items
+
+* r_video.c: Assume entity lists aren't locked when rendering
+
+* r_zlist.h: ZList locking/unlocking
+* r_zlist.c: Simply "insert" function, add locking/unlocking
+
+* r_object_list.h: Define object list entry type, add list-locking
+* r_object_list.c: Use list item type, add locked manipulation/commit
+
 2011-01-29 deraj@users.sourceforge.net
 
 * r_collision_detector.h: Removed unused header

@@ -1,3 +1,10 @@
+2011-02-04 deraj@users.sourceforge.net
+
+* r_entity_list.h: Lock/unlock require parent argument
+* r_entity_list.c (r_entity_list_lock/unlock): Lock/unlock this list as well
+* r_layer.c (r_layer_update): Use r_layer_lock/unlock
+* r_entity.c: Entity lists now lock recursively
+
 2011-02-01 deraj@users.sourceforge.net
 
 * r_entity.h: Added entity lock/unlock functions

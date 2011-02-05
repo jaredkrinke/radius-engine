@@ -72,11 +72,12 @@ r_status_t r_entity_list_update(r_state_t *rs, r_entity_list_t *entity_list, uns
     return status;
 }
 
-r_status_t r_entity_list_lock(r_state_t *rs, r_entity_list_t *entity_list)
+r_status_t r_entity_list_lock(r_state_t *rs, r_object_t *parent, r_entity_list_t *entity_list)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL && entity_list != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
 
+    /* Lock all children */
     if (R_SUCCEEDED(status))
     {
         unsigned int i;
@@ -93,14 +94,27 @@ r_status_t r_entity_list_lock(r_state_t *rs, r_entity_list_t *entity_list)
         }
     }
 
+    /* Lock this list as well */
+    if (R_SUCCEEDED(status))
+    {
+        status = r_zlist_lock(rs, parent, entity_list);
+    }
+
     return status;
 }
 
-r_status_t r_entity_list_unlock(r_state_t *rs, r_entity_list_t *entity_list)
+r_status_t r_entity_list_unlock(r_state_t *rs, r_object_t *parent, r_entity_list_t *entity_list)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL && entity_list != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
 
+    /* Unlock this list */
+    if (R_SUCCEEDED(status))
+    {
+        status = r_zlist_unlock(rs, parent, entity_list);
+    }
+
+    /* Unlock children */
     if (R_SUCCEEDED(status))
     {
         unsigned int i;

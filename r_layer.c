@@ -111,8 +111,19 @@ static r_status_t r_layer_cleanup(r_state_t *rs, r_object_t *object)
     return status;
 }
 
-
 r_object_header_t r_layer_header = { R_OBJECT_TYPE_LAYER, sizeof(r_layer_t), R_TRUE, r_layer_fields, r_layer_init, NULL, r_layer_cleanup};
+
+static r_status_t r_layer_lock(r_state_t *rs, r_layer_t *layer)
+{
+    /* Lock all entities */
+    return r_entity_list_lock(rs, (r_object_t*)layer, &layer->entities);
+}
+
+static r_status_t r_layer_unlock(r_state_t *rs, r_layer_t *layer)
+{
+    /* Unlock all entities */
+    return r_entity_list_unlock(rs, (r_object_t*)layer, &layer->entities);
+}
 
 static int l_Layer_new(lua_State *ls)
 {
@@ -168,15 +179,15 @@ static int l_Layer_forEachChild(lua_State *ls)
 
     if (R_SUCCEEDED(status))
     {
-        r_layer_t *parent = (r_layer_t*)lua_touserdata(ls, 1);
+        r_layer_t *layer = (r_layer_t*)lua_touserdata(ls, 1);
 
         /* Need to lock the entity list for iteration */
-        status = r_entity_list_lock(rs, &parent->entities);
+        status = r_layer_lock(rs, layer);
 
         if (R_SUCCEEDED(status))
         {
             result_count = l_ZList_forEach_internal(ls, R_OBJECT_TYPE_LAYER, offsetof(r_layer_t, entities), R_OBJECT_TYPE_ENTITY);
-            r_entity_list_unlock(rs, &parent->entities);
+            r_layer_unlock(rs, layer);
         }
     }
 
@@ -257,24 +268,15 @@ r_status_t r_layer_update(r_state_t *rs, r_layer_t *layer, unsigned int current_
             r_event_get_time_difference(current_time_ms, layer->last_update_ms, &difference_ms);
 
             /* First lock all entity lists */
-            status = r_entity_list_lock(rs, &layer->entities);
+            status = r_layer_lock(rs, layer);
 
             if (R_SUCCEEDED(status))
             {
-                /* Lock this list as well */
-                status = r_zlist_lock(rs, (r_object_t*)layer, &layer->entities);
-
-                if (R_SUCCEEDED(status))
-                {
-                    /* Update all entities */
-                    status = r_entity_list_update(rs, &layer->entities, difference_ms);
-
-                    /* Unlock top-level list */
-                    r_zlist_unlock(rs, (r_object_t*)layer, &layer->entities);
-                }
+                /* Update all entities */
+                status = r_entity_list_update(rs, &layer->entities, difference_ms);
 
                 /* Unlock all entity lists */
-                r_entity_list_unlock(rs, &layer->entities);
+                r_layer_unlock(rs, layer);
             }
         }
 

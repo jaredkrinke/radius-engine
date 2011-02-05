@@ -527,7 +527,7 @@ r_status_t r_object_push_new(r_state_t *rs, const r_object_header_t *header, int
 
             /* TODO: Wrap-around is not handled at all... */
             object->id = r_object_next_id++;
-            R_ASSERT(object->id != 0);
+            R_ASSERT(object->id != R_OBJECT_ID_INVALID);
 
             /* Create an environment table for the object */
             status = r_object_setup_environment(rs, object, object_index);
@@ -622,10 +622,9 @@ int l_Object_new(lua_State *ls, const r_object_header_t *header)
     return result_count;
 }
 
-r_status_t r_object_push(r_state_t *rs, r_object_t *object)
+r_status_t r_object_push_by_id(r_state_t *rs, unsigned int id)
 {
-    r_status_t status = (rs != NULL && rs->script_state != NULL && object != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-    R_SCRIPT_ENTER();
+    r_status_t status = (rs != NULL && rs->script_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
 
     if (R_SUCCEEDED(status))
@@ -637,8 +636,8 @@ r_status_t r_object_push(r_state_t *rs, r_object_t *object)
             lua_State *ls = rs->script_state;
             int table_index = lua_gettop(ls);
 
-            R_ASSERT(object->id != 0);
-            lua_pushnumber(ls, (lua_Number)object->id);
+            R_ASSERT(id != R_OBJECT_ID_INVALID);
+            lua_pushnumber(ls, (lua_Number)id);
             lua_rawget(ls, table_index);
             status = (lua_isuserdata(ls, -1)) ? R_SUCCESS : R_F_ADDRESS_NOT_FOUND;
 
@@ -651,6 +650,15 @@ r_status_t r_object_push(r_state_t *rs, r_object_t *object)
         }
     }
 
+    return status;
+}
+
+r_status_t r_object_push(r_state_t *rs, r_object_t *object)
+{
+    r_status_t status = R_SUCCESS;
+    R_SCRIPT_ENTER();
+
+    status = r_object_push_by_id(rs, object->id);
     R_SCRIPT_EXIT(1);
 
     return status;

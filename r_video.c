@@ -1125,9 +1125,33 @@ r_status_t r_video_draw(r_state_t *rs)
                         status = r_video_draw_entity_list(rs, &layer->entities);
                     }
 
-                    if (layer->debug_collision_detector.value.object != NULL)
+                    if (R_SUCCEEDED(status) && layer->debug_collision_detectors)
                     {
-                        status = r_video_draw_collision_detector(rs, (r_collision_detector_t*)layer->debug_collision_detector.value.object);
+                        unsigned int i;
+
+                        for (i = 0; i < layer->collision_detectors.count && R_SUCCEEDED(status);)
+                        {
+                            unsigned int id = r_object_id_list_get_index(rs, &layer->collision_detectors, i);
+                            lua_State *ls = rs->script_state;
+                            r_status_t status_pushed = r_object_push_by_id(rs, id);
+
+                            if (R_SUCCEEDED(status_pushed))
+                            {
+                                status = r_video_draw_collision_detector(rs, (r_collision_detector_t*)lua_touserdata(ls, -1));
+
+                                /* Pop from the stack and move to next index in the list */
+                                lua_pop(ls, 1);
+                                ++i;
+                            }
+                            else
+                            {
+                                /* This collision detector has been garbage-collected, so remove it from the list */
+                                /* TODO: Move this logic to layer unlocking, probably */
+                                status = r_object_id_list_remove_index(rs, &layer->collision_detectors, i);
+
+                                /* Don't increment i since this index was removed */
+                            }
+                        }
                     }
                 }
             }

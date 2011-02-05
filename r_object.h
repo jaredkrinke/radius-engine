@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include "r_state.h"
 
 /* Custom wrapped type (available to scripts) support */
+#define R_OBJECT_ID_INVALID     0
 
 typedef enum
 {
@@ -102,6 +103,7 @@ extern r_status_t r_object_field_read_unsigned_int(r_state_t *rs, r_object_t *ob
 extern r_status_t r_object_field_write_unsigned_int(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value, int value_index);
 extern r_status_t r_object_field_write_default(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value, int value_index);
 
+extern r_status_t r_object_push_by_id(r_state_t *rs, unsigned int id);
 extern r_status_t r_object_push(r_state_t *rs, r_object_t *object);
 
 extern r_status_t r_object_setup(r_state_t *rs);

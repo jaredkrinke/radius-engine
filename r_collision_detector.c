@@ -238,11 +238,6 @@ static r_status_t r_collision_detector_cleanup(r_state_t *rs, r_object_t *object
 
 r_object_header_t r_collision_detector_header = { R_OBJECT_TYPE_COLLISION_DETECTOR, sizeof(r_collision_detector_t), R_TRUE, r_collision_detector_fields, r_collision_detector_init, NULL, r_collision_detector_cleanup};
 
-static int l_CollisionDetector_new(lua_State *ls)
-{
-    return l_Object_new(ls, &r_collision_detector_header);
-}
-
 static int l_CollisionDetector_addChild(lua_State *ls)
 {
     const r_script_argument_t expected_arguments[] = {
@@ -447,9 +442,7 @@ r_status_t r_collision_detector_setup(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
-        r_script_node_t collision_detector_nodes[] = { { "new", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_CollisionDetector_new }, { NULL } };
         r_script_node_root_t roots[] = {
-            { LUA_GLOBALSINDEX, NULL,                          { "CollisionDetector", R_SCRIPT_NODE_TYPE_TABLE, collision_detector_nodes } },
             { 0, &r_collision_detector_ref_add_child,          { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_CollisionDetector_addChild } },
             { 0, &r_collision_detector_ref_remove_child,       { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_CollisionDetector_removeChild } },
             { 0, &r_collision_detector_ref_for_each_collision, { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_CollisionDetector_forEachCollision } },
@@ -568,4 +561,9 @@ r_status_t r_collision_detector_intersect_entities(r_state_t *rs, r_entity_t *e1
     }
 
     return status;
+}
+
+int l_CollisionDetector_new(lua_State *ls)
+{
+    return l_Object_new(ls, &r_collision_detector_header);
 }

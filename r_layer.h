@@ -28,6 +28,7 @@ THE SOFTWARE.
 
 #include "r_entity_list.h"
 #include "r_audio.h"
+#include "r_object_id_list.h"
 
 /* TODO: Think about which elements of structures it is reasonable to manipulate directly in other source files... */
 typedef struct
@@ -51,7 +52,8 @@ typedef struct
     r_object_ref_t      error_occurred;
 
     /* Collision handling */
-    r_object_ref_t      debug_collision_detector;
+    r_object_id_list_t  collision_detectors;
+    r_boolean_t         debug_collision_detectors;
 
     unsigned int        last_update_ms;
     /* TODO: Should have a reference to parent layer for drawing everything and using parent layer's audio state */

@@ -1,3 +1,19 @@
+2011-02-05 deraj@users.sourceforge.net
+
+* r_object_id_list.h: List of weak references to objects
+* r_object_id_list.c: Implementation of weak reference list
+* Makefile.am: Added r_object_id_list.c/h
+
+* r_collision_detector.h: Expose l_CollisionDetector_new
+* r_collision_detector.c: Remove CollisionDetector.new
+
+* r_object.h: Add R_OBJECT_ID_INVALID and push-by-ID
+* r_object.c: Push objects by ID only
+
+* r_layer.h: Layers keep track of their collision detectors
+* r_layer.c: Maintain list of collision detectors and add creation function
+* r_video.c: Draw all collision detectors on the layer
+
 2011-02-04 deraj@users.sourceforge.net
 
 * r_entity_list.h: Lock/unlock require parent argument

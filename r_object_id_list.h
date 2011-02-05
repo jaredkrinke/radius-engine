@@ -1,5 +1,5 @@
-#ifndef __R_COLLISION_DETECTOR_H
-#define __R_COLLISION_DETECTOR_H
+#ifndef __R_OBJECT_ID_LIST_H
+#define __R_OBJECT_ID_LIST_H
 
 /*
 Copyright 2011 Jared Krinke.
@@ -23,25 +23,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include "r_object.h"
-#include "r_object_list.h"
-#include "r_entity.h"
-#include "r_collision_tree.h"
+#include "r_list.h"
 
-/* "Signed area" of a triangle (> 0 implies counterclockwise ordering, < 0 implies clockwise, 0 implies colinear */
-#define R_TRIANGLE_SIGNED_AREA(p, q, r)    (((p)[0] - (r)[0]) * ((q)[1] - (r)[1]) - ((p)[1] - (r)[1]) * ((q)[0] - (r)[0]))
+/* List of weak references to objects */
+typedef r_list_t r_object_id_list_t;
 
-typedef struct
-{
-    r_object_t          object;
-    r_object_list_t     children;
-    r_collision_tree_t  tree;
-} r_collision_detector_t;
+extern r_status_t r_object_id_list_add(r_state_t *rs, r_object_id_list_t *list, unsigned int id);
+extern unsigned int r_object_id_list_get_index(r_state_t *rs, const r_object_id_list_t *list, unsigned int index);
+extern r_status_t r_object_id_list_remove_index(r_state_t *rs, r_object_id_list_t *list, unsigned int index);
 
-extern r_status_t r_collision_detector_setup(r_state_t *rs);
-extern r_status_t r_collision_detector_intersect_entities(r_state_t *rs, r_entity_t *e1, r_entity_t *e2, r_boolean_t *intersect_out);
-
-extern int l_CollisionDetector_new(lua_State *ls);
+extern r_status_t r_object_id_list_init(r_state_t *rs, r_object_id_list_t *list);
+extern r_status_t r_object_id_list_cleanup(r_state_t *rs, r_object_id_list_t *list);
 
 #endif
 

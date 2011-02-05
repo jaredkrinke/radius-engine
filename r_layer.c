@@ -26,10 +26,12 @@ THE SOFTWARE.
 #include "r_layer.h"
 #include "r_entity.h"
 #include "r_entity_list.h"
+#include "r_object_id_list.h"
 #include "r_script.h"
 #include "r_event.h"
 #include "r_audio.h"
 #include "r_audio_clip_cache.h"
+#include "r_collision_detector.h"
 
 /* TODO: These kinds of static variables for global references mean that there can't be more than one instance of the engine running. Fix this and store data in r_state_t. */
 r_object_ref_t r_layer_ref_add_child        = { R_OBJECT_REF_INVALID, { NULL } };
@@ -43,11 +45,7 @@ r_object_ref_t r_layer_ref_playMusic    = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_layer_ref_stopMusic    = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_layer_ref_seekMusic    = { R_OBJECT_REF_INVALID, { NULL } };
 
-extern r_status_t r_audio_state_queue_clip(r_state_t *rs, r_audio_state_t *audio_state, r_audio_clip_data_t *clip_data, unsigned char volume, char position);
-extern r_status_t r_audio_state_clear(r_state_t *rs, r_audio_state_t *audio_state);
-extern r_status_t r_audio_state_music_play(r_state_t *rs, r_audio_state_t *audio_state, r_audio_clip_data_t *clip_data, r_boolean_t loop);
-extern r_status_t r_audio_state_music_stop(r_state_t *rs, r_audio_state_t *audio_state);
-extern r_status_t r_audio_state_music_seek(r_state_t *rs, r_audio_state_t *audio_state, unsigned int ms);
+r_object_ref_t r_layer_ref_createCollisionDetector = { R_OBJECT_REF_INVALID, { NULL } };
 
 r_object_field_t r_layer_fields[] = {
     { "framePeriodMS",         LUA_TNUMBER,   0,                         offsetof(r_layer_t, frame_period_ms),         R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
@@ -58,7 +56,6 @@ r_object_field_t r_layer_fields[] = {
     { "joystickAxisMoved",     LUA_TFUNCTION, 0,                         offsetof(r_layer_t, joystick_axis_moved),     R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
     { "errorOccurred",         LUA_TFUNCTION, 0,                         offsetof(r_layer_t, error_occurred),          R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
     { "propagateAudio",        LUA_TBOOLEAN,  0,                         offsetof(r_layer_t, propagate_audio),         R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "debugCollisionDetector", LUA_TUSERDATA, R_OBJECT_TYPE_COLLISION_DETECTOR, offsetof(r_layer_t, debug_collision_detector), R_TRUE, R_OBJECT_INIT_EXCLUDED, NULL,             NULL, NULL, NULL },
     { "addChild",              LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_add_child, NULL },
     { "removeChild",           LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_remove_child, NULL },
     { "forEachChild",          LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_for_each_child, NULL },
@@ -68,6 +65,8 @@ r_object_field_t r_layer_fields[] = {
     { "playMusic",             LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_playMusic, NULL },
     { "stopMusic",             LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_stopMusic, NULL },
     { "seekMusic",             LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_seekMusic, NULL },
+    { "debugCollisionDetectors", LUA_TBOOLEAN, 0,                        offsetof(r_layer_t, debug_collision_detectors), R_TRUE, R_OBJECT_INIT_EXCLUDED, NULL,                    NULL, NULL, NULL },
+    { "createCollisionDetector", LUA_TFUNCTION, 0,                       0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_createCollisionDetector, NULL },
     { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
 };
 
@@ -86,7 +85,6 @@ static r_status_t r_layer_init(r_state_t *rs, r_object_t *object)
     r_object_ref_init(&layer->joystick_button_pressed);
     r_object_ref_init(&layer->joystick_axis_moved);
     r_object_ref_init(&layer->error_occurred);
-    r_object_ref_init(&layer->debug_collision_detector);
 
     layer->last_update_ms = 0;
 
@@ -95,13 +93,23 @@ static r_status_t r_layer_init(r_state_t *rs, r_object_t *object)
         status = r_entity_list_init(rs, &layer->entities);
     }
 
+    if (R_SUCCEEDED(status))
+    {
+        status = r_object_id_list_init(rs, &layer->collision_detectors);
+    }
+
     return status;
 }
 
 static r_status_t r_layer_cleanup(r_state_t *rs, r_object_t *object)
 {
     r_layer_t *layer = (r_layer_t*)object;
-    r_status_t status = r_entity_list_cleanup(rs, &layer->entities);
+    r_status_t status = r_object_id_list_cleanup(rs, &layer->collision_detectors);
+
+    if (R_SUCCEEDED(status))
+    {
+        status = r_entity_list_cleanup(rs, &layer->entities);
+    }
 
     if (R_SUCCEEDED(status))
     {
@@ -226,6 +234,47 @@ static int l_Layer_seekMusic(lua_State *ls)
     return l_AudioState_seekMusic(ls, R_FALSE);
 }
 
+static int l_Layer_createCollisionDetector(lua_State *ls)
+{
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TUSERDATA, R_OBJECT_TYPE_LAYER }
+    };
+
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+    int result_count = 0;
+
+    if (R_SUCCEEDED(status))
+    {
+        r_layer_t *layer = (r_layer_t*)lua_touserdata(ls, 1);
+
+        lua_pop(ls, 1);
+
+        {
+            int collision_detector_count = l_CollisionDetector_new(ls);
+
+            status = (collision_detector_count == 1) ? R_SUCCESS : RS_FAILURE;
+
+            if (R_SUCCEEDED(status))
+            {
+                r_collision_detector_t *collision_detector = (r_collision_detector_t*)lua_touserdata(ls, 1);
+
+                status = r_object_id_list_add(rs, &layer->collision_detectors, collision_detector->object.id);
+
+                if (R_SUCCEEDED(status))
+                {
+                    /* TODO: Lock if the layer is locked! */
+                    result_count = collision_detector_count;
+                }
+            }
+        }
+    }
+
+    lua_pop(ls, lua_gettop(ls) - result_count);
+
+    return result_count;
+}
+
 r_status_t r_layer_setup(r_state_t *rs)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -245,6 +294,7 @@ r_status_t r_layer_setup(r_state_t *rs)
             { 0, &r_layer_ref_playMusic,      { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Layer_playMusic } },
             { 0, &r_layer_ref_stopMusic,      { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Layer_stopMusic } },
             { 0, &r_layer_ref_seekMusic,      { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Layer_seekMusic } },
+            { 0, &r_layer_ref_createCollisionDetector, { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Layer_createCollisionDetector } },
             { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
         };
 

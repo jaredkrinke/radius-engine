@@ -54,6 +54,8 @@ libradius_engine_a_SOURCES = \
                              r_object.h \
                              r_object_enum.c \
                              r_object_enum.h \
+                             r_object_id_list.c \
+                             r_object_id_list.h \
                              r_object_list.c \
                              r_object_list.h \
                              r_object_ref.c \

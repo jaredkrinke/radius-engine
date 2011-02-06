@@ -215,6 +215,8 @@ static r_status_t r_collision_detector_init(r_state_t *rs, r_object_t *object)
     r_collision_detector_t *collision_detector = (r_collision_detector_t*)object;
     r_status_t status = r_object_list_init(rs, (r_object_t*)&collision_detector->children, R_OBJECT_TYPE_MAX, R_OBJECT_TYPE_ENTITY);
 
+    collision_detector->locks = 0;
+
     if (R_SUCCEEDED(status))
     {
         status = r_collision_tree_init(rs, &collision_detector->tree);
@@ -256,9 +258,9 @@ static int l_CollisionDetector_addChild(lua_State *ls)
 
         result_count = l_ObjectList_add_internal(ls, R_OBJECT_TYPE_COLLISION_DETECTOR, offsetof(r_collision_detector_t, children), NULL);
 
-        if (result_count == 1)
+        if (result_count == 1 && collision_detector->locks <= 0)
         {
-            /* Insert into the tree as well */
+            /* If not locked, insert into the tree as well */
             status = r_collision_tree_insert(rs, &collision_detector->tree, entity);
         }
     }
@@ -284,7 +286,10 @@ static int l_CollisionDetector_removeChild(lua_State *ls)
         r_collision_detector_t *collision_detector = (r_collision_detector_t*)lua_touserdata(ls, 1);
         r_entity_t *entity = (r_entity_t*)lua_touserdata(ls, 2);
 
-        status = r_collision_tree_remove(rs, &collision_detector->tree, entity);
+        if (collision_detector->locks <= 0)
+        {
+            status = r_collision_tree_remove(rs, &collision_detector->tree, entity);
+        }
 
         if (R_SUCCEEDED(status))
         {
@@ -311,7 +316,10 @@ static int l_CollisionDetector_clearChildren(lua_State *ls)
     {
         r_collision_detector_t *collision_detector = (r_collision_detector_t*)lua_touserdata(ls, 1);
 
-        status = r_collision_tree_clear(rs, &collision_detector->tree);
+        if (collision_detector->locks <= 0)
+        {
+            status = r_collision_tree_clear(rs, &collision_detector->tree);
+        }
 
         if (R_SUCCEEDED(status))
         {
@@ -408,25 +416,34 @@ static int l_CollisionDetector_forEachCollision(lua_State *ls)
 
     if (R_SUCCEEDED(status))
     {
-        const int argument_count = lua_gettop(ls);
         const int collision_detector_index = 1;
-        const int function_index = 2;
         r_collision_detector_t *collision_detector = (r_collision_detector_t*)lua_touserdata(ls, collision_detector_index);
-        r_collision_detector_for_each_args_t args = { ls, collision_detector, function_index };
 
+        /* Need to lock the collision tree during iteration */
+        status = r_collision_detector_lock(rs, collision_detector);
 
-        if (argument_count >= 3)
+        if (R_SUCCEEDED(status))
         {
-            /* Group filtering */
-            const int group1 = (unsigned int)lua_tonumber(ls, 3);
-            const int group2 = (argument_count >= 4) ? ((unsigned int)lua_tonumber(ls, 4)) : 0;
+            const int argument_count = lua_gettop(ls);
+            const int function_index = 2;
+            r_collision_detector_for_each_args_t args = { ls, collision_detector, function_index };
 
-            status = r_collision_tree_for_each_collision_filtered(rs, &collision_detector->tree, group1, group2, r_collision_detector_for_each_callback, &args);
-        }
-        else
-        {
-            /* No filtering--just all collisions */
-            status = r_collision_tree_for_each_collision(rs, &collision_detector->tree, r_collision_detector_for_each_callback, &args);
+
+            if (argument_count >= 3)
+            {
+                /* Group filtering */
+                const int group1 = (unsigned int)lua_tonumber(ls, 3);
+                const int group2 = (argument_count >= 4) ? ((unsigned int)lua_tonumber(ls, 4)) : 0;
+
+                status = r_collision_tree_for_each_collision_filtered(rs, &collision_detector->tree, group1, group2, r_collision_detector_for_each_callback, &args);
+            }
+            else
+            {
+                /* No filtering--just all collisions */
+                status = r_collision_tree_for_each_collision(rs, &collision_detector->tree, r_collision_detector_for_each_callback, &args);
+            }
+
+            r_collision_detector_unlock(rs, collision_detector);
         }
     }
 
@@ -457,6 +474,76 @@ r_status_t r_collision_detector_setup(r_state_t *rs)
     return status;
 }
 
+r_status_t r_collision_detector_lock(r_state_t *rs, r_collision_detector_t *collision_detector)
+{
+    r_status_t status = R_SUCCESS;
+
+    if (collision_detector->locks == 0)
+    {
+        /* Lock the list of entities */
+        status = r_object_list_lock(rs, (r_object_t*)collision_detector, &collision_detector->children);
+    }
+
+    if (R_SUCCEEDED(status))
+    {
+        collision_detector->locks++;
+    }
+
+    return status;
+}
+
+r_status_t r_collision_detector_unlock(r_state_t *rs, r_collision_detector_t *collision_detector)
+{
+    r_status_t status = R_SUCCESS;
+
+    R_ASSERT(collision_detector->locks > 0);
+
+    if (collision_detector->locks == 1)
+    {
+        /* Use the locked list's state to commit changes to the tree */
+        unsigned int i;
+
+        for (i = 0; i < collision_detector->children.count && R_SUCCEEDED(status); ++i)
+        {
+            r_object_list_item_t *item = &collision_detector->children.items[i];
+
+            switch (item->op)
+            {
+            case R_OBJECT_LIST_OP_ADD:
+                /* A new child was added, so insert into the tree */
+                R_ASSERT(!item->valid);
+                status = r_collision_tree_insert(rs, &collision_detector->tree, (r_entity_t*)item->object_ref.value.object);
+                break;
+
+            case R_OBJECT_LIST_OP_REMOVE:
+                R_ASSERT(item->valid);
+                status = r_collision_tree_remove(rs, &collision_detector->tree, (r_entity_t*)item->object_ref.value.object);
+                break;
+
+            case R_OBJECT_LIST_OP_NONE:
+                R_ASSERT(item->valid);
+                break;
+
+            default:
+                R_ASSERT(0); /* Invalid operation */
+                break;
+            }
+        }
+
+        /* Unlock the list of children (this will commit changes) */
+        if (R_SUCCEEDED(status))
+        {
+            status = r_object_list_unlock(rs, (r_object_t*)collision_detector, &collision_detector->children, NULL);
+        }
+    }
+
+    if (R_SUCCEEDED(status))
+    {
+        collision_detector->locks--;
+    }
+
+    return status;
+}
 
 r_status_t r_collision_detector_intersect_entities(r_state_t *rs, r_entity_t *e1, r_entity_t *e2, r_boolean_t *intersect_out)
 {

@@ -1129,7 +1129,7 @@ r_status_t r_video_draw(r_state_t *rs)
                     {
                         unsigned int i;
 
-                        for (i = 0; i < layer->collision_detectors.count && R_SUCCEEDED(status);)
+                        for (i = 0; i < layer->collision_detectors.count && R_SUCCEEDED(status); ++i)
                         {
                             unsigned int id = r_object_id_list_get_index(rs, &layer->collision_detectors, i);
                             lua_State *ls = rs->script_state;
@@ -1141,15 +1141,6 @@ r_status_t r_video_draw(r_state_t *rs)
 
                                 /* Pop from the stack and move to next index in the list */
                                 lua_pop(ls, 1);
-                                ++i;
-                            }
-                            else
-                            {
-                                /* This collision detector has been garbage-collected, so remove it from the list */
-                                /* TODO: Move this logic to layer unlocking, probably */
-                                status = r_object_id_list_remove_index(rs, &layer->collision_detectors, i);
-
-                                /* Don't increment i since this index was removed */
                             }
                         }
                     }

@@ -124,13 +124,68 @@ r_object_header_t r_layer_header = { R_OBJECT_TYPE_LAYER, sizeof(r_layer_t), R_T
 static r_status_t r_layer_lock(r_state_t *rs, r_layer_t *layer)
 {
     /* Lock all entities */
-    return r_entity_list_lock(rs, (r_object_t*)layer, &layer->entities);
+    r_status_t status = r_entity_list_lock(rs, (r_object_t*)layer, &layer->entities);
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Lock all collision detectors */
+        unsigned int i;
+
+        for (i = 0; i < layer->collision_detectors.count && R_SUCCEEDED(status); ++i)
+        {
+            unsigned int id = r_object_id_list_get_index(rs, &layer->collision_detectors, i);
+            lua_State *ls = rs->script_state;
+            r_status_t status_pushed = r_object_push_by_id(rs, id);
+
+            if (R_SUCCEEDED(status_pushed))
+            {
+                r_collision_detector_t *collision_detector = (r_collision_detector_t*)lua_touserdata(ls, -1);
+
+                status = r_collision_detector_lock(rs, collision_detector);
+                lua_pop(ls, 1);
+            }
+        }
+    }
+
+    return status;
 }
 
 static r_status_t r_layer_unlock(r_state_t *rs, r_layer_t *layer)
 {
+    /* Unlock all collision detectors */
+    r_status_t status = R_SUCCESS;
+    unsigned int i;
+
+    for (i = 0; i < layer->collision_detectors.count && R_SUCCEEDED(status); ++i)
+    {
+        unsigned int id = r_object_id_list_get_index(rs, &layer->collision_detectors, i);
+        lua_State *ls = rs->script_state;
+        r_status_t status_pushed = r_object_push_by_id(rs, id);
+
+        if (R_SUCCEEDED(status_pushed))
+        {
+            r_collision_detector_t *collision_detector = (r_collision_detector_t*)lua_touserdata(ls, -1);
+
+            status = r_collision_detector_unlock(rs, collision_detector);
+            lua_pop(ls, 1);
+        }
+        else
+        {
+            /* This collision detector has been garbage-collected, so remove it from the list */
+            status = r_object_id_list_remove_index(rs, &layer->collision_detectors, i);
+
+            /* Skip incrementing since this was removed (note that underflow is acceptable since it will immediately be incremented back) */
+            --i;
+        }
+    }
+
     /* Unlock all entities */
-    return r_entity_list_unlock(rs, (r_object_t*)layer, &layer->entities);
+    if (R_SUCCEEDED(status))
+    {
+        status =r_entity_list_unlock(rs, (r_object_t*)layer, &layer->entities);
+    }
+
+    return status;
 }
 
 static int l_Layer_new(lua_State *ls)
@@ -263,7 +318,6 @@ static int l_Layer_createCollisionDetector(lua_State *ls)
 
                 if (R_SUCCEEDED(status))
                 {
-                    /* TODO: Lock if the layer is locked! */
                     result_count = collision_detector_count;
                 }
             }

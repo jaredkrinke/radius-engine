@@ -34,11 +34,16 @@ THE SOFTWARE.
 typedef struct
 {
     r_object_t          object;
+    unsigned int        locks;
     r_object_list_t     children;
     r_collision_tree_t  tree;
 } r_collision_detector_t;
 
 extern r_status_t r_collision_detector_setup(r_state_t *rs);
+
+extern r_status_t r_collision_detector_lock(r_state_t *rs, r_collision_detector_t *collision_detector);
+extern r_status_t r_collision_detector_unlock(r_state_t *rs, r_collision_detector_t *collision_detector);
+
 extern r_status_t r_collision_detector_intersect_entities(r_state_t *rs, r_entity_t *e1, r_entity_t *e2, r_boolean_t *intersect_out);
 
 extern int l_CollisionDetector_new(lua_State *ls);

@@ -14,6 +14,14 @@
 * r_layer.c: Maintain list of collision detectors and add creation function
 * r_video.c: Draw all collision detectors on the layer
 
+* r_collision_tree.h: Tree entries no longer can be in limbo
+* r_collision_tree.c: All tree operations now take effect immediately
+* r_collision_detector.h: Add lock/unlock functions
+* r_collision_detector.c: Protect tree operations by locking/committing
+* r_layer.c: Lock/unlock collision detectors as well
+
+* r_video.c: Move weak reference clearing to layer unlock
+
 2011-02-04 deraj@users.sourceforge.net
 
 * r_entity_list.h: Lock/unlock require parent argument

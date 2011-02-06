@@ -87,6 +87,7 @@ static r_status_t r_layer_init(r_state_t *rs, r_object_t *object)
     r_object_ref_init(&layer->error_occurred);
 
     layer->last_update_ms = 0;
+    layer->debug_collision_detectors = R_FALSE;
 
     if (R_SUCCEEDED(status))
     {

@@ -1,3 +1,7 @@
+2011-02-06 deraj@users.sourceforge.net
+
+* r_layer.c (r_layer_init): Initialize collision debugging to false
+
 2011-02-05 deraj@users.sourceforge.net
 
 * r_object_id_list.h: List of weak references to objects

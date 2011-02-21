@@ -10,6 +10,8 @@
 
 * r_script_lib.c: Added String.substring/toUpper/toLower
 
+* r_event_keys.c: "kp-min" is now "kp-minus"
+
 2011-02-06 deraj@users.sourceforge.net
 
 * r_layer.c (r_layer_init): Initialize collision debugging to false

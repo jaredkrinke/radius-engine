@@ -123,7 +123,7 @@ r_status_t r_event_keys_init()
     key_names[SDLK_KP_PERIOD] = "kp-period";
     key_names[SDLK_KP_DIVIDE] = "kp-div";
     key_names[SDLK_KP_MULTIPLY] = "kp-mult";
-    key_names[SDLK_KP_MINUS] = "kp-min";
+    key_names[SDLK_KP_MINUS] = "kp-minus";
     key_names[SDLK_KP_PLUS] = "kp-plus";
     key_names[SDLK_KP_ENTER] = "kp-ent";
     key_names[SDLK_KP_EQUALS] = "kp-eq";

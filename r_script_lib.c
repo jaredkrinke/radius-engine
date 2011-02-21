@@ -24,6 +24,7 @@ THE SOFTWARE.
 #include <stdlib.h>
 
 #include <lauxlib.h>
+#include <lualib.h>
 
 #include "r_script.h"
 #include "r_log.h"
@@ -838,6 +839,83 @@ static int l_garbageCollect(lua_State *ls)
     return 0;
 }
 
+static r_status_t r_script_string_setup(r_state_t *rs)
+{
+    lua_State *ls = rs->script_state;
+    r_status_t status = R_SUCCESS;
+
+    R_SCRIPT_ENTER();
+
+    /* Open and (temporarily) register "string" module */
+    lua_pushcfunction(ls, luaopen_string);
+    status = lua_isfunction(ls, -1) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
+
+    if (R_SUCCEEDED(status))
+    {
+        r_status_t status = r_script_call(rs, 0, 0);
+
+        if (R_SUCCEEDED(status))
+        {
+            /* Create new (permanent) "String" table */
+            int string_table_index = 0;
+
+            lua_newtable(ls);
+            string_table_index = lua_gettop(ls);
+
+            /* Only expose a limited subset of the "string" module via the "String" table */
+            lua_getglobal(ls, LUA_STRLIBNAME);
+            status = lua_istable(ls, -1) ? R_SUCCESS : RS_F_MODULE_NOT_FOUND;
+
+            if (R_SUCCEEDED(status))
+            {
+                int string_module_index = lua_gettop(ls);
+                const char *string_functions[] = {
+                    "find",
+                    "format",
+                    NULL
+                };
+                const char **function;
+
+                /* Add each function to the actual "String" table */
+                for (function = string_functions; *function != NULL && R_SUCCEEDED(status); ++function)
+                {
+                    lua_pushstring(ls, *function);
+                    lua_pushvalue(ls, -1);
+                    lua_gettable(ls, string_module_index);
+
+                    status = lua_isfunction(ls, -1) ? R_SUCCESS : RS_F_FIELD_NOT_FOUND;
+
+                    if (R_SUCCEEDED(status))
+                    {
+                        lua_settable(ls, string_table_index);
+                    }
+                    else
+                    {
+                        lua_pop(ls, 2);
+                    }
+                }
+            }
+
+            lua_pop(ls, 1);
+
+            /* Unregister default "string" module */
+            lua_pushnil(ls);
+            lua_setglobal(ls, LUA_STRLIBNAME);
+
+            /* Register "String" table */
+            lua_setglobal(ls, "String");
+        }
+    }
+    else
+    {
+        lua_pop(ls, 1);
+    }
+
+    R_SCRIPT_EXIT(0);
+
+    return status;
+}
+
 r_status_t r_script_setup(r_state_t *rs)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -970,6 +1048,11 @@ r_status_t r_script_setup(r_state_t *rs)
         if (R_SUCCEEDED(status))
         {
             status = r_collision_detector_setup(rs);
+        }
+
+        if (R_SUCCEEDED(status))
+        {
+            status = r_script_string_setup(rs);
         }
 
         /* TODO: Registered functions should probably be unregistered... */

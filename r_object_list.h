@@ -75,7 +75,7 @@ extern int l_ObjectList_clear_internal(lua_State *ls, r_object_type_t parent_typ
 
 /* Functions for directly manipulating an object list */
 extern int l_ObjectList_add(lua_State *ls, r_object_type_t list_type, r_object_list_insert_function_t insert);
-extern int l_ObjectList_forEach(lua_State *ls, r_object_type_t list_type);
+extern int l_ObjectList_forEach(lua_State *ls, r_object_type_t list_type, r_object_type_t item_type);
 extern int l_ObjectList_pop(lua_State *ls, r_object_type_t list_type);
 extern int l_ObjectList_remove(lua_State *ls, r_object_type_t list_type, r_object_type_t item_type);
 extern int l_ObjectList_clear(lua_State *ls, r_object_type_t list_type);

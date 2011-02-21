@@ -508,9 +508,9 @@ int l_ObjectList_add(lua_State *ls, r_object_type_t list_type, r_object_list_ins
     return l_ObjectList_add_internal(ls, list_type, 0, insert);
 }
 
-int l_ObjectList_forEach(lua_State *ls, r_object_type_t list_type)
+int l_ObjectList_forEach(lua_State *ls, r_object_type_t list_type, r_object_type_t item_type)
 {
-    return l_ObjectList_forEach_internal(ls, list_type, 0, list_type);
+    return l_ObjectList_forEach_internal(ls, list_type, 0, item_type);
 }
 
 int l_ObjectList_pop(lua_State *ls, r_object_type_t list_type)

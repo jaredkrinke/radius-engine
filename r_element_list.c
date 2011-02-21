@@ -61,7 +61,7 @@ static int l_ElementList_add(lua_State *ls)
 
 static int l_ElementList_forEach(lua_State *ls)
 {
-    return l_ZList_forEach(ls, R_OBJECT_TYPE_ELEMENT_LIST);
+    return l_ZList_forEach(ls, R_OBJECT_TYPE_ELEMENT_LIST, R_OBJECT_TYPE_ELEMENT);
 }
 
 static int l_ElementList_remove(lua_State *ls)

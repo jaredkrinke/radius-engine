@@ -78,9 +78,9 @@ int l_ZList_add(lua_State *ls, r_object_type_t list_type)
     return l_ObjectList_add(ls, list_type, r_zlist_sort_insert);
 }
 
-int l_ZList_forEach(lua_State *ls, r_object_type_t list_type)
+int l_ZList_forEach(lua_State *ls, r_object_type_t list_type, r_object_type_t item_type)
 {
-    return l_ObjectList_forEach(ls, list_type);
+    return l_ObjectList_forEach(ls, list_type, item_type);
 }
 
 int l_ZList_remove(lua_State *ls, r_object_type_t list_type, r_object_type_t item_type)

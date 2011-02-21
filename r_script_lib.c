@@ -869,18 +869,25 @@ static r_status_t r_script_string_setup(r_state_t *rs)
             if (R_SUCCEEDED(status))
             {
                 int string_module_index = lua_gettop(ls);
-                const char *string_functions[] = {
-                    "find",
-                    "format",
-                    NULL
+
+                struct
+                {
+                    const char *old_name;
+                    const char *new_name;
+                } *entry, entries[] = {
+                    { "find",   "find" },
+                    { "format", "format" },
+                    { "sub",    "substring" },
+                    { "upper",  "toUpper" },
+                    { "lower",  "toLower" },
+                    { NULL, NULL }
                 };
-                const char **function;
 
                 /* Add each function to the actual "String" table */
-                for (function = string_functions; *function != NULL && R_SUCCEEDED(status); ++function)
+                for (entry = entries; entry->old_name != NULL && R_SUCCEEDED(status); ++entry)
                 {
-                    lua_pushstring(ls, *function);
-                    lua_pushvalue(ls, -1);
+                    lua_pushstring(ls, entry->new_name);
+                    lua_pushstring(ls, entry->old_name);
                     lua_gettable(ls, string_module_index);
 
                     status = lua_isfunction(ls, -1) ? R_SUCCESS : RS_F_FIELD_NOT_FOUND;

@@ -8,6 +8,8 @@
 * r_object_list.h: Propagate item type to for-each
 * r_object_list.c (l_ObjectList_forEach): Specify item type
 
+* r_script_lib.c: Added String.substring/toUpper/toLower
+
 2011-02-06 deraj@users.sourceforge.net
 
 * r_layer.c (r_layer_init): Initialize collision debugging to false

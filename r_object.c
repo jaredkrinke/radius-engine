@@ -409,6 +409,7 @@ static r_status_t r_object_setup_environment(r_state_t *rs, r_object_t *object, 
         env_index = lua_gettop(ls);
 
         /* Setup field pointers */
+        /* TODO: Can this be avoided by sharing the field table for each type (similar to how headers are shared)? */
         for (field = object->header->fields; field->name != NULL; ++field)
         {
             lua_pushstring(ls, field->name);

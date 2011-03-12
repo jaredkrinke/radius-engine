@@ -1,3 +1,7 @@
+2011-03-10 deraj@users.sourceforge.net
+
+* r_script_lib.c: Added round, sign math functions
+
 2011-02-20 deraj@users.sourceforge.net
 
 * r_script_lib.c (r_script_string_setup): Expose Lua's find/format in "String"

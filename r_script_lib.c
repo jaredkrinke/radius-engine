@@ -365,6 +365,16 @@ static int l_tan(lua_State *ls)
     return l_mathFunction(ls, tan_degrees);
 }
 
+static double sign(double x)
+{
+    return (x > 0) ? 1 : ((x < 0) ? -1 : 0);
+}
+
+static int l_sign(lua_State *ls)
+{
+    return l_mathFunction(ls, sign);
+}
+
 static int l_exp(lua_State *ls)
 {
     return l_mathFunction(ls, exp);
@@ -460,6 +470,16 @@ static int l_ceil(lua_State *ls)
 static int l_floor(lua_State *ls)
 {
     return l_mathFunction(ls, floor);
+}
+
+double round(double x)
+{
+    return floor(x + 0.5);
+}
+
+static int l_round(lua_State *ls)
+{
+    return l_mathFunction(ls, round);
 }
 
 static int l_mathAggregate(lua_State *ls, r_script_math_aggregate_function_t f)
@@ -946,6 +966,7 @@ r_status_t r_script_setup(r_state_t *rs)
         lua_register(ls, "sin", l_sin);
         lua_register(ls, "cos", l_cos);
         lua_register(ls, "tan", l_tan);
+        lua_register(ls, "sign", l_sign);
         lua_register(ls, "exp", l_exp);
         lua_register(ls, "pow", l_pow);
         lua_register(ls, "log", l_log);
@@ -956,6 +977,7 @@ r_status_t r_script_setup(r_state_t *rs)
         lua_register(ls, "abs", l_abs);
         lua_register(ls, "ceil", l_ceil);
         lua_register(ls, "floor", l_floor);
+        lua_register(ls, "round", l_round);
         lua_register(ls, "min", l_min);
         lua_register(ls, "max", l_max);
 

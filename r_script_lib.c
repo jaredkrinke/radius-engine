@@ -457,6 +457,19 @@ static int l_arctan(lua_State *ls)
     return result_count;
 }
 
+/* Restrict angles to [0, 360) (i.e. to their "direction") */
+double adir(double x)
+{
+    double y = x - floor(x / 360) * 360;
+
+    return y >= 0 ? y : y + 360;
+}
+
+static int l_adir(lua_State *ls)
+{
+    return l_mathFunction(ls, adir);
+}
+
 static int l_abs(lua_State *ls)
 {
     return l_mathFunction(ls, fabs);
@@ -974,6 +987,7 @@ r_status_t r_script_setup(r_state_t *rs)
         lua_register(ls, "arcsin", l_arcsin);
         lua_register(ls, "arccos", l_arccos);
         lua_register(ls, "arctan", l_arctan);
+        lua_register(ls, "adir", l_adir);
         lua_register(ls, "abs", l_abs);
         lua_register(ls, "ceil", l_ceil);
         lua_register(ls, "floor", l_floor);

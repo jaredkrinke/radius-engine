@@ -1,3 +1,11 @@
+2011-03-27 deraj@users.sourceforge.net
+
+* r_script_lib.c: Added "adir": convert angle to direction (on [0, 360))
+
+2011-03-23 deraj@users.sourceforge.net
+
+* r_file_system.c: Added "load" for forcing a script to be (re)loaded
+
 2011-03-10 deraj@users.sourceforge.net
 
 * r_script_lib.c: Added round, sign math functions

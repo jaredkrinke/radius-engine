@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -248,7 +248,7 @@ static int l_ls(lua_State *ls)
 }
 
 /* Require a script to be loaded before execution proceeds */
-static int l_load_script(lua_State *ls, r_boolean_t required)
+static int l_load_script(lua_State *ls, r_boolean_t required, r_boolean_t always_load)
 {
     int argc = lua_gettop(ls);
 
@@ -266,14 +266,23 @@ static int l_load_script(lua_State *ls, r_boolean_t required)
             for (i = 1; i <= argc; i++)
             {
                 const char *script = lua_tostring(ls, i);
+
                 if (script != NULL)
                 {
+                    r_boolean_t load = R_TRUE;
+
                     /* Check and see if the script has already been loaded */
-                    lua_pushstring(ls, script);
-                    lua_rawget(ls, loaded_scripts_index);
-                    if (!lua_isboolean(ls, -1) || !lua_toboolean(ls, -1))
+                    if (!always_load)
                     {
-                        /* Script has not been loaded, so mark as loaded and then load it */
+                        lua_pushstring(ls, script);
+                        lua_rawget(ls, loaded_scripts_index);
+                        load = (!lua_isboolean(ls, -1) || !lua_toboolean(ls, -1)) ? R_TRUE : R_FALSE;
+                        lua_pop(ls, 1);
+                    }
+
+                    if (load)
+                    {
+                        /* Mark as loaded and then load it */
 
                         /* NOTE: the script must be marked as loaded before being loaded
                          * in order to avoid infinite recursion */
@@ -284,7 +293,6 @@ static int l_load_script(lua_State *ls, r_boolean_t required)
                         /* Load the script now, ignore errors */
                         r_file_system_load_script(rs, script, required);
                     }
-                    lua_pop(ls, 1); /* loaded */
                 }
             }
 
@@ -297,12 +305,17 @@ static int l_load_script(lua_State *ls, r_boolean_t required)
 
 static int l_require(lua_State *ls)
 {
-    return l_load_script(ls, R_TRUE);
+    return l_load_script(ls, R_TRUE, R_FALSE);
 }
 
 static int l_include(lua_State *ls)
 {
-    return l_load_script(ls, R_FALSE);
+    return l_load_script(ls, R_FALSE, R_FALSE);
+}
+
+static int l_load(lua_State *ls)
+{
+    return l_load_script(ls, R_FALSE, R_TRUE);
 }
 
 r_status_t r_file_system_setup_script(r_state_t *rs)
@@ -326,6 +339,7 @@ r_status_t r_file_system_setup_script(r_state_t *rs)
             lua_register(ls, "ls", l_ls);
             lua_register(ls, "require", l_require);
             lua_register(ls, "include", l_include);
+            lua_register(ls, "load", l_load);
         }
     }
 

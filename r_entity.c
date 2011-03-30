@@ -34,15 +34,15 @@ static void r_entity_increment_version(r_entity_t *entity)
     entity->version = entity->version + 1;
 
     /* Update children as well */
-    if (entity->has_children && entity->children.object_list.count > 0)
+    if (entity->has_children && entity->children_update.object_list.count > 0)
     {
         unsigned int i;
 
-        for (i = 0; i < entity->children.object_list.count; ++i)
+        for (i = 0; i < entity->children_update.object_list.count; ++i)
         {
-            if (entity->children.object_list.items[i].object_ref.ref != R_OBJECT_REF_INVALID)
+            if (entity->children_update.object_list.items[i].object_ref.ref != R_OBJECT_REF_INVALID)
             {
-                r_entity_increment_version((r_entity_t*)entity->children.object_list.items[i].object_ref.value.object);
+                r_entity_increment_version((r_entity_t*)entity->children_update.object_list.items[i].object_ref.value.object);
             }
         }
     }
@@ -65,6 +65,7 @@ r_object_ref_t r_entity_ref_add_child           = { R_OBJECT_REF_INVALID, { NULL
 r_object_ref_t r_entity_ref_remove_child        = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_entity_ref_for_each_child      = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_entity_ref_clear_children      = { R_OBJECT_REF_INVALID, { NULL } };
+r_object_ref_t r_entity_ref_update_children     = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_entity_ref_convert_to_local    = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_entity_ref_convert_to_absolute = { R_OBJECT_REF_INVALID, { NULL } };
 
@@ -78,6 +79,7 @@ r_object_field_t r_entity_fields[] = {
     { "color",             LUA_TUSERDATA, R_OBJECT_TYPE_COLOR,        offsetof(r_entity_t, color),    R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, NULL },
     { "elements",          LUA_TUSERDATA, R_OBJECT_TYPE_ELEMENT_LIST, offsetof(r_entity_t, elements), R_TRUE,  R_OBJECT_INIT_OPTIONAL, r_element_list_field_init, NULL, NULL, NULL },
     { "update",            LUA_TFUNCTION, 0,                          offsetof(r_entity_t, update),   R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, NULL },
+    { "order",             LUA_TNUMBER,   0,                          offsetof(r_entity_t, order),    R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      NULL, NULL, NULL },
     { "group",             LUA_TNUMBER,   0,                          offsetof(r_entity_t, group),    R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                      r_object_field_read_unsigned_int, NULL, r_object_field_write_unsigned_int },
     { "mesh",              LUA_TUSERDATA, R_OBJECT_TYPE_MESH,         offsetof(r_entity_t, mesh),     R_TRUE,  R_OBJECT_INIT_EXCLUDED, NULL,                      NULL, NULL, NULL },
     { "parent",            LUA_TUSERDATA, R_OBJECT_TYPE_ENTITY,       offsetof(r_entity_t, parent),   R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL,                      NULL, NULL, NULL },
@@ -85,6 +87,7 @@ r_object_field_t r_entity_fields[] = {
     { "removeChild",       LUA_TFUNCTION, 0,                          0,                              R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_entity_ref_remove_child, NULL },
     { "forEachChild",      LUA_TFUNCTION, 0,                          0,                              R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_entity_ref_for_each_child, NULL },
     { "clearChildren",     LUA_TFUNCTION, 0,                          0,                              R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_entity_ref_clear_children, NULL },
+    { "updateChildren",    LUA_TFUNCTION, 0,                          0,                              R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_entity_ref_update_children, NULL },
     { "convertToLocal",    LUA_TFUNCTION, 0,                          0,                              R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_entity_ref_convert_to_local, NULL },
     { "convertToAbsolute", LUA_TFUNCTION, 0,                          0,                              R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_entity_ref_convert_to_absolute, NULL },
     { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
@@ -131,7 +134,12 @@ static r_status_t r_entity_cleanup(r_state_t *rs, r_object_t *object)
 
     if (entity->has_children)
     {
-        status = r_entity_list_cleanup(rs, &entity->children);
+        status = r_entity_list_cleanup(rs, &entity->children_display);
+
+        if (R_SUCCEEDED(status))
+        {
+            status = r_entity_list_cleanup(rs, &entity->children_update);
+        }
     }
 
     return status;
@@ -187,14 +195,23 @@ static int l_Entity_addChild(lua_State *ls)
         int parent_index = 1;
         r_entity_t *parent = (r_entity_t*)lua_touserdata(ls, parent_index);
 
-        /* Initialize children list on demand, if necessary */
+        /* Initialize children lists on demand, if necessary */
         if (!parent->has_children)
         {
-            status = r_entity_list_init(rs, &parent->children);
+            status = r_entity_update_list_init(rs, &parent->children_update);
 
             if (R_SUCCEEDED(status))
             {
-                parent->has_children = R_TRUE;
+                status = r_entity_display_list_init(rs, &parent->children_display);
+
+                if (R_SUCCEEDED(status))
+                {
+                    parent->has_children = R_TRUE;
+                }
+                else
+                {
+                    r_entity_list_cleanup(rs, &parent->children_update);
+                }
             }
         }
 
@@ -207,8 +224,13 @@ static int l_Entity_addChild(lua_State *ls)
 
             if (R_SUCCEEDED(status))
             {
-                /* Add to the list */
-                result_count = l_ZList_add_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children));
+                /* Add to both the lists */
+                status = r_entity_list_add(rs, (r_object_t*)parent, &parent->children_update, child_index);
+
+                if (R_SUCCEEDED(status))
+                {
+                    result_count = l_ZList_add_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children_display));
+                }
             }
         }
     }
@@ -243,7 +265,12 @@ static int l_Entity_removeChild(lua_State *ls)
             if (R_SUCCEEDED(status))
             {
                 /* Remove from the list */
-                result_count = l_ZList_remove_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children), R_OBJECT_TYPE_ENTITY);
+                status = r_entity_list_remove(rs, (r_object_t*)parent, &parent->children_update, child);
+
+                if (R_SUCCEEDED(status))
+                {
+                    result_count = l_ZList_remove_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children_display), R_OBJECT_TYPE_ENTITY);
+                }
             }
         }
     }
@@ -275,7 +302,7 @@ static int l_Entity_forEachChild(lua_State *ls)
 
             if (R_SUCCEEDED(status))
             {
-                result_count = l_ZList_forEach_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children), R_OBJECT_TYPE_ENTITY);
+                result_count = l_ZList_forEach_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children_update), R_OBJECT_TYPE_ENTITY);
                 r_entity_unlock(rs, entity);
             }
         }
@@ -305,9 +332,9 @@ static int l_Entity_clearChildren(lua_State *ls)
         {
             unsigned int i;
 
-            for (i = 0; i < parent->children.object_list.count && R_SUCCEEDED(status); ++i)
+            for (i = 0; i < parent->children_update.object_list.count && R_SUCCEEDED(status); ++i)
             {
-                r_object_ref_t *entity_ref = &parent->children.object_list.items[i].object_ref;
+                r_object_ref_t *entity_ref = &parent->children_update.object_list.items[i].object_ref;
                 r_entity_t *child = (r_entity_t*)entity_ref->value.object;
 
                 status = r_object_ref_write(rs, (r_object_t*)child, &child->parent, R_OBJECT_TYPE_ENTITY, 0);
@@ -315,8 +342,13 @@ static int l_Entity_clearChildren(lua_State *ls)
 
             if (R_SUCCEEDED(status))
             {
-                /* Clear the list */
-                result_count = l_ZList_clear_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children));
+                /* Clear the lists */
+                status = r_entity_list_clear(rs, (r_object_t*)parent, &parent->children_update);
+
+                if (R_SUCCEEDED(status))
+                {
+                    result_count = l_ZList_clear_internal(ls, R_OBJECT_TYPE_ENTITY, offsetof(r_entity_t, children_display));
+                }
             }
         }
     }
@@ -324,6 +356,33 @@ static int l_Entity_clearChildren(lua_State *ls)
     lua_pop(ls, lua_gettop(ls) - result_count);
 
     return result_count;
+}
+
+static int l_Entity_updateChildren(lua_State *ls)
+{
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TUSERDATA, R_OBJECT_TYPE_ENTITY },
+        { LUA_TNUMBER, 0 }
+    };
+
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Update all children, if there are any */
+        r_entity_t *entity = (r_entity_t*)lua_touserdata(ls, 1);
+        unsigned int difference_ms = (unsigned int)lua_tonumber(ls, 2);
+
+        if (entity->has_children && entity->children_update.object_list.count > 0)
+        {
+            status = r_entity_list_update(rs, &entity->children_update, difference_ms);
+        }
+    }
+
+    lua_pop(ls, lua_gettop(ls));
+
+    return 0;
 }
 
 static int l_Entity_convertToLocal(lua_State *ls)
@@ -410,6 +469,7 @@ r_status_t r_entity_setup(r_state_t *rs)
             { 0,                &r_entity_ref_remove_child,        { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Entity_removeChild } },
             { 0,                &r_entity_ref_for_each_child,      { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Entity_forEachChild } },
             { 0,                &r_entity_ref_clear_children,      { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Entity_clearChildren } },
+            { 0,                &r_entity_ref_update_children,     { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Entity_updateChildren } },
             { 0,                &r_entity_ref_convert_to_local,    { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Entity_convertToLocal } },
             { 0,                &r_entity_ref_convert_to_absolute, { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Entity_convertToAbsolute } },
             { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
@@ -425,15 +485,6 @@ r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int diffe
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL && entity != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
-
-    /* Update children, if necessary */
-    if (R_SUCCEEDED(status))
-    {
-        if (entity->has_children && entity->children.object_list.count > 0)
-        {
-            status = r_entity_list_update(rs, &entity->children, difference_ms);
-        }
-    }
 
     /* Update this entity */
     if (R_SUCCEEDED(status))
@@ -478,9 +529,14 @@ r_status_t r_entity_lock(r_state_t *rs, r_entity_t *entity)
 
     if (R_SUCCEEDED(status))
     {
-        if (entity->has_children && entity->children.object_list.count > 0)
+        if (entity->has_children && entity->children_update.object_list.count > 0)
         {
-            status = r_entity_list_lock(rs, (r_object_t*)entity, &entity->children);
+            status = r_entity_list_lock(rs, (r_object_t*)entity, &entity->children_update);
+
+            if (R_SUCCEEDED(status))
+            {
+                status = r_entity_list_lock(rs, (r_object_t*)entity, &entity->children_display);
+            }
         }
     }
 
@@ -494,9 +550,14 @@ r_status_t r_entity_unlock(r_state_t *rs, r_entity_t *entity)
 
     if (R_SUCCEEDED(status))
     {
-        if (entity->has_children && entity->children.object_list.count > 0 && entity->children.object_list.locks > 0)
+        if (entity->has_children && entity->children_update.object_list.count > 0 && entity->children_update.object_list.locks > 0)
         {
-            status = r_entity_list_unlock(rs, (r_object_t*)entity, &entity->children);
+            status = r_entity_list_unlock(rs, (r_object_t*)entity, &entity->children_display);
+
+            if (R_SUCCEEDED(status))
+            {
+                status = r_entity_list_unlock(rs, (r_object_t*)entity, &entity->children_update);
+            }
         }
     }
 

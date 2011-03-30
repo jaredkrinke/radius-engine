@@ -1,3 +1,27 @@
+2011-03-29 deraj@users.sourceforge.net
+
+* r_entity.h: Split children list: ordering display (z), updates (order)
+* r_entity.c: Keep children lists in sync, use children_update for updates
+
+* r_entity_list.h: Constructors for display/update lists, new helpers
+* r_entity_list.c: Support for update vs. display lists
+
+* r_layer.h: Split entity lists: display (z), update (order)
+* r_layer.c: Keep entity lists in sync, use entities_update for updates
+
+* r_object_list.h: Expose object list direct manipulation functions
+* r_object_list.c: Split up and expose manipulation functions
+
+* r_zlist.h: Wrap direct manipulation functions
+* r_zlist.c: Wrap direct manipulation functions
+
+* r_video.c: Draw entities in display order (new decoupled from update order)
+
+2011-03-28 deraj@users.sourceforge.net
+
+* r_entity.c (r_entity_update): Children are no longer updated automatically
+* r_entity.c (l_Entity_updateChildren): Added Entity.updateChildren
+
 2011-03-27 deraj@users.sourceforge.net
 
 * r_script_lib.c: Added "adir": convert angle to direction (on [0, 360))

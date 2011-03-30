@@ -29,7 +29,15 @@ THE SOFTWARE.
 #include "r_entity_list.h"
 #include "r_script.h"
 
-static int r_entity_compare(r_object_t *a, r_object_t *b)
+static int r_entity_compare_order(r_object_t *a, r_object_t *b)
+{
+    r_entity_t *entity_a = (r_entity_t*)a;
+    r_entity_t *entity_b = (r_entity_t*)b;
+
+    return (entity_a->order == entity_b->order) ? 0 : ((entity_a->order > entity_b->order) ? 1 : -1);
+}
+
+static int r_entity_compare_z(r_object_t *a, r_object_t *b)
 {
     r_entity_t *entity_a = (r_entity_t*)a;
     r_entity_t *entity_b = (r_entity_t*)b;
@@ -37,14 +45,34 @@ static int r_entity_compare(r_object_t *a, r_object_t *b)
     return (entity_a->z == entity_b->z) ? 0 : ((entity_a->z > entity_b->z) ? 1 : -1);
 }
 
-r_status_t r_entity_list_init(r_state_t *rs, r_entity_list_t *entity_list)
+r_status_t r_entity_update_list_init(r_state_t *rs, r_entity_list_t *entity_list)
 {
-    return r_zlist_init(rs, (r_object_t*)entity_list, R_OBJECT_TYPE_ENTITY_LIST, R_OBJECT_TYPE_ENTITY, r_entity_compare);
+    return r_zlist_init(rs, (r_object_t*)entity_list, R_OBJECT_TYPE_ENTITY_LIST, R_OBJECT_TYPE_ENTITY, r_entity_compare_order);
+}
+
+r_status_t r_entity_display_list_init(r_state_t *rs, r_entity_list_t *entity_list)
+{
+    return r_zlist_init(rs, (r_object_t*)entity_list, R_OBJECT_TYPE_ENTITY_LIST, R_OBJECT_TYPE_ENTITY, r_entity_compare_z);
 }
 
 r_status_t r_entity_list_cleanup(r_state_t *rs, r_entity_list_t *entity_list)
 {
     return r_zlist_cleanup(rs, (r_object_t*)entity_list, R_OBJECT_TYPE_ENTITY_LIST);
+}
+
+r_status_t r_entity_list_add(r_state_t *rs, r_object_t *parent, r_entity_list_t *entity_list, int item_index)
+{
+    return r_zlist_add(rs, parent, (r_zlist_t*)entity_list, item_index);
+}
+
+r_status_t r_entity_list_remove(r_state_t *rs, r_object_t *parent, r_entity_list_t *entity_list, r_entity_t *child)
+{
+    return r_zlist_remove(rs, parent, (r_zlist_t*)entity_list, (r_object_t*)child);
+}
+
+r_status_t r_entity_list_clear(r_state_t *rs, r_object_t *parent, r_entity_list_t *entity_list)
+{
+    return r_zlist_clear(rs, parent, (r_zlist_t*)entity_list);
 }
 
 r_status_t r_entity_list_update(r_state_t *rs, r_entity_list_t *entity_list, unsigned int difference_ms)

@@ -72,8 +72,74 @@ void r_object_list_item_swap(r_object_list_item_t *a, r_object_list_item_t *b)
     b->object_ref.value.pointer = tmp;
 }
 
+static r_status_t r_object_list_find(r_state_t *rs, r_object_list_t *object_list, r_object_t *object, unsigned int *index)
+{
+    /* Find the item by a linear scan */
+    r_status_t status = R_F_NOT_FOUND;
+    unsigned int i;
+    r_boolean_t locked = (object_list->locks > 0);
+
+    for (i = 0; i < object_list->count; ++i)
+    {
+        if (!locked || object_list->items[i].valid)
+        {
+            if (object == object_list->items[i].object_ref.value.object)
+            {
+                *index = i;
+                status = R_SUCCESS;
+                break;
+            }
+        }
+    }
+
+    return status;
+}
+
+static r_status_t r_object_list_remove_index(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, unsigned int item)
+{
+    /* Ensure the index is valid */
+    r_status_t status = (item >= 0 && item < object_list->count) ? R_SUCCESS : R_F_INVALID_INDEX;
+
+    if (R_SUCCEEDED(status))
+    {
+        R_ASSERT(object_list->items[item].valid);
+
+        if (object_list->locks <= 0)
+        {
+            /* Clear the reference and shift down remaining items */
+            r_object_t *owner = (parent != NULL) ? parent : (r_object_t*)object_list;
+
+            status = r_object_ref_clear(rs, owner, &object_list->items[item].object_ref);
+
+            if (R_SUCCEEDED(status))
+            {
+                /* Shift down remaining items */
+                unsigned int i;
+
+                for (i = item; i < object_list->count - 1; ++i)
+                {
+                    r_object_list_item_copy(rs, &object_list->items[i], &object_list->items[i + 1]);
+                }
+
+                /* Make sure any trailing items are nulled out */
+                r_object_list_item_null(rs, &object_list->items[object_list->count - 1]);
+
+                /* Decrement count */
+                object_list->count = object_list->count - 1;
+            }
+        }
+        else
+        {
+            /* Queue the item for removal */
+            object_list->items[item].op = R_OBJECT_LIST_OP_REMOVE;
+        }
+    }
+
+    return status;
+}
+
 /* TODO: Check all script functions to ensure errors are reported somehow! */
-static r_status_t r_object_list_add(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, int item_index, r_object_list_insert_function_t insert)
+r_status_t r_object_list_add(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, int item_index, r_object_list_insert_function_t insert)
 {
     /* Ensure there is enough space for the new item */
     r_status_t status = R_SUCCESS;
@@ -142,73 +208,21 @@ static r_status_t r_object_list_add(r_state_t *rs, r_object_t *parent, r_object_
     return status;
 }
 
-static r_status_t r_object_list_remove(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, unsigned int item)
+r_status_t r_object_list_remove(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, r_object_t *object)
 {
-    /* Ensure the index is valid */
-    r_status_t status = (item >= 0 && item < object_list->count) ? R_SUCCESS : R_F_INVALID_INDEX;
+    unsigned int item = 0;
+    r_status_t status = r_object_list_find(rs, object_list, object, &item);
 
     if (R_SUCCEEDED(status))
     {
-        R_ASSERT(object_list->items[item].valid);
-
-        if (object_list->locks <= 0)
-        {
-            /* Clear the reference and shift down remaining items */
-            r_object_t *owner = (parent != NULL) ? parent : (r_object_t*)object_list;
-
-            status = r_object_ref_clear(rs, owner, &object_list->items[item].object_ref);
-
-            if (R_SUCCEEDED(status))
-            {
-                /* Shift down remaining items */
-                unsigned int i;
-
-                for (i = item; i < object_list->count - 1; ++i)
-                {
-                    r_object_list_item_copy(rs, &object_list->items[i], &object_list->items[i + 1]);
-                }
-
-                /* Make sure any trailing items are nulled out */
-                r_object_list_item_null(rs, &object_list->items[object_list->count - 1]);
-
-                /* Decrement count */
-                object_list->count = object_list->count - 1;
-            }
-        }
-        else
-        {
-            /* Queue the item for removal */
-            object_list->items[item].op = R_OBJECT_LIST_OP_REMOVE;
-        }
+        status = r_object_list_remove_index(rs, parent, object_list, item);
     }
 
     return status;
 }
 
-static r_status_t r_object_list_find(r_state_t *rs, r_object_list_t *object_list, r_object_t *object, unsigned int *index)
-{
-    /* Find the item by a linear scan */
-    r_status_t status = R_F_NOT_FOUND;
-    unsigned int i;
-    r_boolean_t locked = (object_list->locks > 0);
 
-    for (i = 0; i < object_list->count; ++i)
-    {
-        if (!locked || object_list->items[i].valid)
-        {
-            if (object == object_list->items[i].object_ref.value.object)
-            {
-                *index = i;
-                status = R_SUCCESS;
-                break;
-            }
-        }
-    }
-
-    return status;
-}
-
-static r_status_t r_object_list_clear(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list)
+r_status_t r_object_list_clear(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list)
 {
     r_status_t status = R_SUCCESS;
 
@@ -221,7 +235,7 @@ static r_status_t r_object_list_clear(r_state_t *rs, r_object_t *parent, r_objec
 
             for (i = object_list->count - 1; object_list->count > 0 && R_SUCCEEDED(status); --i)
             {
-                status = r_object_list_remove(rs, parent, object_list, i);
+                status = r_object_list_remove_index(rs, parent, object_list, i);
             }
         }
     }
@@ -427,7 +441,7 @@ int l_ObjectList_pop_internal(lua_State *ls, r_object_type_t parent_type, int ob
 
                     if (R_SUCCEEDED(status))
                     {
-                        status = r_object_list_remove(rs, parent, object_list, item);
+                        status = r_object_list_remove_index(rs, parent, object_list, item);
 
                         if (R_SUCCEEDED(status))
                         {
@@ -468,14 +482,8 @@ int l_ObjectList_remove_internal(lua_State *ls, r_object_type_t parent_type, int
         r_object_t *parent = (r_object_t*)lua_touserdata(ls, 1);
         r_object_list_t *object_list = (r_object_list_t*)(((r_byte_t*)parent) + object_list_offset);
         r_object_t *object = (r_object_t*)lua_touserdata(ls, 2);
-        unsigned int item = 0;
 
-        status = r_object_list_find(rs, object_list, object, &item);
-
-        if (R_SUCCEEDED(status))
-        {
-            status = r_object_list_remove(rs, parent, object_list, item);
-        }
+        status = r_object_list_remove(rs, parent, object_list, object);
     }
 
     lua_pop(ls, lua_gettop(ls));

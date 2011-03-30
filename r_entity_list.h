@@ -27,10 +27,18 @@ THE SOFTWARE.
 
 #include "r_zlist.h"
 
+struct _r_entity;
 typedef r_zlist_t r_entity_list_t;
 
-extern r_status_t r_entity_list_init(r_state_t *rs, r_entity_list_t *entity_list);
+extern r_status_t r_entity_update_list_init(r_state_t *rs, r_entity_list_t *entity_list);
+extern r_status_t r_entity_display_list_init(r_state_t *rs, r_entity_list_t *entity_list);
 extern r_status_t r_entity_list_cleanup(r_state_t *rs, r_entity_list_t *entity_list);
+
+/* Functions for directly manipulating entity lists */
+extern r_status_t r_entity_list_add(r_state_t *rs, r_object_t *parent, r_entity_list_t *entity_list, int item_index);
+extern r_status_t r_entity_list_remove(r_state_t *rs, r_object_t *parent, r_entity_list_t *entity_list, struct _r_entity *child);
+extern r_status_t r_entity_list_clear(r_state_t *rs, r_object_t *parent, r_entity_list_t *entity_list);
+
 extern r_status_t r_entity_list_update(r_state_t *rs, r_entity_list_t *entity_list, unsigned int difference_ms);
 extern r_status_t r_entity_list_lock(r_state_t *rs, r_object_t *parent, r_entity_list_t *entity_list);
 extern r_status_t r_entity_list_unlock(r_state_t *rs, r_object_t *parent, r_entity_list_t *entity_list);

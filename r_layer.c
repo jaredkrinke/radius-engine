@@ -48,25 +48,25 @@ r_object_ref_t r_layer_ref_seekMusic    = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_layer_ref_createCollisionDetector = { R_OBJECT_REF_INVALID, { NULL } };
 
 r_object_field_t r_layer_fields[] = {
-    { "framePeriodMS",         LUA_TNUMBER,   0,                         offsetof(r_layer_t, frame_period_ms),         R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "keyPressed",            LUA_TFUNCTION, 0,                         offsetof(r_layer_t, key_pressed),             R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "mouseButtonPressed",    LUA_TFUNCTION, 0,                         offsetof(r_layer_t, mouse_button_pressed),    R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "mouseMoved",            LUA_TFUNCTION, 0,                         offsetof(r_layer_t, mouse_moved),             R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "joystickButtonPressed", LUA_TFUNCTION, 0,                         offsetof(r_layer_t, joystick_button_pressed), R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "joystickAxisMoved",     LUA_TFUNCTION, 0,                         offsetof(r_layer_t, joystick_axis_moved),     R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "errorOccurred",         LUA_TFUNCTION, 0,                         offsetof(r_layer_t, error_occurred),          R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "propagateAudio",        LUA_TBOOLEAN,  0,                         offsetof(r_layer_t, propagate_audio),         R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
-    { "addChild",              LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_add_child, NULL },
-    { "removeChild",           LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_remove_child, NULL },
-    { "forEachChild",          LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_for_each_child, NULL },
-    { "clearChildren",         LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_clear_children, NULL },
-    { "play",                  LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_play, NULL },
-    { "clearAudio",            LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_clearAudio, NULL },
-    { "playMusic",             LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_playMusic, NULL },
-    { "stopMusic",             LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_stopMusic, NULL },
-    { "seekMusic",             LUA_TFUNCTION, 0,                         0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_seekMusic, NULL },
-    { "debugCollisionDetectors", LUA_TBOOLEAN, 0,                        offsetof(r_layer_t, debug_collision_detectors), R_TRUE, R_OBJECT_INIT_EXCLUDED, NULL,                    NULL, NULL, NULL },
-    { "createCollisionDetector", LUA_TFUNCTION, 0,                       0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_createCollisionDetector, NULL },
+    { "framePeriodMS",         LUA_TNUMBER,   0,   offsetof(r_layer_t, frame_period_ms),         R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "keyPressed",            LUA_TFUNCTION, 0,   offsetof(r_layer_t, key_pressed),             R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "mouseButtonPressed",    LUA_TFUNCTION, 0,   offsetof(r_layer_t, mouse_button_pressed),    R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "mouseMoved",            LUA_TFUNCTION, 0,   offsetof(r_layer_t, mouse_moved),             R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "joystickButtonPressed", LUA_TFUNCTION, 0,   offsetof(r_layer_t, joystick_button_pressed), R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "joystickAxisMoved",     LUA_TFUNCTION, 0,   offsetof(r_layer_t, joystick_axis_moved),     R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "errorOccurred",         LUA_TFUNCTION, 0,   offsetof(r_layer_t, error_occurred),          R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "propagateAudio",        LUA_TBOOLEAN,  0,   offsetof(r_layer_t, propagate_audio),         R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL,                     NULL, NULL, NULL },
+    { "addChild",              LUA_TFUNCTION, 0,   0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_add_child, NULL },
+    { "removeChild",           LUA_TFUNCTION, 0,   0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_remove_child, NULL },
+    { "forEachChild",          LUA_TFUNCTION, 0,   0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_for_each_child, NULL },
+    { "clearChildren",         LUA_TFUNCTION, 0,   0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_clear_children, NULL },
+    { "play",                  LUA_TFUNCTION, 0,   0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_play, NULL },
+    { "clearAudio",            LUA_TFUNCTION, 0,   0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_clearAudio, NULL },
+    { "playMusic",             LUA_TFUNCTION, 0,   0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_playMusic, NULL },
+    { "stopMusic",             LUA_TFUNCTION, 0,   0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_stopMusic, NULL },
+    { "seekMusic",             LUA_TFUNCTION, 0,   0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_seekMusic, NULL },
+    { "debugCollisionDetectors", LUA_TBOOLEAN, 0,  offsetof(r_layer_t, debug_collision_detectors), R_TRUE, R_OBJECT_INIT_EXCLUDED, NULL,                    NULL, NULL, NULL },
+    { "createCollisionDetector", LUA_TFUNCTION, 0, 0,                                            R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_layer_ref_createCollisionDetector, NULL },
     { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
 };
 
@@ -91,7 +91,16 @@ static r_status_t r_layer_init(r_state_t *rs, r_object_t *object)
 
     if (R_SUCCEEDED(status))
     {
-        status = r_entity_list_init(rs, &layer->entities);
+        status = r_entity_display_list_init(rs, &layer->entities_update);
+
+        if (R_SUCCEEDED(status))
+        {
+            status = r_entity_display_list_init(rs, &layer->entities_display);
+        }
+        else
+        {
+            r_entity_list_cleanup(rs, &layer->entities_update);
+        }
     }
 
     if (R_SUCCEEDED(status))
@@ -109,7 +118,12 @@ static r_status_t r_layer_cleanup(r_state_t *rs, r_object_t *object)
 
     if (R_SUCCEEDED(status))
     {
-        status = r_entity_list_cleanup(rs, &layer->entities);
+        status = r_entity_list_cleanup(rs, &layer->entities_display);
+    }
+
+    if (R_SUCCEEDED(status))
+    {
+        status = r_entity_list_cleanup(rs, &layer->entities_update);
     }
 
     if (R_SUCCEEDED(status))
@@ -125,7 +139,12 @@ r_object_header_t r_layer_header = { R_OBJECT_TYPE_LAYER, sizeof(r_layer_t), R_T
 static r_status_t r_layer_lock(r_state_t *rs, r_layer_t *layer)
 {
     /* Lock all entities */
-    r_status_t status = r_entity_list_lock(rs, (r_object_t*)layer, &layer->entities);
+    r_status_t status = r_entity_list_lock(rs, (r_object_t*)layer, &layer->entities_update);
+
+    if (R_SUCCEEDED(status))
+    {
+        status = r_entity_list_lock(rs, (r_object_t*)layer, &layer->entities_display);
+    }
 
     if (R_SUCCEEDED(status))
     {
@@ -183,7 +202,12 @@ static r_status_t r_layer_unlock(r_state_t *rs, r_layer_t *layer)
     /* Unlock all entities */
     if (R_SUCCEEDED(status))
     {
-        status =r_entity_list_unlock(rs, (r_object_t*)layer, &layer->entities);
+        status = r_entity_list_unlock(rs, (r_object_t*)layer, &layer->entities_display);
+    }
+
+    if (R_SUCCEEDED(status))
+    {
+        status = r_entity_list_unlock(rs, (r_object_t*)layer, &layer->entities_update );
     }
 
     return status;
@@ -215,8 +239,15 @@ static int l_Layer_addChild(lua_State *ls)
 
         if (R_SUCCEEDED(status))
         {
-            /* Add to the list */
-            result_count = l_ZList_add_internal(ls, R_OBJECT_TYPE_LAYER, offsetof(r_layer_t, entities));
+            r_layer_t *layer = (r_layer_t*)lua_touserdata(ls, 1);
+
+            status = r_entity_list_add(rs, (r_object_t*)layer, &layer->entities_update, child_index);
+
+            if (R_SUCCEEDED(status))
+            {
+                /* Add to the list */
+                result_count = l_ZList_add_internal(ls, R_OBJECT_TYPE_LAYER, offsetof(r_layer_t, entities_display));
+            }
         }
     }
 
@@ -227,7 +258,33 @@ static int l_Layer_addChild(lua_State *ls)
 
 static int l_Layer_removeChild(lua_State *ls)
 {
-    return l_ZList_remove_internal(ls, R_OBJECT_TYPE_LAYER, offsetof(r_layer_t, entities), R_OBJECT_TYPE_ENTITY);
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TUSERDATA, R_OBJECT_TYPE_LAYER },
+        { LUA_TUSERDATA, R_OBJECT_TYPE_ENTITY }
+    };
+
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+    int result_count = 0;
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Remove from both lists */
+        r_layer_t *layer = (r_layer_t*)lua_touserdata(ls, 1);
+        int child_index = 2;
+        r_entity_t *child = (r_entity_t*)lua_touserdata(ls, child_index);
+
+        status = r_entity_list_remove(rs, (r_object_t*)layer, &layer->entities_update, child);
+
+        if (R_SUCCEEDED(status))
+        {
+            result_count = l_ZList_remove_internal(ls, R_OBJECT_TYPE_LAYER, offsetof(r_layer_t, entities_display), R_OBJECT_TYPE_ENTITY);
+        }
+    }
+
+    lua_pop(ls, lua_gettop(ls) - result_count);
+
+    return result_count;
 }
 
 static int l_Layer_forEachChild(lua_State *ls)
@@ -250,7 +307,7 @@ static int l_Layer_forEachChild(lua_State *ls)
 
         if (R_SUCCEEDED(status))
         {
-            result_count = l_ZList_forEach_internal(ls, R_OBJECT_TYPE_LAYER, offsetof(r_layer_t, entities), R_OBJECT_TYPE_ENTITY);
+            result_count = l_ZList_forEach_internal(ls, R_OBJECT_TYPE_LAYER, offsetof(r_layer_t, entities_update), R_OBJECT_TYPE_ENTITY);
             r_layer_unlock(rs, layer);
         }
     }
@@ -262,7 +319,30 @@ static int l_Layer_forEachChild(lua_State *ls)
 
 static int l_Layer_clearChildren(lua_State *ls)
 {
-    return l_ZList_clear_internal(ls, R_OBJECT_TYPE_LAYER, offsetof(r_layer_t, entities));
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TUSERDATA, R_OBJECT_TYPE_LAYER }
+    };
+
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+    int result_count = 0;
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Clear both lists */
+        r_layer_t *layer = (r_layer_t*)lua_touserdata(ls, 1);
+
+        status = r_entity_list_clear(rs, (r_object_t*)layer, &layer->entities_update);
+
+        if (R_SUCCEEDED(status))
+        {
+            result_count = l_ZList_clear_internal(ls, R_OBJECT_TYPE_LAYER, offsetof(r_layer_t, entities_display));
+        }
+    }
+
+    lua_pop(ls, lua_gettop(ls) - result_count);
+
+    return result_count;
 }
 
 static int l_Layer_play(lua_State *ls)
@@ -366,7 +446,7 @@ r_status_t r_layer_update(r_state_t *rs, r_layer_t *layer, unsigned int current_
 
     if (R_SUCCEEDED(status))
     {
-        if (layer->entities.object_list.count > 0)
+        if (layer->entities_update.object_list.count > 0)
         {
             unsigned int difference_ms = 0;
 
@@ -378,7 +458,7 @@ r_status_t r_layer_update(r_state_t *rs, r_layer_t *layer, unsigned int current_
             if (R_SUCCEEDED(status))
             {
                 /* Update all entities */
-                status = r_entity_list_update(rs, &layer->entities, difference_ms);
+                status = r_entity_list_update(rs, &layer->entities_update, difference_ms);
 
                 /* Unlock all entity lists */
                 r_layer_unlock(rs, layer);

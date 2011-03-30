@@ -898,9 +898,9 @@ static r_status_t r_video_draw_entity(r_state_t *rs, r_entity_t *entity)
                     /* Draw children, if necessary */
                     if (R_SUCCEEDED(status))
                     {
-                        if (entity->has_children && entity->children.object_list.count > 0)
+                        if (entity->has_children && entity->children_display.object_list.count > 0)
                         {
-                            status = r_video_draw_entity_list(rs, &entity->children);
+                            status = r_video_draw_entity_list(rs, &entity->children_display);
                         }
                     }
                 }
@@ -1120,9 +1120,9 @@ r_status_t r_video_draw(r_state_t *rs)
             {
                 if (layer != NULL)
                 {
-                    if (layer->entities.object_list.count > 0)
+                    if (layer->entities_display.object_list.count > 0)
                     {
-                        status = r_video_draw_entity_list(rs, &layer->entities);
+                        status = r_video_draw_entity_list(rs, &layer->entities_display);
                     }
 
                     if (R_SUCCEEDED(status) && layer->debug_collision_detectors)

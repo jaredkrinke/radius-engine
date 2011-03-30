@@ -37,7 +37,8 @@ typedef struct
 
     /* Video data */
     r_real_t            frame_period_ms;
-    r_entity_list_t     entities;
+    r_entity_list_t     entities_update;
+    r_entity_list_t     entities_display;
 
     /* Audio data */
     r_boolean_t         propagate_audio;

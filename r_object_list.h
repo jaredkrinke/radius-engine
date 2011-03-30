@@ -66,14 +66,19 @@ extern r_status_t r_object_list_cleanup(r_state_t *rs, r_object_t *object, r_obj
 extern r_status_t r_object_list_lock(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list);
 extern r_status_t r_object_list_unlock(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, r_object_list_insert_function_t insert);
 
-/* Functions for manipulating an internal/hidden object list */
+/* Functions for directly manipulating lists  using script values */
+extern r_status_t r_object_list_add(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, int item_index, r_object_list_insert_function_t insert);
+extern r_status_t r_object_list_remove(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, r_object_t *object);
+extern r_status_t r_object_list_clear(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list);
+
+/* Script functions for manipulating an internal/hidden object list */
 extern int l_ObjectList_add_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset, r_object_list_insert_function_t insert);
 extern int l_ObjectList_forEach_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset, r_object_type_t item_type);
 extern int l_ObjectList_pop_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset);
 extern int l_ObjectList_remove_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset, r_object_type_t item_type);
 extern int l_ObjectList_clear_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset);
 
-/* Functions for directly manipulating an object list */
+/* Script functions for directly manipulating an object list */
 extern int l_ObjectList_add(lua_State *ls, r_object_type_t list_type, r_object_list_insert_function_t insert);
 extern int l_ObjectList_forEach(lua_State *ls, r_object_type_t list_type, r_object_type_t item_type);
 extern int l_ObjectList_pop(lua_State *ls, r_object_type_t list_type);

@@ -29,7 +29,7 @@ THE SOFTWARE.
 #include "r_entity_list.h"
 #include "r_transform2d.h"
 
-typedef struct
+typedef struct _r_entity
 {
     r_object_t          object;
 
@@ -38,9 +38,11 @@ typedef struct
     r_object_ref_t      mesh;
     r_object_ref_t      parent;
 
+    /* There are two lists: one in order entities are drawn (z-order) and one for update order */
     /* TODO: Should I ensure that there are no cycles in an entity graph? */
     r_boolean_t         has_children;
-    r_entity_list_t     children;
+    r_entity_list_t     children_update;
+    r_entity_list_t     children_display;
 
     /* Transformations between local and absolute coordinates--these are cached and only updated when necessary */
     r_transform2d_t     absolute_to_local;
@@ -64,6 +66,7 @@ typedef struct
     r_real_t            angle;
     r_object_ref_t      color;
 
+    r_real_t            order;
     unsigned int        group;
 } r_entity_t;
 

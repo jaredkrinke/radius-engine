@@ -690,41 +690,6 @@ static r_status_t r_video_draw_image_internal(r_state_t *rs, r_image_t *image, r
     return r_glenum_to_status(glGetError());
 }
 
-static r_status_t r_video_draw_element_image(r_state_t *rs, r_element_image_t *element_image)
-{
-    r_image_t *image = (r_image_t*)element_image->element.image.value.object;
-    r_boolean_t region = element_image->element.element_type == R_ELEMENT_TYPE_IMAGE_REGION;
-    r_real_t u1 = 0;
-    r_real_t v1 = 0;
-    r_real_t u2 = 1;
-    r_real_t v2 = 1;
-    r_status_t status = R_SUCCESS;
-
-    if (region)
-    {
-        /* TODO: These checks could go in the "set" function */
-        const r_element_image_region_t *element_image_region = (r_element_image_region_t*)element_image;
-
-        u1 = R_MAX(0, element_image_region->u1);
-        v1 = R_MAX(0, element_image_region->v1);
-        u2 = R_MIN(1, element_image_region->u2);
-        v2 = R_MIN(1, element_image_region->v2);
-
-        /* Sanity-check the texture coordinates */
-        if (u1 < 0 || v1 < 0 || u2 > 1 || v2 > 1 || u1 >= u2 || v1 >= v2)
-        {
-            status = RV_F_BAD_COORDINATES;
-        }
-    }
-
-    if (R_SUCCEEDED(status))
-    {
-        status = r_video_draw_image_internal(rs, image, region, u1, v1, u2, v2);
-    }
-
-    return status;
-}
-
 static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
 {
     r_status_t status = (element != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -735,7 +700,6 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
         /* Common element setup */
         r_color_t color_base;
         r_color_t *color = (r_color_t*)element->color.value.object;
-        r_image_t *image = (r_image_t*)element->image.value.object;
 
         if (color != NULL)
         {
@@ -752,14 +716,37 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
             switch (element->element_type)
             {
             case R_ELEMENT_TYPE_IMAGE:
+                status = r_video_draw_image_internal(rs, (r_image_t*)element->image.value.object, R_FALSE, 0, 0, 1, 1);
+                break;
+
             case R_ELEMENT_TYPE_IMAGE_REGION:
-                status = r_video_draw_element_image(rs, (r_element_image_t*)element);
+                {
+                    /* TODO: Coordinate checks could go in the "set" functions */
+                    const r_element_image_region_t *element_image_region = (r_element_image_region_t*)element;
+                    r_image_t *image = (r_image_t*)element->image.value.object;
+                    r_real_t u1 = R_MAX(0, element_image_region->u1);
+                    r_real_t v1 = R_MAX(0, element_image_region->v1);
+                    r_real_t u2 = R_MIN(1, element_image_region->u2);
+                    r_real_t v2 = R_MIN(1, element_image_region->v2);
+
+                    /* Sanity-check the texture coordinates */
+                    if (u1 < 0 || v1 < 0 || u2 > 1 || v2 > 1 || u1 >= u2 || v1 >= v2)
+                    {
+                        status = RV_F_BAD_COORDINATES;
+                    }
+
+                    if (R_SUCCEEDED(status))
+                    {
+                        status = r_video_draw_image_internal(rs, image, R_TRUE, u1, v1, u2, v2);
+                    }
+                }
                 break;
 
             case R_ELEMENT_TYPE_TEXT:
                 /* Draw text, one character at a time */
                 {
                     r_element_text_t *element_text = (r_element_text_t*)element;
+                    r_image_t *image = (r_image_t*)element->image.value.object;
                     const char *pc = NULL;
                     int length = -1;
 

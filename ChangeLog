@@ -2,6 +2,8 @@
 
 * r_mesh.c: Clean up triangle list in destructor
 
+* r_video.c (r_video_draw_element): Separated image vs. image region drawing
+
 2011-03-29 deraj@users.sourceforge.net
 
 * r_entity.h: Split children list: ordering display (z), updates (order)

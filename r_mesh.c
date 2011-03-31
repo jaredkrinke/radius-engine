@@ -58,6 +58,11 @@ static r_status_t r_triangle_list_add(r_state_t *rs, r_triangle_list_t *list, r_
     return r_list_add(rs, (r_list_t*)list, (void*)triangle, &r_triangle_list_def);
 }
 
+static r_status_t r_triangle_list_cleanup(r_state_t *rs, r_triangle_list_t *list)
+{
+    return r_list_cleanup(rs, (r_list_t*)list, &r_triangle_list_def);
+}
+
 static void r_triangle_convert_to_ccw(const r_triangle_t *from, r_triangle_t *to) {
     if (R_TRIANGLE_SIGNED_AREA((*from)[0], (*from)[1], (*from)[2]) < 0)
     {
@@ -92,8 +97,15 @@ static r_status_t r_mesh_init(r_state_t *rs, r_object_t *object)
     return status;
 }
 
+r_status_t r_mesh_cleanup(r_state_t *rs, r_object_t *object)
+{
+    r_mesh_t *mesh = (r_mesh_t*)object;
+
+    return r_triangle_list_cleanup(rs, &mesh->triangles);
+}
+
 /* TODO: Support specifying vertices in the constructor? */
-r_object_header_t r_mesh_header = { R_OBJECT_TYPE_MESH, sizeof(r_mesh_t), R_TRUE, r_mesh_fields, r_mesh_init, NULL, NULL};
+r_object_header_t r_mesh_header = { R_OBJECT_TYPE_MESH, sizeof(r_mesh_t), R_TRUE, r_mesh_fields, r_mesh_init, NULL, r_mesh_cleanup};
 
 static int l_Mesh_new(lua_State *ls)
 {

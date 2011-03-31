@@ -1,3 +1,7 @@
+2011-03-30 deraj@users.sourceforge.net
+
+* r_mesh.c: Clean up triangle list in destructor
+
 2011-03-29 deraj@users.sourceforge.net
 
 * r_entity.h: Split children list: ordering display (z), updates (order)

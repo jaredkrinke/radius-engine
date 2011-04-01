@@ -89,6 +89,11 @@ static int l_ElementList_new(lua_State *ls)
     return l_Object_new(ls, &r_element_list_header);
 }
 
+r_status_t r_element_list_remove_index(r_state_t *rs, r_object_t *parent, r_element_list_t *element_list, unsigned int item)
+{
+    return r_zlist_remove_index(rs, parent, element_list, item);
+}
+
 r_status_t r_element_list_setup(r_state_t *rs)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;

@@ -95,49 +95,6 @@ static r_status_t r_object_list_find(r_state_t *rs, r_object_list_t *object_list
     return status;
 }
 
-static r_status_t r_object_list_remove_index(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, unsigned int item)
-{
-    /* Ensure the index is valid */
-    r_status_t status = (item >= 0 && item < object_list->count) ? R_SUCCESS : R_F_INVALID_INDEX;
-
-    if (R_SUCCEEDED(status))
-    {
-        R_ASSERT(object_list->items[item].valid);
-
-        if (object_list->locks <= 0)
-        {
-            /* Clear the reference and shift down remaining items */
-            r_object_t *owner = (parent != NULL) ? parent : (r_object_t*)object_list;
-
-            status = r_object_ref_clear(rs, owner, &object_list->items[item].object_ref);
-
-            if (R_SUCCEEDED(status))
-            {
-                /* Shift down remaining items */
-                unsigned int i;
-
-                for (i = item; i < object_list->count - 1; ++i)
-                {
-                    r_object_list_item_copy(rs, &object_list->items[i], &object_list->items[i + 1]);
-                }
-
-                /* Make sure any trailing items are nulled out */
-                r_object_list_item_null(rs, &object_list->items[object_list->count - 1]);
-
-                /* Decrement count */
-                object_list->count = object_list->count - 1;
-            }
-        }
-        else
-        {
-            /* Queue the item for removal */
-            object_list->items[item].op = R_OBJECT_LIST_OP_REMOVE;
-        }
-    }
-
-    return status;
-}
-
 /* TODO: Check all script functions to ensure errors are reported somehow! */
 r_status_t r_object_list_add(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, int item_index, r_object_list_insert_function_t insert)
 {
@@ -202,6 +159,49 @@ r_status_t r_object_list_add(r_state_t *rs, r_object_t *parent, r_object_list_t 
                 item->valid = R_FALSE;
                 item->op = R_OBJECT_LIST_OP_ADD;
             }
+        }
+    }
+
+    return status;
+}
+
+r_status_t r_object_list_remove_index(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, unsigned int item)
+{
+    /* Ensure the index is valid */
+    r_status_t status = (item >= 0 && item < object_list->count) ? R_SUCCESS : R_F_INVALID_INDEX;
+
+    if (R_SUCCEEDED(status))
+    {
+        R_ASSERT(object_list->items[item].valid);
+
+        if (object_list->locks <= 0)
+        {
+            /* Clear the reference and shift down remaining items */
+            r_object_t *owner = (parent != NULL) ? parent : (r_object_t*)object_list;
+
+            status = r_object_ref_clear(rs, owner, &object_list->items[item].object_ref);
+
+            if (R_SUCCEEDED(status))
+            {
+                /* Shift down remaining items */
+                unsigned int i;
+
+                for (i = item; i < object_list->count - 1; ++i)
+                {
+                    r_object_list_item_copy(rs, &object_list->items[i], &object_list->items[i + 1]);
+                }
+
+                /* Make sure any trailing items are nulled out */
+                r_object_list_item_null(rs, &object_list->items[object_list->count - 1]);
+
+                /* Decrement count */
+                object_list->count = object_list->count - 1;
+            }
+        }
+        else
+        {
+            /* Queue the item for removal */
+            object_list->items[item].op = R_OBJECT_LIST_OP_REMOVE;
         }
     }
 

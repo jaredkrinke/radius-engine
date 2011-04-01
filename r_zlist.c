@@ -57,6 +57,11 @@ r_status_t r_zlist_add(r_state_t *rs, r_object_t *parent, r_zlist_t *zlist, int 
     return r_object_list_add(rs, parent, (r_object_list_t*)zlist, item_index, r_zlist_sort_insert);
 }
 
+r_status_t r_zlist_remove_index(r_state_t *rs, r_object_t *parent, r_zlist_t *zlist, unsigned int item)
+{
+    return r_object_list_remove_index(rs, parent, &zlist->object_list, item);
+}
+
 r_status_t r_zlist_remove(r_state_t *rs, r_object_t *parent, r_zlist_t *zlist, r_object_t *object)
 {
     return r_object_list_remove(rs, parent, (r_object_list_t*)zlist, object);

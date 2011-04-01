@@ -2,6 +2,18 @@
 
 * r_entity.c (r_entity_update): Elements are now updated if necessary
 
+* r_object_list.h: Expose r_object_list_remove_index
+* r_object_list.c: Group r_object_list_remove_index with public functions
+* r_zlist.h: Add r_zlist_remove_index
+* r_zlist.c: Wrap r_object_list_remove_index
+* r_element_list.h: Add r_element_list_remove_index
+* r_element_list.c: Wrap r_zlist_remove_index
+
+* r_element.h: Add transient flag to animations
+* r_element.c: Initialize transient flag
+
+* r_entity.c (r_entity_update): Transient animations are removed when done
+
 2011-03-30 deraj@users.sourceforge.net
 
 * r_mesh.c: Clean up triangle list in destructor

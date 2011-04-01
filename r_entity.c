@@ -550,7 +550,7 @@ r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int diffe
 
                         element_animation->frame_ms += difference_ms;
 
-                        while (element_animation->frame_index < animation->frames.count - 1 || (animation->loop && element_animation->frame_index < animation->frames.count))
+                        while (element_animation->frame_index < animation->frames.count - 1 || ((animation->loop || animation->transient) && element_animation->frame_index < animation->frames.count))
                         {
                             r_animation_frame_t *const frame = r_animation_frame_list_get_index(rs, &animation->frames, element_animation->frame_index);
 
@@ -570,6 +570,13 @@ r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int diffe
                                     if (animation->loop && frame->ms > 0)
                                     {
                                         element_animation->frame_index = 0;
+                                    }
+                                    else if (animation->transient)
+                                    {
+                                        /* Transient and complete; remove this element from the list (and counter the loop increment) */
+                                        r_element_list_remove_index(rs, (r_object_t*)entity, element_list, i);
+                                        --i;
+                                        break;
                                     }
                                 }
                             }

@@ -44,6 +44,7 @@ extern r_status_t r_zlist_unlock(r_state_t *rs, r_object_t *parent, r_zlist_t *z
 
 /* Functions for directly manipulating ZLists */
 extern r_status_t r_zlist_add(r_state_t *rs, r_object_t *parent, r_zlist_t *zlist, int item_index);
+extern r_status_t r_zlist_remove_index(r_state_t *rs, r_object_t *parent, r_zlist_t *zlist, unsigned int item);
 extern r_status_t r_zlist_remove(r_state_t *rs, r_object_t *parent, r_zlist_t *zlist, r_object_t *object);
 extern r_status_t r_zlist_clear(r_state_t *rs, r_object_t *parent, r_zlist_t *zlist);
 

@@ -91,6 +91,7 @@ typedef struct
 {
     r_object_t                  object;
     r_boolean_t                 loop;
+    r_boolean_t                 transient;
     r_animation_frame_list_t    frames;
 } r_animation_t;
 

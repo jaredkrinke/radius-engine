@@ -29,6 +29,8 @@ THE SOFTWARE.
 
 typedef r_zlist_t r_element_list_t;
 
+extern r_status_t r_element_list_remove_index(r_state_t *rs, r_object_t *parent, r_element_list_t *element_list, unsigned int item);
+
 extern r_status_t r_element_list_setup(r_state_t *rs);
 
 extern r_status_t r_element_list_field_init(r_state_t *rs, r_object_t *object, const r_object_field_t *field, void *value);

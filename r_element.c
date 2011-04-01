@@ -169,7 +169,8 @@ r_animation_frame_t *r_animation_frame_list_get_index(r_state_t *rs, const r_ani
 }
 
 r_object_field_t r_animation_fields[] = {
-    { "loop", LUA_TBOOLEAN, 0, offsetof(r_animation_t, loop), R_TRUE, R_OBJECT_INIT_EXCLUDED, NULL, NULL, NULL, NULL },
+    { "loop",      LUA_TBOOLEAN, 0, offsetof(r_animation_t, loop),      R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, NULL, NULL, NULL },
+    { "transient", LUA_TBOOLEAN, 0, offsetof(r_animation_t, transient), R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, NULL, NULL, NULL },
     { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
 };
 
@@ -178,6 +179,7 @@ static r_status_t r_animation_init(r_state_t *rs, r_object_t *object)
     r_animation_t *animation = (r_animation_t*)object;
 
     animation->loop = R_FALSE;
+    animation->transient = R_FALSE;
 
     return r_animation_frame_list_init(rs, &animation->frames);
 }
@@ -227,7 +229,19 @@ static r_status_t r_animation_process_arguments(r_state_t *rs, r_object_t *objec
     /* Check for additional arguments */
     if (R_SUCCEEDED(status) && index <= argument_count && lua_type(ls, index) == LUA_TBOOLEAN)
     {
-        animation->loop = lua_toboolean(ls, index);
+        animation->loop = lua_toboolean(ls, index++);
+    }
+
+    /* Check for additional arguments */
+    if (R_SUCCEEDED(status) && index <= argument_count && lua_type(ls, index) == LUA_TBOOLEAN)
+    {
+        animation->transient = lua_toboolean(ls, index++);
+
+        /* Transient implies no looping */
+        if (animation->transient)
+        {
+            animation->loop = R_FALSE;
+        }
     }
 
     return status;

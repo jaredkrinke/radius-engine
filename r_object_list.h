@@ -68,6 +68,7 @@ extern r_status_t r_object_list_unlock(r_state_t *rs, r_object_t *parent, r_obje
 
 /* Functions for directly manipulating lists  using script values */
 extern r_status_t r_object_list_add(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, int item_index, r_object_list_insert_function_t insert);
+extern r_status_t r_object_list_remove_index(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, unsigned int item);
 extern r_status_t r_object_list_remove(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, r_object_t *object);
 extern r_status_t r_object_list_clear(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list);
 

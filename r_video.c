@@ -742,6 +742,22 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
                 }
                 break;
 
+            case R_ELEMENT_TYPE_ANIMATION:
+                {
+                    /* Draw the current frame */
+                    const r_element_animation_t *element_animation = (r_element_animation_t*)element;
+                    const r_animation_t *animation = (r_animation_t*)element->image.value.object;
+                    const unsigned int frame_index = element_animation->frame_index;
+
+                    if (frame_index < animation->frames.count)
+                    {
+                        const r_animation_frame_t *animation_frame = r_animation_frame_list_get_index(rs, &animation->frames, frame_index);
+
+                        status = r_video_draw_image_internal(rs, (r_image_t*)animation_frame->image.value.object, R_FALSE, 0, 0, 1, 1);
+                    }
+                }
+                break;
+
             case R_ELEMENT_TYPE_TEXT:
                 /* Draw text, one character at a time */
                 {

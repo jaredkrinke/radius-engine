@@ -57,6 +57,7 @@ const char *r_object_type_names[R_OBJECT_TYPE_MAX] = {
     "???",
     "StringBuffer",
     "Color",
+    "Animation",
     "Element",
     "ElementList",
     "Entity",

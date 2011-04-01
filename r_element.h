@@ -2,7 +2,7 @@
 #define __R_ELEMENT_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,11 +27,13 @@ THE SOFTWARE.
 
 #include "r_object_ref.h"
 #include "r_image_cache.h"
+#include "r_list.h"
 
 typedef enum
 {
     R_ELEMENT_TYPE_IMAGE = 0,
     R_ELEMENT_TYPE_IMAGE_REGION,
+    R_ELEMENT_TYPE_ANIMATION,
     R_ELEMENT_TYPE_TEXT,
     R_ELEMENT_TYPE_MAX
 } r_element_type_t;
@@ -59,6 +61,7 @@ typedef struct
     r_object_ref_t      color; /* TODO: Should color values be stored instead of a reference? That would probably make more sense... */
 } r_element_t;
 
+/* Images and image regions */
 typedef struct
 {
     r_element_t         element;
@@ -73,6 +76,32 @@ typedef struct
     r_real_t            v2;
 } r_element_image_region_t;
 
+/* Animations */
+typedef struct
+{
+    r_object_ref_t  image;
+    r_real_t        ms;
+} r_animation_frame_t;
+
+typedef r_list_t r_animation_frame_list_t;
+
+extern r_animation_frame_t *r_animation_frame_list_get_index(r_state_t *rs, const r_animation_frame_list_t *list, unsigned int index);
+
+typedef struct
+{
+    r_object_t                  object;
+    r_boolean_t                 loop;
+    r_animation_frame_list_t    frames;
+} r_animation_t;
+
+typedef struct
+{
+    r_element_t     element;
+    unsigned int    frame_index;
+    r_real_t        frame_ms;
+} r_element_animation_t;
+
+/* Text */
 typedef struct
 {
     r_element_t                 element;

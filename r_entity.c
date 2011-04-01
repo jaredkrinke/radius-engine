@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 #include "r_assert.h"
 #include "r_color.h"
+#include "r_element.h"
 #include "r_entity.h"
 #include "r_script.h"
 #include "r_entity_list.h"
@@ -515,6 +516,67 @@ r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int diffe
             else
             {
                 lua_pop(ls, 1);
+            }
+        }
+    }
+
+    /* Update all this entity's elements as well */
+    if (R_SUCCEEDED(status))
+    {
+        r_element_list_t *element_list = (r_element_list_t*)entity->elements.value.object;
+
+        if (element_list != NULL)
+        {
+            unsigned int i;
+
+            for (i = 0; i < element_list->object_list.count && R_SUCCEEDED(status); ++i)
+            {
+                /* Assume the entity list is not locked (it shouldn't be when drawing) */
+                r_element_t *const element = (r_element_t*)element_list->object_list.items[i].object_ref.value.object;
+
+                switch (element->element_type)
+                {
+                case R_ELEMENT_TYPE_IMAGE:
+                case R_ELEMENT_TYPE_IMAGE_REGION:
+                case R_ELEMENT_TYPE_TEXT:
+                    /* These elements are static */
+                    break;
+
+                case R_ELEMENT_TYPE_ANIMATION:
+                    {
+                        /* Add to counter and advance frames, if necessary */
+                        r_element_animation_t *const element_animation = (r_element_animation_t*)element;
+                        r_animation_t *const animation = (r_animation_t*)element->image.value.object;
+
+                        element_animation->frame_ms += difference_ms;
+
+                        while (element_animation->frame_index < animation->frames.count - 1 || (animation->loop && element_animation->frame_index < animation->frames.count))
+                        {
+                            r_animation_frame_t *const frame = r_animation_frame_list_get_index(rs, &animation->frames, element_animation->frame_index);
+
+                            if (element_animation->frame_ms < frame->ms)
+                            {
+                                break;
+                            }
+                            else
+                            {
+                                /* Advance to next frame */
+                                element_animation->frame_ms -= frame->ms;
+                                element_animation->frame_index++;
+
+                                if (element_animation->frame_index == animation->frames.count)
+                                {
+                                    /* Reached the end of the animation */
+                                    if (animation->loop && frame->ms > 0)
+                                    {
+                                        element_animation->frame_index = 0;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
             }
         }
     }

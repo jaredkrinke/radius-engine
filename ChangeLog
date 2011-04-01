@@ -1,8 +1,20 @@
+2011-03-31 deraj@users.sourceforge.net
+
+* r_entity.c (r_entity_update): Elements are now updated if necessary
+
 2011-03-30 deraj@users.sourceforge.net
 
 * r_mesh.c: Clean up triangle list in destructor
 
 * r_video.c (r_video_draw_element): Separated image vs. image region drawing
+
+* r_object.h: Added "Animation" object type
+* r_script_lib.c: Added name for "Animation" type
+
+* r_element.h: Definitions for frames, animations, and animation elements
+* r_element.c: Animation/animation element initialization, registration
+
+* r_video.c (r_video_draw_element): Draw current animation frame
 
 2011-03-29 deraj@users.sourceforge.net
 

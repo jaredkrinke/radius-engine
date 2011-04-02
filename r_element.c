@@ -168,9 +168,12 @@ r_animation_frame_t *r_animation_frame_list_get_index(r_state_t *rs, const r_ani
     return (r_animation_frame_t*)r_list_get_index(rs, list, index, &r_animation_frame_list_def);
 }
 
+r_object_ref_t r_animation_ref_add_frame = { R_OBJECT_REF_INVALID, { NULL } };
+
 r_object_field_t r_animation_fields[] = {
     { "loop",      LUA_TBOOLEAN, 0, offsetof(r_animation_t, loop),      R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, NULL, NULL, NULL },
     { "transient", LUA_TBOOLEAN, 0, offsetof(r_animation_t, transient), R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, NULL, NULL, NULL },
+    { "addFrame",  LUA_TFUNCTION, 0, 0,                                 R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_animation_ref_add_frame, NULL },
     { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
 };
 
@@ -184,6 +187,25 @@ static r_status_t r_animation_init(r_state_t *rs, r_object_t *object)
     return r_animation_frame_list_init(rs, &animation->frames);
 }
 
+static r_status_t r_animation_add_frame(r_state_t *rs, r_animation_t *animation, int image_name_index, r_real_t ms)
+{
+    r_animation_frame_t animation_frame = { { R_OBJECT_REF_INVALID, { NULL } }, 0 };
+
+    /* Note: The animation takes ownership of the image, but the reference is stored in the frame */
+    /* Also note that this function assume the type of image_name_index has already been checked */
+    r_status_t status = r_object_field_image_write(rs, (r_object_t*)animation, &r_animation_fields[0], (void*)&animation_frame.image, image_name_index);
+
+    if (R_SUCCEEDED(status))
+    {
+        animation_frame.ms = ms;
+
+        /* Now add to the list of frames */
+        status = r_animation_frame_list_add(rs, &animation->frames, &animation_frame);
+    }
+
+    return status;
+}
+
 static r_status_t r_animation_process_arguments(r_state_t *rs, r_object_t *object, int argument_count)
 {
     lua_State *ls = rs->script_state;
@@ -192,7 +214,7 @@ static r_status_t r_animation_process_arguments(r_state_t *rs, r_object_t *objec
     r_status_t status = R_SUCCESS;
 
     /* Add each frame */
-    for (index = 1; R_SUCCEEDED(status) && index <= argument_count && lua_type(ls, index) == LUA_TTABLE; ++index)
+    while (R_SUCCEEDED(status) && index <= argument_count && lua_type(ls, index) == LUA_TTABLE)
     {
         /* Check size and type */
         status = (lua_objlen(ls, index) == 2) ? R_SUCCESS : RS_F_INVALID_ARGUMENT;
@@ -208,22 +230,13 @@ static r_status_t r_animation_process_arguments(r_state_t *rs, r_object_t *objec
 
             if (R_SUCCEEDED(status))
             {
-                r_animation_frame_t animation_frame = { { R_OBJECT_REF_INVALID, { NULL } }, 0 };
-
-                /* Note: The animation takes ownership of the image, but the reference is stored in the frame */
-                status = r_object_field_image_write(rs, (r_object_t*)animation, &r_animation_fields[0], (void*)&animation_frame.image, image_name_index);
-
-                if (R_SUCCEEDED(status))
-                {
-                    animation_frame.ms = (r_real_t)lua_tonumber(ls, ms_index);
-
-                    /* Now add to the list of frames */
-                    status = r_animation_frame_list_add(rs, &animation->frames, &animation_frame);
-                }
+                status = r_animation_add_frame(rs, animation, image_name_index, (r_real_t)lua_tonumber(ls, ms_index));
             }
 
             lua_pop(ls, 2);
         }
+
+        ++index;
     }
 
     /* Check for additional arguments */
@@ -259,6 +272,32 @@ r_object_header_t r_animation_header = { R_OBJECT_TYPE_ANIMATION, sizeof(r_anima
 static int l_Animation_new(lua_State *ls)
 {
     return l_Object_new(ls, &r_animation_header);
+}
+
+static int l_Animation_addFrame(lua_State *ls)
+{
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TUSERDATA, R_OBJECT_TYPE_ANIMATION },
+        { LUA_TSTRING, 0 },
+        { LUA_TNUMBER, 0 }
+    };
+
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Set parent */
+        r_animation_t *animation = (r_animation_t*)lua_touserdata(ls, 1);
+        int image_name_index = 2;
+        r_real_t ms = (r_real_t)lua_tonumber(ls, 3);
+
+        status = r_animation_add_frame(rs, animation, image_name_index, ms);
+    }
+
+    lua_pop(ls, lua_gettop(ls));
+
+    return 0;
 }
 
 r_object_field_t r_element_animation_fields[] = {
@@ -404,6 +443,7 @@ r_status_t r_element_setup(r_state_t *rs)
             r_script_node_root_t roots[] = {
                 { LUA_GLOBALSINDEX, NULL, { "Animation", R_SCRIPT_NODE_TYPE_TABLE, animation_nodes } },
                 { LUA_GLOBALSINDEX, NULL, { "Element", R_SCRIPT_NODE_TYPE_TABLE, element_nodes } },
+                { 0, &r_animation_ref_add_frame, { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Animation_addFrame } },
                 { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
             };
 

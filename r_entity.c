@@ -548,35 +548,38 @@ r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int diffe
                         r_element_animation_t *const element_animation = (r_element_animation_t*)element;
                         r_animation_t *const animation = (r_animation_t*)element->image.value.object;
 
-                        element_animation->frame_ms += difference_ms;
-
-                        while (element_animation->frame_index < animation->frames.count - 1 || ((animation->loop || animation->transient) && element_animation->frame_index < animation->frames.count))
+                        if (animation->frames.count > 0)
                         {
-                            r_animation_frame_t *const frame = r_animation_frame_list_get_index(rs, &animation->frames, element_animation->frame_index);
+                            element_animation->frame_ms += difference_ms;
 
-                            if (element_animation->frame_ms < frame->ms)
+                            while (element_animation->frame_index < animation->frames.count - 1 || ((animation->loop || animation->transient) && element_animation->frame_index < animation->frames.count))
                             {
-                                break;
-                            }
-                            else
-                            {
-                                /* Advance to next frame */
-                                element_animation->frame_ms -= frame->ms;
-                                element_animation->frame_index++;
+                                r_animation_frame_t *const frame = r_animation_frame_list_get_index(rs, &animation->frames, element_animation->frame_index);
 
-                                if (element_animation->frame_index == animation->frames.count)
+                                if (element_animation->frame_ms < frame->ms)
                                 {
-                                    /* Reached the end of the animation */
-                                    if (animation->loop && frame->ms > 0)
+                                    break;
+                                }
+                                else
+                                {
+                                    /* Advance to next frame */
+                                    element_animation->frame_ms -= frame->ms;
+                                    element_animation->frame_index++;
+
+                                    if (element_animation->frame_index == animation->frames.count)
                                     {
-                                        element_animation->frame_index = 0;
-                                    }
-                                    else if (animation->transient)
-                                    {
-                                        /* Transient and complete; remove this element from the list (and counter the loop increment) */
-                                        r_element_list_remove_index(rs, (r_object_t*)entity, element_list, i);
-                                        --i;
-                                        break;
+                                        /* Reached the end of the animation */
+                                        if (animation->loop && frame->ms > 0)
+                                        {
+                                            element_animation->frame_index = 0;
+                                        }
+                                        else if (animation->transient)
+                                        {
+                                            /* Transient and complete; remove this element from the list (and counter the loop increment) */
+                                            r_element_list_remove_index(rs, (r_object_t*)entity, element_list, i);
+                                            --i;
+                                            break;
+                                        }
                                     }
                                 }
                             }

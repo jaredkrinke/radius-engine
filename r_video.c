@@ -706,7 +706,7 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
             r_video_color_blend(&color_base, color);
         }
 
-        if (color_base.opacity > 0)
+        if (element->image.value.object != NULL && color_base.opacity > 0)
         {
             glPushMatrix();
             glTranslatef(element->x, element->y, 0);

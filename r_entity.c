@@ -548,7 +548,7 @@ r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int diffe
                         r_element_animation_t *const element_animation = (r_element_animation_t*)element;
                         r_animation_t *const animation = (r_animation_t*)element->image.value.object;
 
-                        if (animation->frames.count > 0)
+                        if (animation != NULL && animation->frames.count > 0)
                         {
                             element_animation->frame_ms += difference_ms;
 

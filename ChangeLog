@@ -1,3 +1,8 @@
+2011-04-05 deraj@users.sourceforge.net
+
+* r_entity.c (r_entity_update): Don't update empty animations
+* r_video.c (r_video_draw_element): Skip elements without images/animations
+
 2011-04-01 deraj@users.sourceforge.net
 
 * r_element.c: Add animation.addFrame for building animations programmatically

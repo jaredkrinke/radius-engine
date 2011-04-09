@@ -485,6 +485,7 @@ r_status_t r_entity_setup(r_state_t *rs)
 r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int difference_ms)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL && entity != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    r_boolean_t has_update = R_FALSE;
     R_ASSERT(R_SUCCEEDED(status));
 
     /* Update this entity */
@@ -500,6 +501,7 @@ r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int diffe
             if (lua_isfunction(ls, -1))
             {
                 /* Push arguments and call the function */
+                has_update = R_TRUE;
                 status = r_object_push(rs, (r_object_t*)entity);
 
                 if (R_SUCCEEDED(status))
@@ -517,6 +519,15 @@ r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int diffe
             {
                 lua_pop(ls, 1);
             }
+        }
+    }
+
+    /* If the entity has no "update" function, then update its children automatically */
+    if (R_SUCCEEDED(status) && !has_update)
+    {
+        if (entity->has_children && entity->children_update.object_list.count > 0)
+        {
+            status = r_entity_list_update(rs, &entity->children_update, difference_ms);
         }
     }
 

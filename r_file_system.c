@@ -354,6 +354,7 @@ r_status_t r_file_system_start(r_state_t *rs, const char *data_dir, const char *
     if (R_SUCCEEDED(status))
     {
         /* Ensure the user directory is set up */
+        /* TODO: On failure, should there just not be a write directory? */
         status = r_platform_create_directory(rs, user_dir);
 
         if (R_SUCCEEDED(status))
@@ -381,6 +382,7 @@ r_status_t r_file_system_start(r_state_t *rs, const char *data_dir, const char *
         }
 
         /* Append the root data directory to the search path */
+        /* TODO: On failure, perhaps try other locations? This could help on Linux where there are multiple places to look (e.g. /usr/share, /usr/local/share, <base>/../share, etc.) */
         if (R_SUCCEEDED(status))
         {
             status = (PHYSFS_addToSearchPath(data_dir, 1) != 0) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;

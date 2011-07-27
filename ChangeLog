@@ -4,6 +4,26 @@
 
 * r_zlist.c: Fixed prototype for r_zlist_unlock implementation
 
+* r_collision_detector.c (l_CollisionDetector_checkCollision): Unused param
+
+* r_collision_detector.c: Removed erroneous consts
+* r_collision_tree.c: Removed erroneous consts
+* r_entity.c: Removed erroneous consts
+* r_entity.h: Removed erroneous consts
+* r_transform2d.c: Removed erroneous consts
+* r_transform2d.h: Removed erroneous consts
+* r_vector.c: Removed erroneous consts
+* r_vector.h: Removed erroneous consts
+* r_event.c: Removed erroneous consts
+* r_mesh.c: Removed erroneous consts
+* r_video.c: Removed erroneous consts
+
+* r_entity.c (r_entity_update): Handle invalid values
+
+* r_entity.c: Enable entity cleanup
+
+* r_mesh.c (l_Mesh_addTriangle): Fix braces in triangle assignment
+
 2011-05-14 deraj@users.sourceforge.net
 
 * r_script_lib.c: Added shiftLeft and shiftRight

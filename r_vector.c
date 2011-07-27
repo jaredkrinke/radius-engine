@@ -22,7 +22,7 @@ THE SOFTWARE.
 
 #include "r_vector.h"
 
-void r_vector2d_from_homogeneous(const r_vector2d_homogeneous_t *v_h, r_vector2d_t *v)
+void r_vector2d_from_homogeneous(r_vector2d_homogeneous_t *v_h, r_vector2d_t *v)
 {
     /* TODO: This unnecessary branch here is probably bad for performance */
     if ((*v_h)[2] == (r_real_t)1)

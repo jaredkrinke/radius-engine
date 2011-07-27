@@ -146,11 +146,11 @@ static r_status_t r_entity_cleanup(r_state_t *rs, r_object_t *object)
     return status;
 }
 
-r_object_header_t r_entity_header = { R_OBJECT_TYPE_ENTITY, sizeof(r_entity_t), R_TRUE, r_entity_fields, r_entity_init, NULL, NULL};
+r_object_header_t r_entity_header = { R_OBJECT_TYPE_ENTITY, sizeof(r_entity_t), R_TRUE, r_entity_fields, r_entity_init, NULL, r_entity_cleanup};
 
-static r_status_t r_entity_transform_to_local(r_state_t *rs, r_entity_t *entity, const r_vector2d_t *av, r_vector2d_t *lv)
+static r_status_t r_entity_transform_to_local(r_state_t *rs, r_entity_t *entity, r_vector2d_t *av, r_vector2d_t *lv)
 {
-    const r_transform2d_t *transform;
+    r_transform2d_t *transform;
     r_status_t status = r_entity_get_local_transform(rs, entity, &transform);
 
     if (R_SUCCEEDED(status))
@@ -161,9 +161,9 @@ static r_status_t r_entity_transform_to_local(r_state_t *rs, r_entity_t *entity,
     return status;
 }
 
-static r_status_t r_entity_transform_to_absolute(r_state_t *rs, r_entity_t *entity, const r_vector2d_t *lv, r_vector2d_t *av)
+static r_status_t r_entity_transform_to_absolute(r_state_t *rs, r_entity_t *entity, r_vector2d_t *lv, r_vector2d_t *av)
 {
-    const r_transform2d_t *transform;
+    r_transform2d_t *transform;
     r_status_t status = r_entity_get_absolute_transform(rs, entity, &transform);
 
     if (R_SUCCEEDED(status))
@@ -597,6 +597,10 @@ r_status_t r_entity_update(r_state_t *rs, r_entity_t *entity, unsigned int diffe
                         }
                     }
                     break;
+
+                default:
+                    R_ASSERT(0); /* Invalid element type */
+                    break;
                 }
             }
         }
@@ -647,7 +651,7 @@ r_status_t r_entity_unlock(r_state_t *rs, r_entity_t *entity)
     return status;
 }
 
-r_status_t r_entity_get_local_transform(r_state_t *rs, r_entity_t *entity, const r_transform2d_t **transform)
+r_status_t r_entity_get_local_transform(r_state_t *rs, r_entity_t *entity, r_transform2d_t **transform)
 {
     r_status_t status = R_SUCCESS;
 
@@ -664,7 +668,7 @@ r_status_t r_entity_get_local_transform(r_state_t *rs, r_entity_t *entity, const
         /* Copy parent transform or identity */
         if (parent != NULL)
         {
-            const r_transform2d_t *parent_transform = NULL;
+            r_transform2d_t *parent_transform = NULL;
 
             status = r_entity_get_local_transform(rs, parent, &parent_transform);
 
@@ -706,7 +710,7 @@ r_status_t r_entity_get_local_transform(r_state_t *rs, r_entity_t *entity, const
     return status;
 }
 
-r_status_t r_entity_get_absolute_transform(r_state_t *rs, r_entity_t *entity, const r_transform2d_t **transform)
+r_status_t r_entity_get_absolute_transform(r_state_t *rs, r_entity_t *entity, r_transform2d_t **transform)
 {
     r_status_t status = R_SUCCESS;
 
@@ -719,7 +723,7 @@ r_status_t r_entity_get_absolute_transform(r_state_t *rs, r_entity_t *entity, co
     {
         /* Transform must be recomputed due to changes in positoin/scale/rotation */
         /* Calculate using inverse of absolute_to_local */
-        const r_transform2d_t *absolute_to_local;
+        r_transform2d_t *absolute_to_local;
 
         status = r_entity_get_local_transform(rs, entity, &absolute_to_local);
 
@@ -736,14 +740,14 @@ r_status_t r_entity_get_absolute_transform(r_state_t *rs, r_entity_t *entity, co
     return status;
 }
 
-r_status_t r_entity_get_bounds(r_state_t *rs, r_entity_t *entity, const r_vector2d_t **min, const r_vector2d_t **max)
+r_status_t r_entity_get_bounds(r_state_t *rs, r_entity_t *entity, r_vector2d_t **min, r_vector2d_t **max)
 {
     r_status_t status = R_SUCCESS;
 
     if (entity->version != entity->bounds_version)
     {
         /* Recompute */
-        const r_transform2d_t *local_to_absolute = NULL;
+        r_transform2d_t *local_to_absolute = NULL;
 
         status = r_entity_get_absolute_transform(rs, entity, &local_to_absolute);
 
@@ -758,7 +762,7 @@ r_status_t r_entity_get_bounds(r_state_t *rs, r_entity_t *entity, const r_vector
             /* Find min/max bounds (in absolute coordinates) */
             for (i = 0; i < mesh->triangles.count; ++i)
             {
-                const r_triangle_t *triangle = r_triangle_list_get_index(rs, &mesh->triangles, i);
+                r_triangle_t *triangle = r_triangle_list_get_index(rs, &mesh->triangles, i);
                 int j;
 
                 for (j = 0; j < 3; ++j)

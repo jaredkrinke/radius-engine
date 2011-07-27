@@ -98,7 +98,7 @@ static r_status_t r_event_pixels_to_coordinates(r_state_t *rs, int x, int y, r_v
 
         if (R_SUCCEEDED(status))
         {
-            const r_vector2d_t v = { (r_real_t)x, (r_real_t)y };
+            r_vector2d_t v = { (r_real_t)x, (r_real_t)y };
 
             r_transform2d_transform(&rs->pixels_to_coordinates, &v, v_prime);
         }

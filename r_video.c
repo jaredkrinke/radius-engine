@@ -1020,7 +1020,7 @@ static r_status_t r_video_draw_collision_detector(r_state_t *rs, r_collision_det
 
         if (mesh != NULL)
         {
-            const r_transform2d_t *transform;
+            r_transform2d_t *transform;
 
             status = r_entity_get_absolute_transform(rs, entity, &transform);
 
@@ -1055,8 +1055,8 @@ static r_status_t r_video_draw_collision_detector(r_state_t *rs, r_collision_det
 
                 /* Draw bounding rectangle */
                 {
-                    const r_vector2d_t *min = NULL;
-                    const r_vector2d_t *max = NULL;
+                    r_vector2d_t *min = NULL;
+                    r_vector2d_t *max = NULL;
 
                     status = r_entity_get_bounds(rs, entity, &min, &max);
 

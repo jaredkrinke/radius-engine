@@ -32,7 +32,7 @@ THE SOFTWARE.
 
 /* Two-dimensional triangle-triangle collision detection, adapted from http://www.acm.org/jgt/papers/GuigueDevillers03/ (2003) */
 
-static R_INLINE r_boolean_t r_triangle_test_point(const r_vector2d_t *p1, const r_vector2d_t *q1, const r_vector2d_t *r1, const r_vector2d_t *p2, const r_vector2d_t *q2, const r_vector2d_t *r2)
+static R_INLINE r_boolean_t r_triangle_test_point(r_vector2d_t *p1, r_vector2d_t *q1, r_vector2d_t *r1, r_vector2d_t *p2, r_vector2d_t *q2, r_vector2d_t *r2)
 {
     r_boolean_t intersect = R_FALSE;
 
@@ -97,7 +97,7 @@ static R_INLINE r_boolean_t r_triangle_test_point(const r_vector2d_t *p1, const 
     return intersect;
 }
 
-static R_INLINE r_boolean_t r_triangle_test_edge(const r_vector2d_t *p1, const r_vector2d_t *q1, const r_vector2d_t *r1, const r_vector2d_t *p2, const r_vector2d_t *q2, const r_vector2d_t *r2)
+static R_INLINE r_boolean_t r_triangle_test_edge(r_vector2d_t *p1, r_vector2d_t *q1, r_vector2d_t *r1, r_vector2d_t *p2, r_vector2d_t *q2, r_vector2d_t *r2)
 {
     r_boolean_t intersect = R_FALSE;
 
@@ -145,7 +145,7 @@ static R_INLINE r_boolean_t r_triangle_test_edge(const r_vector2d_t *p1, const r
     return intersect;
 }
 
-static r_boolean_t r_triangle_intersect_ccw(const r_triangle_t *t1, const r_triangle_t *t2) {
+static r_boolean_t r_triangle_intersect_ccw(r_triangle_t *t1, r_triangle_t *t2) {
     r_boolean_t intersect = R_FALSE;
 
     if (R_TRIANGLE_SIGNED_AREA((*t2)[0], (*t2)[1], (*t1)[0]) >= 0)
@@ -346,7 +346,7 @@ static int l_CollisionDetector_checkCollision(lua_State *ls)
 
     if (R_SUCCEEDED(status))
     {
-        r_collision_detector_t *collision_detector = (r_collision_detector_t*)lua_touserdata(ls, 1);
+        /* Note: First parameter (collision detector) isn't actually needed for this test */
         r_entity_t *e1 = (r_entity_t*)lua_touserdata(ls, 2);
         r_entity_t *e2 = (r_entity_t*)lua_touserdata(ls, 3);
         r_boolean_t intersect = R_FALSE;
@@ -556,13 +556,13 @@ r_status_t r_collision_detector_intersect_entities(r_state_t *rs, r_entity_t *e1
     if (m1 != NULL && m1->triangles.count > 0 && m2 != NULL && m2->triangles.count > 0)
     {
         /* Get local-to-absolute transformations */
-        const r_transform2d_t *transform1 = NULL;
+        r_transform2d_t *transform1 = NULL;
 
         status = r_entity_get_absolute_transform(rs, e1, &transform1);
 
         if (R_SUCCEEDED(status))
         {
-            const r_transform2d_t *transform2 = NULL;
+            r_transform2d_t *transform2 = NULL;
 
             status = r_entity_get_absolute_transform(rs, e2, &transform2);
 
@@ -570,15 +570,15 @@ r_status_t r_collision_detector_intersect_entities(r_state_t *rs, r_entity_t *e1
             {
                 /* Check bounding rectangles for overlap */
                 r_boolean_t intersection_possible = R_FALSE;
-                const r_vector2d_t *min1 = NULL;
-                const r_vector2d_t *max1 = NULL;
+                r_vector2d_t *min1 = NULL;
+                r_vector2d_t *max1 = NULL;
 
                 status = r_entity_get_bounds(rs, e1, &min1, &max1);
 
                 if (R_SUCCEEDED(status))
                 {
-                    const r_vector2d_t *min2 = NULL;
-                    const r_vector2d_t *max2 = NULL;
+                    r_vector2d_t *min2 = NULL;
+                    r_vector2d_t *max2 = NULL;
 
                     status = r_entity_get_bounds(rs, e2, &min2, &max2);
 
@@ -616,7 +616,7 @@ r_status_t r_collision_detector_intersect_entities(r_state_t *rs, r_entity_t *e1
                     for (i = 0; i < m1->triangles.count && !intersect; ++i)
                     {
                         /* TODO: Cache transformed mesh triangle coordinates somehow (at least in the caller, if not elsewhere) */
-                        const r_triangle_t *lt1 = (r_triangle_t*)r_triangle_list_get_index(rs, &m1->triangles, i);
+                        r_triangle_t *lt1 = (r_triangle_t*)r_triangle_list_get_index(rs, &m1->triangles, i);
                         r_triangle_t t1;
                         unsigned int j;
 
@@ -626,7 +626,7 @@ r_status_t r_collision_detector_intersect_entities(r_state_t *rs, r_entity_t *e1
 
                         for (j = 0; j < m2->triangles.count && !intersect; ++j)
                         {
-                            const r_triangle_t *lt2 = (r_triangle_t*)r_triangle_list_get_index(rs, &m2->triangles, j);
+                            r_triangle_t *lt2 = (r_triangle_t*)r_triangle_list_get_index(rs, &m2->triangles, j);
                             r_triangle_t t2;
 
                             r_transform2d_transform(transform2, &(*lt2)[0], &t2[0]);

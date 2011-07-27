@@ -93,14 +93,14 @@ static r_status_t r_collision_tree_node_init(r_state_t *rs, r_collision_tree_nod
     return status;
 }
 
-static R_INLINE r_boolean_t r_collision_tree_node_validate_entity(const r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max)
+static R_INLINE r_boolean_t r_collision_tree_node_validate_entity(const r_collision_tree_node_t *node, r_entity_t *entity, r_vector2d_t *min, r_vector2d_t *max)
 {
     return ((*min)[0] > node->min[0] && (*min)[1] > node->min[1] && (*max)[0] < node->max[0] && (*max)[1] < node->max[1]);
 }
 
-static r_status_t r_collision_tree_node_insert(r_state_t *rs, r_collision_tree_t *tree, r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max);
+static r_status_t r_collision_tree_node_insert(r_state_t *rs, r_collision_tree_t *tree, r_collision_tree_node_t *node, r_entity_t *entity, r_vector2d_t *min, r_vector2d_t *max);
 
-static r_status_t r_collision_tree_node_try_insert_into_child(r_state_t *rs, r_collision_tree_t *tree, r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max, r_boolean_t *inserted)
+static r_status_t r_collision_tree_node_try_insert_into_child(r_state_t *rs, r_collision_tree_t *tree, r_collision_tree_node_t *node, r_entity_t *entity, r_vector2d_t *min, r_vector2d_t *max, r_boolean_t *inserted)
 {
     r_status_t status = R_SUCCESS;
     r_collision_tree_node_t *child = NULL;
@@ -148,8 +148,8 @@ static r_status_t r_collision_tree_node_split(r_state_t *rs, r_collision_tree_t 
         for (i = 0; i < node->entries.count && R_SUCCEEDED(status); ++i)
         {
             r_collision_tree_entry_t *entry = r_collision_tree_entry_list_get_index(rs, &node->entries, i);
-            const r_vector2d_t *min = NULL;
-            const r_vector2d_t *max = NULL;
+            r_vector2d_t *min = NULL;
+            r_vector2d_t *max = NULL;
 
             status = r_entity_get_bounds(rs, entry->entity, &min, &max);
 
@@ -212,8 +212,8 @@ static r_status_t r_collision_tree_node_split(r_state_t *rs, r_collision_tree_t 
             for (i = 0; i < node->entries.count && R_SUCCEEDED(status); ++i)
             {
                 r_collision_tree_entry_t *entry = r_collision_tree_entry_list_get_index(rs, &node->entries, i);
-                const r_vector2d_t *min = NULL;
-                const r_vector2d_t *max = NULL;
+                r_vector2d_t *min = NULL;
+                r_vector2d_t *max = NULL;
 
                 status = r_entity_get_bounds(rs, entry->entity, &min, &max);
 
@@ -245,7 +245,7 @@ static r_status_t r_collision_tree_node_split(r_state_t *rs, r_collision_tree_t 
     return status;
 }
 
-static r_status_t r_collision_tree_node_insert(r_state_t *rs, r_collision_tree_t *tree, r_collision_tree_node_t *node, r_entity_t *entity, const r_vector2d_t *min, const r_vector2d_t *max)
+static r_status_t r_collision_tree_node_insert(r_state_t *rs, r_collision_tree_t *tree, r_collision_tree_node_t *node, r_entity_t *entity, r_vector2d_t *min, r_vector2d_t *max)
 {
     /* Check to see if this node is split */
     r_boolean_t inserted = R_FALSE;
@@ -298,8 +298,8 @@ static r_status_t r_collision_tree_node_validate(r_state_t *rs, r_collision_tree
         if (entry->entity_version != entry->entity->version)
         {
             /* Entity's version has changed, need to re-check bounds */
-            const r_vector2d_t *min = NULL;
-            const r_vector2d_t *max = NULL;
+            r_vector2d_t *min = NULL;
+            r_vector2d_t *max = NULL;
             
             status = r_entity_get_bounds(rs, entry->entity, &min, &max);
 
@@ -696,8 +696,8 @@ r_status_t r_collision_tree_init(r_state_t *rs, r_collision_tree_t *tree)
 
 r_status_t r_collision_tree_insert(r_state_t *rs, r_collision_tree_t *tree, r_entity_t *entity)
 {
-    const r_vector2d_t *min = NULL;
-    const r_vector2d_t *max = NULL;
+    r_vector2d_t *min = NULL;
+    r_vector2d_t *max = NULL;
     r_status_t status = r_entity_get_bounds(rs, entity, &min, &max);
 
     if (R_SUCCEEDED(status))

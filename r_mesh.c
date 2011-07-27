@@ -63,7 +63,7 @@ static r_status_t r_triangle_list_cleanup(r_state_t *rs, r_triangle_list_t *list
     return r_list_cleanup(rs, (r_list_t*)list, &r_triangle_list_def);
 }
 
-static void r_triangle_convert_to_ccw(const r_triangle_t *from, r_triangle_t *to) {
+static void r_triangle_convert_to_ccw(r_triangle_t *from, r_triangle_t *to) {
     if (R_TRIANGLE_SIGNED_AREA((*from)[0], (*from)[1], (*from)[2]) < 0)
     {
         (*to)[0][0] = (*from)[2][0];
@@ -130,12 +130,9 @@ static int l_Mesh_addTriangle(lua_State *ls)
     if (R_SUCCEEDED(status))
     {
         r_mesh_t *mesh = (r_mesh_t*)lua_touserdata(ls, 1);
-        r_triangle_t triangle = { (r_real_t)lua_tonumber(ls, 2),
-                                  (r_real_t)lua_tonumber(ls, 3),
-                                  (r_real_t)lua_tonumber(ls, 4),
-                                  (r_real_t)lua_tonumber(ls, 5),
-                                  (r_real_t)lua_tonumber(ls, 6),
-                                  (r_real_t)lua_tonumber(ls, 7) };
+        r_triangle_t triangle = { { (r_real_t)lua_tonumber(ls, 2), (r_real_t)lua_tonumber(ls, 3) },
+                                  { (r_real_t)lua_tonumber(ls, 4), (r_real_t)lua_tonumber(ls, 5) },
+                                  { (r_real_t)lua_tonumber(ls, 6), (r_real_t)lua_tonumber(ls, 7) } };
         r_triangle_t triangle_ccw;
 
         /* Enforce counterclockwise ordering on triangle points */

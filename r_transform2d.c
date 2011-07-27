@@ -32,7 +32,7 @@ r_real_t r_transform2d_identity[3][3] = {
     { 0, 0, 1 }
 };
 
-static R_INLINE void r_transform2d_multiply(const r_transform2d_t *a, const r_transform2d_t *b, r_transform2d_t *result)
+static R_INLINE void r_transform2d_multiply(r_transform2d_t *a, r_transform2d_t *b, r_transform2d_t *result)
 {
     int i;
 
@@ -56,14 +56,14 @@ static R_INLINE void r_transform2d_multiply(const r_transform2d_t *a, const r_tr
     }
 }
 
-static R_INLINE r_real_t r_transform2d_determinant(const r_transform2d_t *a)
+static R_INLINE r_real_t r_transform2d_determinant(r_transform2d_t *a)
 {
     return (*a)[0][0] * ((*a)[1][1] * (*a)[2][2] - (*a)[1][2] * (*a)[2][1])
            + (*a)[0][1] * ((*a)[1][2] * (*a)[2][0] - (*a)[2][2] * (*a)[1][0])
            + (*a)[0][2] * ((*a)[1][0] * (*a)[2][1] - (*a)[1][1] * (*a)[2][0]);
 }
 
-static R_INLINE void r_transform2d_transform_homogeneous(const r_transform2d_t *a, const r_vector2d_homogeneous_t *vh, r_vector2d_homogeneous_t *avh)
+static R_INLINE void r_transform2d_transform_homogeneous(r_transform2d_t *a, r_vector2d_homogeneous_t *vh, r_vector2d_homogeneous_t *avh)
 {
     int i;
 
@@ -80,7 +80,7 @@ static R_INLINE void r_transform2d_transform_homogeneous(const r_transform2d_t *
     }
 }
 
-void r_transform2d_copy(r_transform2d_t *to, const r_transform2d_t *from)
+void r_transform2d_copy(r_transform2d_t *to, r_transform2d_t *from)
 {
     memcpy(to, from, sizeof(r_transform2d_t));
 }
@@ -93,7 +93,7 @@ void r_transform2d_init(r_transform2d_t *transform)
 void r_transform2d_translate(r_transform2d_t *transform, r_real_t x, r_real_t y)
 {
     r_transform2d_t a;
-    const r_transform2d_t b = {
+    r_transform2d_t b = {
         { 1, 0, x },
         { 0, 1, y },
         { 0, 0, 1 }
@@ -106,7 +106,7 @@ void r_transform2d_translate(r_transform2d_t *transform, r_real_t x, r_real_t y)
 void r_transform2d_scale(r_transform2d_t *transform, r_real_t sx, r_real_t sy)
 {
     r_transform2d_t a;
-    const r_transform2d_t b = {
+    r_transform2d_t b = {
         { sx,  0,  0 },
         {  0, sy,  0 },
         {  0,  0,  1 }
@@ -124,7 +124,7 @@ void r_transform2d_rotate(r_transform2d_t *transform, r_real_t degrees)
     const r_real_t cosine_theta = (r_real_t)cos(theta);
     const r_real_t sine_theta = (r_real_t)sin(theta);
 
-    const r_transform2d_t b = {
+    r_transform2d_t b = {
         { cosine_theta,  -sine_theta, 0 },
         { sine_theta,   cosine_theta, 0 },
         {          0,              0, 1 }
@@ -134,7 +134,7 @@ void r_transform2d_rotate(r_transform2d_t *transform, r_real_t degrees)
     r_transform2d_multiply(&a, &b, transform);
 }
 
-void r_transform2d_invert(r_transform2d_t *to, const r_transform2d_t *from)
+void r_transform2d_invert(r_transform2d_t *to, r_transform2d_t *from)
 {
     r_real_t z = r_transform2d_determinant(from);
     r_real_t factor = ((r_real_t)1) / z;
@@ -152,7 +152,7 @@ void r_transform2d_invert(r_transform2d_t *to, const r_transform2d_t *from)
     (*to)[2][2] = factor * ((*from)[0][0] * (*from)[1][1] - (*from)[0][1] * (*from)[1][0]);
 }
 
-void r_transform2d_transform(const r_transform2d_t *a, const r_vector2d_t *v, r_vector2d_t *av)
+void r_transform2d_transform(r_transform2d_t *a, r_vector2d_t *v, r_vector2d_t *av)
 {
     r_vector2d_homogeneous_t vh = { (*v)[0], (*v)[1], 1 };
     r_vector2d_homogeneous_t avh;

@@ -28,7 +28,7 @@ THE SOFTWARE.
 typedef r_real_t r_transform2d_t[3][3];
 
 extern void r_transform2d_init(r_transform2d_t *transform);
-extern void r_transform2d_copy(r_transform2d_t *to, const r_transform2d_t *from);
+extern void r_transform2d_copy(r_transform2d_t *to, r_transform2d_t *from);
 
 /* Transformation operations */
 extern void r_transform2d_translate(r_transform2d_t *transform, r_real_t x, r_real_t y);
@@ -36,10 +36,10 @@ extern void r_transform2d_scale(r_transform2d_t *transform, r_real_t sx, r_real_
 extern void r_transform2d_rotate(r_transform2d_t *transform, r_real_t degrees);
 
 /* General operations */
-extern void r_transform2d_invert(r_transform2d_t *to, const r_transform2d_t *from);
+extern void r_transform2d_invert(r_transform2d_t *to, r_transform2d_t *from);
 
 /* Apply the transformation */
-extern R_INLINE void r_transform2d_transform(const r_transform2d_t *a, const r_vector2d_t *v, r_vector2d_t *av);
+extern R_INLINE void r_transform2d_transform(r_transform2d_t *a, r_vector2d_t *v, r_vector2d_t *av);
 
 #endif
 

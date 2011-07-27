@@ -1,3 +1,7 @@
+2011-05-14 deraj@users.sourceforge.net
+
+* r_script_lib.c: Added shiftLeft and shiftRight
+
 2011-04-09 deraj@users.sourceforge.net
 
 * r_entity.c (r_entity_update): Update children when no update function exists

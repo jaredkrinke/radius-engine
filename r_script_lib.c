@@ -381,6 +381,26 @@ static int l_exp(lua_State *ls)
     return l_mathFunction(ls, exp);
 }
 
+static double shiftLeft(double x, double n)
+{
+    return ((unsigned int)x) << ((unsigned int)n);
+}
+
+static int l_shiftLeft(lua_State *ls)
+{
+    return l_mathFunction2(ls, shiftLeft);
+}
+
+static double shiftRight(double x, double n)
+{
+    return ((unsigned int)x) >> ((unsigned int)n);
+}
+
+static int l_shiftRight(lua_State *ls)
+{
+    return l_mathFunction2(ls, shiftRight);
+}
+
 static int l_pow(lua_State *ls)
 {
     return l_mathFunction2(ls, pow);
@@ -844,28 +864,6 @@ static int l_dump(lua_State *ls)
     return 0;
 }
 
-static int l_debugBreak(lua_State *ls)
-{
-    /* TODO: Use something cross-platform to break into an attached debugger */
-    lua_Debug dbg;
-    r_status_t status = R_SUCCESS;
-    int level = 0;
-
-    while (lua_getstack(ls, level++, &dbg) == 1 && R_SUCCEEDED(status))
-    {
-        status = lua_getinfo(ls, "nSl", &dbg) ? R_SUCCESS : R_FAILURE;
-
-        if (R_SUCCEEDED(status))
-        {
-            r_state_t *rs = r_script_get_r_state(ls);
-
-            r_log_format(rs, "Frame %d: %s: %s, line %d\n", level, dbg.source, dbg.name, dbg.currentline);
-        }
-    }
-
-    return 0;
-}
-
 static int l_garbageCollect(lua_State *ls)
 {
     lua_gc(ls, LUA_GCCOLLECT, 0);
@@ -957,6 +955,29 @@ static r_status_t r_script_string_setup(r_state_t *rs)
     return status;
 }
 
+/* TODO: Is there a header where this should go? */
+int l_debugBreak(lua_State *ls)
+{
+    /* TODO: Use something cross-platform to break into an attached debugger */
+    lua_Debug dbg;
+    r_status_t status = R_SUCCESS;
+    int level = 0;
+
+    while (lua_getstack(ls, level++, &dbg) == 1 && R_SUCCEEDED(status))
+    {
+        status = lua_getinfo(ls, "nSl", &dbg) ? R_SUCCESS : R_FAILURE;
+
+        if (R_SUCCEEDED(status))
+        {
+            r_state_t *rs = r_script_get_r_state(ls);
+
+            r_log_format(rs, "Frame %d: %s: %s, line %d\n", level, dbg.source, dbg.name, dbg.currentline);
+        }
+    }
+
+    return 0;
+}
+
 r_status_t r_script_setup(r_state_t *rs)
 {
     r_status_t status = (rs != NULL && rs->script_state != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
@@ -982,6 +1003,8 @@ r_status_t r_script_setup(r_state_t *rs)
         lua_register(ls, "tan", l_tan);
         lua_register(ls, "sign", l_sign);
         lua_register(ls, "exp", l_exp);
+        lua_register(ls, "shiftLeft", l_shiftLeft);
+        lua_register(ls, "shiftRight", l_shiftRight);
         lua_register(ls, "pow", l_pow);
         lua_register(ls, "log", l_log);
         lua_register(ls, "sqrt", l_sqrt);

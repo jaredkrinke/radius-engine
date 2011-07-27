@@ -26,8 +26,6 @@ THE SOFTWARE.
 
 #include "r_transform2d.h"
 
-typedef r_real_t r_transform2d_t[3][3];
-
 r_real_t r_transform2d_identity[3][3] = {
     { 1, 0, 0 },
     { 0, 1, 0 },

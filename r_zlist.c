@@ -138,7 +138,7 @@ r_status_t r_zlist_lock(r_state_t *rs, r_object_t *parent, r_zlist_t *zlist)
     return r_object_list_lock(rs, parent, (r_object_list_t*)zlist);
 }
 
-r_zlist_unlock(r_state_t *rs, r_object_t *parent, r_zlist_t *zlist)
+r_status_t r_zlist_unlock(r_state_t *rs, r_object_t *parent, r_zlist_t *zlist)
 {
     return r_object_list_unlock(rs, parent, (r_object_list_t*)zlist, r_zlist_sort_insert);
 }

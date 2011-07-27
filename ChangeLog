@@ -1,3 +1,9 @@
+2011-07-26 deraj@users.sourceforge.net
+
+* r_transform2d.c: Removed duplicate definition
+
+* r_zlist.c: Fixed prototype for r_zlist_unlock implementation
+
 2011-05-14 deraj@users.sourceforge.net
 
 * r_script_lib.c: Added shiftLeft and shiftRight

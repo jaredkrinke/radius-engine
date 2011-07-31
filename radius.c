@@ -47,24 +47,17 @@ int radius_execute_application(const char *argv0, const char *application_name, 
         if (R_SUCCEEDED(status))
         {
             /* Initialize file system first because it will setup stdout/stderr as necessary */
-            char *data_dir = NULL;
-            char *data_dir_internal = NULL;
+            char **data_dirs = NULL;
             char *user_dir = NULL;
             char *script_path = NULL;
             char *default_font_path = NULL;
 
             /* Set up application-based default values */
-            status = r_file_system_allocate_application_paths(rs, application_name, &data_dir_internal, &user_dir, &script_path, &default_font_path);
+            status = r_file_system_allocate_application_paths(rs, application_name, data_dir_override, &data_dirs, &user_dir, &script_path, &default_font_path);
 
             if (R_SUCCEEDED(status))
             {
-                /* Data directory may be overridden at compile time */
-                if (data_dir == NULL)
-                {
-                    data_dir = data_dir_internal;
-                }
-
-                status = r_file_system_start(rs, data_dir, user_dir);
+                status = r_file_system_start(rs, data_dirs, user_dir);
 
                 if (R_SUCCEEDED(status))
                 {
@@ -159,7 +152,7 @@ int radius_execute_application(const char *argv0, const char *application_name, 
                     r_log_error(rs, "Could not initialize file system");
                 }
 
-                r_file_system_free_application_paths(rs, &data_dir_internal, &user_dir, &script_path, &default_font_path);
+                r_file_system_free_application_paths(rs, &data_dirs, &user_dir, &script_path, &default_font_path);
             }
             else
             {

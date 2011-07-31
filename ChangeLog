@@ -7,6 +7,12 @@
 * radius.h: Removed unused raw execution
 * radius.c: Only support application-based execution for now
 
+* r_file_system.h: Support multiple platform-specific data dirs
+* r_file_system.c: Get platform-specific data dirs
+* radius.c: Propagate data dir override to file system path allocation
+* r_platform.h: Allow platforms to specify several data dirs
+* r_platform_unix.h: Use hard-coded, default, and base dirs
+
 2011-07-26 deraj@users.sourceforge.net
 
 * r_transform2d.c: Removed duplicate definition

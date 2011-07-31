@@ -99,6 +99,21 @@ static r_status_t r_file_system_add_all_data_sources(r_state_t *rs)
     return status;
 }
 
+static void r_file_system_free_data_dirs(char **data_dirs)
+{
+    if (data_dirs != NULL)
+    {
+        char **data_dir = NULL;
+
+        for (data_dir = data_dirs; *data_dir != NULL; ++data_dir)
+        {
+            free(*data_dir);
+        }
+
+        free(data_dirs);
+    }
+}
+
 /* Arguments passed to r_file_system_reader */
 typedef struct _r_file_system_reader_args
 {
@@ -346,9 +361,9 @@ r_status_t r_file_system_setup_script(r_state_t *rs)
     return status;
 }
 
-r_status_t r_file_system_start(r_state_t *rs, const char *data_dir, const char *user_dir)
+r_status_t r_file_system_start(r_state_t *rs, char **data_dirs, const char *user_dir)
 {
-    r_status_t status = (rs != NULL && data_dir != NULL && user_dir != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    r_status_t status = (rs != NULL && data_dirs != NULL && user_dir != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
 
     if (R_SUCCEEDED(status))
@@ -392,14 +407,28 @@ r_status_t r_file_system_start(r_state_t *rs, const char *data_dir, const char *
         }
 
         /* Append the root data directory to the search path */
-        /* TODO: On failure, perhaps try other locations? This could help on Linux where there are multiple places to look (e.g. /usr/share, /usr/local/share, <base>/../share, etc.) */
         if (R_SUCCEEDED(status))
         {
-            status = (PHYSFS_addToSearchPath(data_dir, 1) != 0) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+            /* Try each data directory in order */
+            char **data_dir = NULL;
+
+            status = R_FAILURE;
+
+            for (data_dir = data_dirs; R_FAILED(status) && *data_dir != NULL; ++data_dir)
+            {
+                status = (PHYSFS_addToSearchPath(*data_dir, 1) != 0) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+
+                /* TODO: Should this also check for the main script? */
+            }
 
             if (R_FAILED(status))
             {
-                r_log_error_format(rs, "Failed to add data directory or package to search path: %s", data_dir);
+                r_log_error(rs, "Failed to locate data directory or package after trying the following paths:");
+
+                for (data_dir = data_dirs; *data_dir != NULL; ++data_dir)
+                {
+                    r_log(rs, *data_dir);
+                }
             }
         }
 
@@ -441,9 +470,9 @@ r_status_t r_file_system_end(r_state_t *rs)
     return status;
 }
 
-r_status_t r_file_system_allocate_application_paths(r_state_t *rs, const char *application, char **data_dir, char **user_dir, char **script_path, char **default_font_path)
+r_status_t r_file_system_allocate_application_paths(r_state_t *rs, const char *application, const char *data_dir_override, char ***data_dirs, char **user_dir, char **script_path, char **default_font_path)
 {
-    r_status_t status = (rs != NULL && application != NULL && data_dir != NULL && user_dir != NULL && script_path != NULL && default_font_path != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    r_status_t status = (rs != NULL && application != NULL && data_dirs != NULL && user_dir != NULL && script_path != NULL && default_font_path != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
 
     if (R_SUCCEEDED(status))
     {
@@ -451,13 +480,13 @@ r_status_t r_file_system_allocate_application_paths(r_state_t *rs, const char *a
 
         if (R_SUCCEEDED(status))
         {
-            char *data_dir_internal = NULL;
+            char **data_dirs_internal = NULL;
             char *user_dir_internal = NULL;
             char *script_path_internal = NULL;
             char *default_font_path_internal = NULL;
 
-            /* Construct data directory */
-            status = r_string_format_allocate(rs, &data_dir_internal, R_FILE_SYSTEM_MAX_PATH_LENGTH, R_FILE_SYSTEM_MAX_PATH_LENGTH, "%sData", PHYSFS_getBaseDir());
+            /* Construct multiple platform-specific data directory */
+            status = r_platform_application_allocate_data_dirs(rs, application, data_dir_override, &data_dirs_internal);
 
             /* User directory */
             if (R_SUCCEEDED(status))
@@ -489,7 +518,7 @@ r_status_t r_file_system_allocate_application_paths(r_state_t *rs, const char *a
             if (R_SUCCEEDED(status))
             {
                 /* Return allocated strings */
-                *data_dir = data_dir_internal;
+                *data_dirs = data_dirs_internal;
                 *user_dir = user_dir_internal;
                 *script_path = script_path_internal;
                 *default_font_path = default_font_path_internal;
@@ -497,9 +526,9 @@ r_status_t r_file_system_allocate_application_paths(r_state_t *rs, const char *a
             else
             {
                 /* Free allocated strings on error */
-                if (data_dir_internal != NULL)
+                if (data_dirs_internal != NULL)
                 {
-                    free(data_dir_internal);
+                    r_file_system_free_data_dirs(data_dirs_internal);
                 }
 
                 if (user_dir_internal != NULL)
@@ -528,14 +557,13 @@ r_status_t r_file_system_allocate_application_paths(r_state_t *rs, const char *a
     return status;
 }
 
-r_status_t r_file_system_free_application_paths(r_state_t *rs, char **data_dir, char **user_dir, char **script_path, char **default_font_path)
+r_status_t r_file_system_free_application_paths(r_state_t *rs, char ***data_dirs, char **user_dir, char **script_path, char **default_font_path)
 {
-    r_status_t status = (rs != NULL && data_dir != NULL && *data_dir != NULL && user_dir != NULL && *user_dir != NULL && script_path != NULL && *script_path != NULL && default_font_path != NULL && *default_font_path != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    r_status_t status = (rs != NULL && data_dirs != NULL && *data_dirs != NULL && user_dir != NULL && *user_dir != NULL && script_path != NULL && *script_path != NULL && default_font_path != NULL && *default_font_path != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
 
     if (R_SUCCEEDED(status))
     {
-        free(*data_dir);
-        *data_dir = NULL;
+        r_file_system_free_data_dirs(*data_dirs);
 
         free(*user_dir);
         *user_dir = NULL;

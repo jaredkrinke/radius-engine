@@ -25,6 +25,8 @@ THE SOFTWARE.
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <string.h>
+#include <ctype.h>
 #include <physfs.h>
 
 #include "r_defs.h"
@@ -74,6 +76,89 @@ r_status_t r_platform_application_allocate_user_dir(r_state_t *rs, const char *a
         if (R_SUCCEEDED(status))
         {
             status = r_string_format_allocate(rs, user_dir, R_FILE_SYSTEM_MAX_PATH_LENGTH, R_FILE_SYSTEM_MAX_PATH_LENGTH, "%s/.%s", home, application);
+        }
+    }
+
+    return status;
+}
+
+r_status_t r_platform_application_allocate_data_dirs(r_state_t *rs, const char *application_name, const char *data_dir_override, char ***data_dirs)
+{
+    /* Convert application name to lower case */
+    size_t application_name_length = strlen(application_name); 
+    char *application_name_lower = (char*)malloc(application_name_length + 1);
+    r_status_t status = (application_name_lower != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+    if (R_SUCCEEDED(status))
+    {
+        int c;
+
+        for (c = 0; c < application_name_length; ++c)
+        {
+            application_name_lower[c] = tolower(application_name[c]);
+        }
+
+        application_name_lower[c] = '\0';
+
+        {
+            /* These are encoded with the lower-cased application name */
+            static const char *default_dirs[] = {
+                "/usr/share/%s",
+                "/usr/local/share/%s",
+                "/usr/share/games/%s",
+                "/usr/local/share/games/%s",
+            };
+
+            /* Data directory search path:
+             *
+             * 1) Hard-coded override (user-supplied at compile time)
+             * 2) Default installation paths (these are just educated guesses)
+             * 3) PhysicsFS "base" dir (e.g. if the user runs from the build directory)
+             * (Followed by a NULL) */
+
+            char **data_dirs_internal = (char**)calloc(R_ARRAY_SIZE(default_dirs) + 3, sizeof(char*));
+            r_status_t status = (data_dirs_internal != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+            if (R_SUCCEEDED(status))
+            {
+                /* First, use the hard-coded override */
+                int j = 0;
+
+                status = r_string_format_allocate(rs, &data_dirs_internal[j++], R_FILE_SYSTEM_MAX_PATH_LENGTH, R_FILE_SYSTEM_MAX_PATH_LENGTH, "%s", data_dir_override);
+
+                /* Next, use the default paths */
+                if (R_SUCCEEDED(status))
+                {
+                    int i;
+
+                    for (i = 0; R_SUCCEEDED(status) && i < R_ARRAY_SIZE(default_dirs); ++i)
+                    {
+                        status = r_string_format_allocate(rs, &data_dirs_internal[j++], R_FILE_SYSTEM_MAX_PATH_LENGTH, R_FILE_SYSTEM_MAX_PATH_LENGTH, default_dirs[i], application_name_lower);
+                    }
+                }
+
+                /* As a last resort, use "<base>/Data" */
+                if (R_SUCCEEDED(status))
+                {
+                    status = r_string_format_allocate(rs, &data_dirs_internal[j++], R_FILE_SYSTEM_MAX_PATH_LENGTH, R_FILE_SYSTEM_MAX_PATH_LENGTH, "%sData", PHYSFS_getBaseDir());
+                }
+
+                if (R_FAILED(status))
+                {
+                    /* Free already-allocated paths */
+                    for (--j; j >= 0; --j)
+                    {
+                        free(data_dirs_internal[j]);
+                    }
+
+                    free(data_dirs_internal);
+                }
+            }
+
+            if (R_SUCCEEDED(status))
+            {
+                *data_dirs = data_dirs_internal;
+            }
         }
     }
 

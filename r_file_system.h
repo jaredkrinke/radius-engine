@@ -27,12 +27,12 @@ THE SOFTWARE.
 
 #define R_FILE_SYSTEM_MAX_PATH_LENGTH   256
 
-extern r_status_t r_file_system_start(r_state_t *rs, const char *data_dir, const char *user_dir);
+extern r_status_t r_file_system_start(r_state_t *rs, char **data_dirs, const char *user_dir);
 extern r_status_t r_file_system_setup_script(r_state_t *rs);
 extern r_status_t r_file_system_end(r_state_t *rs);
 
-extern r_status_t r_file_system_allocate_application_paths(r_state_t *rs, const char *application, char **data_dir, char **user_dir, char **script_path, char **default_font_path);
-extern r_status_t r_file_system_free_application_paths(r_state_t *rs, char **data_dir, char **user_dir, char **script_path, char **default_font_path);
+extern r_status_t r_file_system_allocate_application_paths(r_state_t *rs, const char *application, const char *data_dir_override, char ***data_dir, char **user_dir, char **script_path, char **default_font_path);
+extern r_status_t r_file_system_free_application_paths(r_state_t *rs, char ***data_dir, char **user_dir, char **script_path, char **default_font_path);
 
 #endif
 

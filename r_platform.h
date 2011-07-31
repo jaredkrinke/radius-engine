@@ -32,5 +32,6 @@ extern const char *r_platform_newline;
 extern r_status_t r_platform_create_directory(r_state_t *rs, const char *dir);
 extern r_status_t r_platform_setup_output(r_state_t *rs, const char *user_dir);
 extern r_status_t r_platform_application_allocate_user_dir(r_state_t *rs, const char *application, char **user_dir);
+extern r_status_t r_platform_application_allocate_data_dirs(r_state_t *rs, const char *application, const char *data_dir_override, char ***data_dirs);
 
 #endif

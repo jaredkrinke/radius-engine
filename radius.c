@@ -34,24 +34,27 @@ THE SOFTWARE.
 #include "r_platform.h"
 #include "radius.h"
 
-static int radius_execute_internal(const char *argv0, const char *application_name, const char *data_dir, const char *user_dir, const char *script_path, const char *default_font_path)
+int radius_execute_application(const char *argv0, const char *application_name, const char *data_dir_override)
 {
-    r_state_t radius_state;
-    r_state_t *rs = &radius_state;
-    r_status_t status = r_state_init(rs, argv0);
+    r_status_t status = (application_name != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
 
     if (R_SUCCEEDED(status))
     {
-        /* Initialize file system first because it will setup stdout/stderr as necessary */
-        char *data_dir_internal = NULL;
-        char *user_dir_internal = NULL;
-        char *script_path_internal = NULL;
-        char *default_font_path_internal = NULL;
+        r_state_t radius_state;
+        r_state_t *rs = &radius_state;
+        r_status_t status = r_state_init(rs, argv0);
 
-        /* Set up application-based default values, if necessary */
-        if (application_name != NULL)
+        if (R_SUCCEEDED(status))
         {
-            status = r_file_system_allocate_application_paths(rs, application_name, &data_dir_internal, &user_dir_internal, &script_path_internal, &default_font_path_internal);
+            /* Initialize file system first because it will setup stdout/stderr as necessary */
+            char *data_dir = NULL;
+            char *data_dir_internal = NULL;
+            char *user_dir = NULL;
+            char *script_path = NULL;
+            char *default_font_path = NULL;
+
+            /* Set up application-based default values */
+            status = r_file_system_allocate_application_paths(rs, application_name, &data_dir_internal, &user_dir, &script_path, &default_font_path);
 
             if (R_SUCCEEDED(status))
             {
@@ -61,137 +64,112 @@ static int radius_execute_internal(const char *argv0, const char *application_na
                     data_dir = data_dir_internal;
                 }
 
-                user_dir = user_dir_internal;
-                script_path = script_path_internal;
-                default_font_path = default_font_path_internal;
-            }
-        }
-
-        if (R_SUCCEEDED(status))
-        {
-            status = r_file_system_start(rs, data_dir, user_dir);
-
-            if (R_SUCCEEDED(status))
-            {
-                status = r_log_file_start(rs, application_name);
+                status = r_file_system_start(rs, data_dir, user_dir);
 
                 if (R_SUCCEEDED(status))
                 {
-                    status = r_script_start(rs);
+                    status = r_log_file_start(rs, application_name);
 
                     if (R_SUCCEEDED(status))
                     {
-                        /* Add file system script functions */
-                        status = r_file_system_setup_script(rs);
-                    }
-
-                    if (R_SUCCEEDED(status))
-                    {
-                        status = r_video_start(rs, application_name, default_font_path);
+                        status = r_script_start(rs);
 
                         if (R_SUCCEEDED(status))
                         {
-                            status = r_audio_start(rs);
+                            /* Add file system script functions */
+                            status = r_file_system_setup_script(rs);
+                        }
+
+                        if (R_SUCCEEDED(status))
+                        {
+                            status = r_video_start(rs, application_name, default_font_path);
 
                             if (R_SUCCEEDED(status))
                             {
-                                status = r_event_start(rs);
+                                status = r_audio_start(rs);
 
                                 if (R_SUCCEEDED(status))
                                 {
-                                    lua_State *ls = rs->script_state;
-
-                                    lua_pushliteral(ls, "require");
-                                    lua_rawget(ls, LUA_GLOBALSINDEX);
-                                    lua_pushstring(ls, script_path);
-                                    status = (lua_pcall(ls, 1, 0, 0) == 0) ? R_SUCCESS : RS_F_INVALID_ARGUMENT;
+                                    status = r_event_start(rs);
 
                                     if (R_SUCCEEDED(status))
                                     {
-                                        status = R_SCRIPT_SET_ERROR_CONTEXT(rs, l_panic);
+                                        lua_State *ls = rs->script_state;
+
+                                        lua_pushliteral(ls, "require");
+                                        lua_rawget(ls, LUA_GLOBALSINDEX);
+                                        lua_pushstring(ls, script_path);
+                                        status = (lua_pcall(ls, 1, 0, 0) == 0) ? R_SUCCESS : RS_F_INVALID_ARGUMENT;
 
                                         if (R_SUCCEEDED(status))
                                         {
-                                            /* Main event loop */
-                                            r_event_loop(rs);
+                                            status = R_SCRIPT_SET_ERROR_CONTEXT(rs, l_panic);
+
+                                            if (R_SUCCEEDED(status))
+                                            {
+                                                /* Main event loop */
+                                                r_event_loop(rs);
+                                            }
                                         }
+                                        else
+                                        {
+                                            r_log_error(rs, lua_tostring(ls, -1));
+                                            lua_pop(ls, 1);
+                                        }
+
+                                        r_event_end(rs);
                                     }
                                     else
                                     {
-                                        r_log_error(rs, lua_tostring(ls, -1));
-                                        lua_pop(ls, 1);
+                                        r_log_error(rs, "Could not initialize event library");
                                     }
 
-                                    r_event_end(rs);
+                                    r_audio_end(rs);
                                 }
                                 else
                                 {
-                                    r_log_error(rs, "Could not initialize event library");
+                                    r_log_error(rs, "Could not initialize audio library");
                                 }
 
-                                r_audio_end(rs);
+                                r_video_end(rs);
                             }
                             else
                             {
-                                r_log_error(rs, "Could not initialize audio library");
+                                r_log_error(rs, "Could not initialize video library");
                             }
 
-                            r_video_end(rs);
+                            r_script_end(rs);
                         }
                         else
                         {
-                            r_log_error(rs, "Could not initialize video library");
+                            r_log_error(rs, "Could not initialize scripting engine");
                         }
 
-                        r_script_end(rs);
+                        r_log_file_end(rs);
                     }
                     else
                     {
-                        r_log_error(rs, "Could not initialize scripting engine");
+                        r_log_error(rs, "Could not open log file");
                     }
 
-                    r_log_file_end(rs);
+                    r_file_system_end(rs);
+                }
+                else
+                {
+                    r_log_error(rs, "Could not initialize file system");
                 }
 
-                r_file_system_end(rs);
+                r_file_system_free_application_paths(rs, &data_dir_internal, &user_dir, &script_path, &default_font_path);
             }
             else
             {
-                r_log_error(rs, "Could not initialize file system");
+                r_log_error(rs, "Could not allocate application-specific paths");
             }
 
-            if (application_name != NULL)
-            {
-                r_file_system_free_application_paths(rs, &data_dir_internal, &user_dir_internal, &script_path_internal, &default_font_path_internal);
-            }
+            r_state_cleanup(rs);
         }
-
-        r_state_cleanup(rs);
     }
 
     return (int)status;
 }
 
-int radius_execute_raw(const char *argv0, const char *data_dir, const char *user_dir, const char *script_path, const char *default_font_path)
-{
-    r_status_t status = (data_dir != NULL && user_dir != NULL && script_path != NULL && default_font_path != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-
-    if (R_SUCCEEDED(status))
-    {
-        status = radius_execute_internal(argv0, NULL, data_dir, user_dir, script_path, default_font_path);
-    }
-
-    return status;
-}
-
-int radius_execute_application(const char *argv0, const char *application_name, const char *data_dir_override)
-{
-    r_status_t status = (application_name != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-
-    if (R_SUCCEEDED(status))
-    {
-        status = radius_execute_internal(argv0, application_name, data_dir_override, NULL, NULL, NULL);
-    }
-
-    return status;
-}

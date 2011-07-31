@@ -1,3 +1,7 @@
+2011-07-31 deraj@users.sourceforge.net
+
+* r_file_system.c (r_file_system_start): Log paths on error
+
 2011-07-26 deraj@users.sourceforge.net
 
 * r_transform2d.c: Removed duplicate definition

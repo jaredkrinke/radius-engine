@@ -373,12 +373,22 @@ r_status_t r_file_system_start(r_state_t *rs, const char *data_dir, const char *
         if (R_SUCCEEDED(status))
         {
             status = (PHYSFS_setWriteDir(user_dir) != 0) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+
+            if (R_FAILED(status))
+            {
+                r_log_error_format(rs, "Failed to set write directory to: %s", user_dir);
+            }
         }
 
         /* Add write directory to the front of the search path */
         if (R_SUCCEEDED(status))
         {
             status = (PHYSFS_addToSearchPath(user_dir, 1) != 0) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+
+            if (R_FAILED(status))
+            {
+                r_log_error_format(rs, "Failed to add user directory to search path: %s", user_dir);
+            }
         }
 
         /* Append the root data directory to the search path */
@@ -386,6 +396,11 @@ r_status_t r_file_system_start(r_state_t *rs, const char *data_dir, const char *
         if (R_SUCCEEDED(status))
         {
             status = (PHYSFS_addToSearchPath(data_dir, 1) != 0) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+
+            if (R_FAILED(status))
+            {
+                r_log_error_format(rs, "Failed to add data directory or package to search path: %s", data_dir);
+            }
         }
 
         /* Load all zip files in the root directory */

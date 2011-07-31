@@ -13,6 +13,10 @@
 * r_platform.h: Allow platforms to specify several data dirs
 * r_platform_unix.h: Use hard-coded, default, and base dirs
 
+* r_file_system.h: Propagate main script to r_file_system_start
+* r_file_system.c: Add all default dirs, more logging for file not found errors
+* radius.c: Propagate main script to r_file_system_start
+
 2011-07-26 deraj@users.sourceforge.net
 
 * r_transform2d.c: Removed duplicate definition

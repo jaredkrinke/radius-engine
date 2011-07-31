@@ -57,7 +57,7 @@ int radius_execute_application(const char *argv0, const char *application_name, 
 
             if (R_SUCCEEDED(status))
             {
-                status = r_file_system_start(rs, data_dirs, user_dir);
+                status = r_file_system_start(rs, data_dirs, user_dir, script_path);
 
                 if (R_SUCCEEDED(status))
                 {

@@ -182,6 +182,25 @@ static r_status_t r_file_system_load_script(r_state_t *rs, const char *path, r_b
         else if (required)
         {
             r_log_error_format(rs, "Failed to load %s: %s", path, PHYSFS_getLastError());
+
+            /* Log search path to aid in troubleshooting */
+            {
+                char **paths = PHYSFS_getSearchPath();
+
+                r_log(rs, "Current search path:");
+
+                if (paths != NULL)
+                {
+                    char **path = NULL;
+
+                    for (path = paths; *path != NULL; ++path)
+                    {
+                        r_log(rs, *path);
+                    }
+
+                    PHYSFS_freeList(paths);
+                }
+            }
         }
     }
 
@@ -361,7 +380,7 @@ r_status_t r_file_system_setup_script(r_state_t *rs)
     return status;
 }
 
-r_status_t r_file_system_start(r_state_t *rs, char **data_dirs, const char *user_dir)
+r_status_t r_file_system_start(r_state_t *rs, char **data_dirs, const char *user_dir, const char *script_path)
 {
     r_status_t status = (rs != NULL && data_dirs != NULL && user_dir != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -417,8 +436,6 @@ r_status_t r_file_system_start(r_state_t *rs, char **data_dirs, const char *user
             for (data_dir = data_dirs; R_FAILED(status) && *data_dir != NULL; ++data_dir)
             {
                 status = (PHYSFS_addToSearchPath(*data_dir, 1) != 0) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
-
-                /* TODO: Should this also check for the main script? */
             }
 
             if (R_FAILED(status))
@@ -436,6 +453,23 @@ r_status_t r_file_system_start(r_state_t *rs, char **data_dirs, const char *user
         if (R_SUCCEEDED(status))
         {
             status = r_file_system_add_all_data_sources(rs);
+        }
+
+        /* Check to ensure the main script can be found */
+        if (R_SUCCEEDED(status))
+        {
+            if (!PHYSFS_exists(script_path))
+            {
+                /* If the main script is not found, try adding all fallback paths as a last resort */
+                char **data_dir = NULL;
+
+                for (data_dir = data_dirs; *data_dir != NULL; ++data_dir)
+                {
+                    PHYSFS_addToSearchPath(*data_dir, 1);
+                }
+
+                r_file_system_add_all_data_sources(rs);
+            }
         }
 
         if (status == R_F_FILE_SYSTEM_ERROR)

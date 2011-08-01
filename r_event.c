@@ -592,7 +592,17 @@ r_status_t r_event_loop(r_state_t *rs)
 
                 while (SDL_PollEvent(&ev) != 0 && R_SUCCEEDED(status))
                 {
-                    status = r_event_handle_event(rs, layer, &ev);
+                    /* Send all events to this frame's active layer; drop events if the layer changes. This is to avoid
+                     * sending multiple layer (and therefore focus)-changing events (e.g. submitting a high score
+                     * multiple times). */
+                    r_layer_t *current_layer = NULL;
+                    
+                    status = r_layer_stack_get_active_layer(rs, &current_layer);
+
+                    if (R_SUCCEEDED(status) && layer == current_layer)
+                    {
+                        status = r_event_handle_event(rs, layer, &ev);
+                    }
                 }
 
                 /* Update the layer with the current time */

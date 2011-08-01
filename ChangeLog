@@ -18,6 +18,8 @@
 * r_file_system.c: Add all default dirs, more logging for file not found errors
 * radius.c: Propagate main script to r_file_system_start
 
+* r_event.c: Drop pending events after layer change to avoid double-submission
+
 2011-07-26 deraj@users.sourceforge.net
 
 * r_transform2d.c: Removed duplicate definition

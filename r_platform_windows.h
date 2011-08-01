@@ -111,3 +111,36 @@ r_status_t r_platform_application_allocate_user_dir(r_state_t *rs, const char *a
 
     return status;
 }
+
+r_status_t r_platform_application_allocate_data_dirs(r_state_t *rs, const char *application, const char *data_dir_override, char ***data_dirs)
+{
+    r_status_t status = (rs != NULL && application != NULL && data_dirs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    R_ASSERT(R_SUCCEEDED(status));
+
+    if (R_SUCCEEDED(status))
+    {
+        /* Data directory search path:
+         *
+         * 1) PhysicsFS "base" dir (e.g. "Program Files\Application\Data")
+         * (Followed by a NULL) */
+
+        char **data_dirs_internal = (char**)calloc(2, sizeof(char*));
+        r_status_t status = (data_dirs_internal != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+        if (R_SUCCEEDED(status))
+        {
+            status = r_string_format_allocate(rs, &data_dirs_internal[0], R_FILE_SYSTEM_MAX_PATH_LENGTH, R_FILE_SYSTEM_MAX_PATH_LENGTH, "%sData", PHYSFS_getBaseDir());
+
+            if (R_SUCCEEDED(status))
+            {
+                *data_dirs = data_dirs_internal;
+            }
+            else
+            {
+                free(data_dirs_internal);
+            }
+        }
+    }
+
+    return status;
+}

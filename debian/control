@@ -1,0 +1,18 @@
+Source: radius-engine
+Priority: extra
+Maintainer: Jared Krinke <deraj@users.sourceforge.net>
+Build-Depends: debhelper (>= 7), autotools-dev
+Standards-Version: 3.8.3
+Section: libs
+Homepage: http://radius-engine.sourceforge.net/
+
+Package: radius-engine-dev
+Section: libdevel
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libgl1-mesa-dev, libsdl1.2-dev, liblua5.1-dev, libpng12-dev, libphysfs-dev, libsdl-sound1.2-dev, libglib2.0-0, mime-support, libpulse0, libxdamage1, libogg0, libdrm2, libxdmcp6, libxfixes3, libdirectfb-1.2-0, libvorbis0a, locales, libvorbisenc2, libxi6, pkg-config, libxxf86vm1, libdbus-1-3, libice6, libwrap0, libflac8, libxcb1, libc6-i686, libsndfile1, libsm6, libxtst6, libxext6, libsdl1.2debian-pulseaudio, libasound2, libxau6, libpcre3, gawk
+Description: Cross-platform 2D game engine based on Lua
+ Radius Engine is a free, cross-platform 2D game engine based on Lua and OpenGL
+ that currently supports Windows and Linux. It can display transformed 2D images
+ and bitmap fonts, play sound effects and music, perform triangle-based 2D
+ collision detection, and handle keyboard, joystick, and mouse input.
+

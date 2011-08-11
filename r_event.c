@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,7 @@ THE SOFTWARE.
 #include "r_layer.h"
 #include "r_layer_stack.h"
 #include "r_audio.h"
+#include "r_capture.h"
 
 typedef struct {
     int             joystick_count;
@@ -392,6 +393,23 @@ static r_status_t r_event_handle_event(r_state_t *rs, r_layer_t *layer, SDL_Even
             if (ev->key.keysym.sym == SDLK_F10 && ev->key.state == SDL_PRESSED)
             {
                 rs->done = R_TRUE;
+            }
+            else if (ev->key.keysym.sym == SDLK_F9 && ev->key.state == SDL_PRESSED)
+            {
+                /* TODO: F9 capture is definitely just for debugging */
+                r_capture_t *capture = (r_capture_t*)rs->capture;
+
+                if (rs->capture == NULL)
+                {
+                    status = r_capture_start(rs, &capture);
+                }
+                else
+                {
+
+                    status = r_capture_stop(rs, &capture);
+                }
+
+                rs->capture = capture;
             }
             else
             {

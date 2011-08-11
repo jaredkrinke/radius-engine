@@ -2,7 +2,7 @@
 #define __R_STATE_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -56,6 +56,9 @@ typedef struct _r_state
     unsigned char                   audio_volume;
     unsigned char                   audio_music_volume;
     void                            *audio_decoder;
+
+    /* Capture state */
+    void                            *capture;
 
     /* Script state */
     lua_State                       *script_state;

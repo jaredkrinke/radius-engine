@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -50,6 +50,8 @@ r_status_t r_state_init(r_state_t *rs, const char *argv0)
         rs->audio_volume = 0;
         rs->audio_music_volume = 255;
         rs->audio_decoder = NULL;
+
+        rs->capture = NULL;
 
         rs->script_state = NULL;
 

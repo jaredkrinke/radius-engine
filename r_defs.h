@@ -88,6 +88,13 @@ typedef enum {
     RA_F_SEEK_ERROR         = 0x84000104,
     R_F_AUDIO_FAILURE       = 0x84004005,
 
+    /* Other status codes (e.g. OS, sync, etc.) */
+    R_FACILITY_OTHER        = 0x05000000,
+
+    RO_F_SYNC_ERROR         = 0x85004001,
+    RO_F_THREAD_ERROR       = 0x85004002,
+    RO_F_BUFFER_FULL        = 0x85004003,
+
     R_F_BIT                 = 0x80000000,
     R_F_INVALID             = 0x8100ffff
 } r_status_t;

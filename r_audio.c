@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2011 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,7 @@ THE SOFTWARE.
 #include "r_audio_clip_manager.h"
 #include "r_audio_clip_cache.h"
 #include "r_audio_decoder.h"
+#include "r_capture.h"
 
 #define R_AUDIO_BUFFER_FRAMES       2048
 
@@ -506,6 +507,14 @@ static void r_audio_callback(void *data, Uint8 *buffer, int bytes)
             {
                 buffer[i] = 0;
             }
+        }
+
+        if (R_SUCCEEDED(status) && rs->capture != NULL)
+        {
+            r_capture_t *capture = (r_capture_t*)rs->capture;
+
+            /* Note: For now, we ignore capture errors */
+            r_capture_write_audio_packet(rs, capture, bytes, buffer);
         }
     }
 }

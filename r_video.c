@@ -44,6 +44,7 @@ THE SOFTWARE.
 #include "r_string_buffer.h"
 #include "r_mesh.h"
 #include "r_collision_detector.h"
+#include "r_capture.h"
 
 /* Height of the entire view (i.e. the max y coordinate is R_VIDEO_HEIGHT / 2 since the origin is in the center) */
 #define R_VIDEO_HEIGHT            (480.0)
@@ -144,7 +145,7 @@ r_status_t r_video_set_mode(r_state_t *rs, unsigned int width, unsigned int heig
             glLoadIdentity();
             glEnable(GL_TEXTURE_2D);
 
-            glClearColor(0, 0, 0, 0.5);
+            glClearColor(0, 0, 0, 1);
             glClearDepth(1.0);
 
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1102,6 +1103,15 @@ r_status_t r_video_draw(r_state_t *rs)
         {
             r_log_error(rs, "No video mode was set (e.g. \"Video.setMode(640, 480, false)\")");
         }
+    }
+
+    /* Save previous frame, if capturing */
+    if (R_SUCCEEDED(status) && rs->capture != NULL)
+    {
+        r_capture_t *capture = (r_capture_t*)rs->capture;
+
+        /* For now, ignore capture errors */
+        r_capture_write_video_packet(rs, capture);
     }
 
     /* Draw the scene */

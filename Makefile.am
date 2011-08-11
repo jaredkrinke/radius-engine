@@ -11,6 +11,10 @@ libradius_engine_a_SOURCES = \
                              r_audio_clip_manager.h \
                              r_audio_decoder.h \
                              r_audio_decoder.c \
+                             r_capture.c \
+                             r_capture.h \
+                             r_capture_format.c \
+                             r_capture_format.h \
                              r_collision_detector.c \
                              r_collision_detector.h \
                              r_collision_tree.c \
@@ -72,6 +76,8 @@ libradius_engine_a_SOURCES = \
                              r_script_lib.c \
                              r_state.c \
                              r_state.h \
+                             r_stream_async.c \
+                             r_stream_async.h \
                              r_string.c \
                              r_string.h \
                              r_string_buffer.h \

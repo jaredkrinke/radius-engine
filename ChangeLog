@@ -1,3 +1,42 @@
+2011-08-10 deraj@users.sourceforge.net
+
+* r_capture.h: Initial capture interface
+* r_capture.c: Capture start/stop, packet writing
+* Makefile.am: Added r_capture.c/h
+
+* r_video.c: Use r_capture_t when capturing
+* r_audio.c: Use r_capture_t when capturing
+
+2011-08-09 deraj@users.sourceforge.net
+
+* Makefile.am: Add r_stream_async.c/h, r_capture_format.c/h
+
+* r_defs.h: Added new error codes for sync/thread/async streams
+
+* r_stream_async.h: Combine init and start
+* r_stream_async.c: Code cleanup
+
+* r_state.h: Add capture state to r_state_t
+* r_state.c: Initialize capture state to NULL
+
+2011-08-07 deraj@users.sourceforge.net
+
+* r_audio.c: Initial audio capture work
+
+2011-08-06 deraj@users.sourceforge.net
+
+* r_video.c: Initial video capture work
+
+2011-08-04 deraj@users.sourceforge.net
+
+* r_capture_format.h: Capture file format and run-length encoding
+* r_capture_format.c: Implemented run-length encoding
+
+2011-08-02 deraj@users.sourceforge.net
+
+* r_stream_async.h: Async stream for low-latency logging
+* r_stream_async.c: Implemented async stream
+
 2011-07-31 deraj@users.sourceforge.net
 
 * r_file_system.c (r_file_system_start): Log paths on error

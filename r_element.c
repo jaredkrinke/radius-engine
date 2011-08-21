@@ -300,6 +300,9 @@ static int l_Animation_addFrame(lua_State *ls)
     return 0;
 }
 
+/* Animation elements (these actually display an animation) */
+r_object_ref_t r_element_animation_reset = { R_OBJECT_REF_INVALID, { NULL } };
+
 r_object_field_t r_element_animation_fields[] = {
     { "animation", LUA_TUSERDATA, R_OBJECT_TYPE_ANIMATION, offsetof(r_element_animation_t, element.image), R_TRUE,  R_OBJECT_INIT_REQUIRED, NULL, NULL, NULL, NULL },
     { "x",      LUA_TNUMBER,   0,                   offsetof(r_element_animation_t, element.x),            R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
@@ -310,10 +313,10 @@ r_object_field_t r_element_animation_fields[] = {
     { "angle",  LUA_TNUMBER,   0,                   offsetof(r_element_animation_t, element.angle),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
     { "color",  LUA_TUSERDATA, R_OBJECT_TYPE_COLOR, offsetof(r_element_animation_t, element.color),        R_TRUE,  R_OBJECT_INIT_OPTIONAL, NULL, NULL, NULL, NULL },
     { "type",   LUA_TSTRING,   0,                   offsetof(r_element_animation_t, element.element_type), R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_element_type_field_read, NULL, NULL },
+    { "reset",  LUA_TFUNCTION, 0,                   0,                              R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_element_animation_reset, NULL },
     { NULL, LUA_TNIL, 0, 0, R_FALSE, 0, NULL, NULL, NULL, NULL }
 };
 
-/* Animation elements (these actually display an animation) */
 static r_status_t r_element_animation_init(r_state_t *rs, r_object_t *object)
 {
     r_element_animation_t *element_animation = (r_element_animation_t*)object;
@@ -342,6 +345,36 @@ r_object_header_t r_element_animation_header = { R_OBJECT_TYPE_ELEMENT, sizeof(r
 static int l_Element_Animation_new(lua_State *ls)
 {
     return l_Object_new(ls, &r_element_animation_header);
+}
+
+static int l_Element_Animation_reset(lua_State *ls)
+{
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TUSERDATA, R_OBJECT_TYPE_ELEMENT }
+    };
+
+    r_state_t *rs = r_script_get_r_state(ls);
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+
+    if (R_SUCCEEDED(status))
+    {
+        r_element_t *element = (r_element_t*)lua_touserdata(ls, 1);
+
+        status = (element->element_type == R_ELEMENT_TYPE_ANIMATION) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
+
+        if (R_SUCCEEDED(status))
+        {
+            /* Reset the animation */
+            r_element_animation_t *element_animation = (r_element_animation_t*)element;
+
+            element_animation->frame_index = 0;
+            element_animation->frame_ms = 0;
+        }
+    }
+
+    lua_pop(ls, lua_gettop(ls));
+
+    return 0;
 }
 
 const char *r_element_text_alignment_names[] = {
@@ -444,6 +477,7 @@ r_status_t r_element_setup(r_state_t *rs)
                 { LUA_GLOBALSINDEX, NULL, { "Animation", R_SCRIPT_NODE_TYPE_TABLE, animation_nodes } },
                 { LUA_GLOBALSINDEX, NULL, { "Element", R_SCRIPT_NODE_TYPE_TABLE, element_nodes } },
                 { 0, &r_animation_ref_add_frame, { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Animation_addFrame } },
+                { 0, &r_element_animation_reset, { "", R_SCRIPT_NODE_TYPE_FUNCTION, NULL, l_Element_Animation_reset } },
                 { 0, NULL, { NULL, R_SCRIPT_NODE_TYPE_MAX, NULL, NULL } }
             };
 

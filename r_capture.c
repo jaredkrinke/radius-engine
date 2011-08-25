@@ -83,7 +83,7 @@ r_status_t r_capture_start(r_state_t *rs, r_capture_t **capture_out)
 
                 if (R_SUCCEEDED(status))
                 {
-                    r_capture_header_t video_log_header = { r_capture_signature, R_CAPTURE_TYPE_VIDEO, SDL_GetTicks(), { R_CAPTURE_VIDEO_CODEC_DIFF_RLE, rs->video_width, rs->video_height } };
+                    r_capture_header_t video_log_header = { r_capture_signature, R_CAPTURE_TYPE_VIDEO, SDL_GetTicks(), {  { R_CAPTURE_VIDEO_CODEC_DIFF_RLE, rs->video_width, rs->video_height } } };
 
                     status = r_stream_async_write(&capture->video_log, sizeof(r_capture_header_t), &video_log_header);
 
@@ -94,7 +94,7 @@ r_status_t r_capture_start(r_state_t *rs, r_capture_t **capture_out)
 
                         if (R_SUCCEEDED(status))
                         {
-                            r_capture_header_t audio_log_header = { r_capture_signature, R_CAPTURE_TYPE_AUDIO, SDL_GetTicks(), { R_CAPTURE_AUDIO_CODEC_RAW } };
+                            r_capture_header_t audio_log_header = { r_capture_signature, R_CAPTURE_TYPE_AUDIO, SDL_GetTicks(), { { R_CAPTURE_AUDIO_CODEC_RAW } } };
 
                             status = r_stream_async_write(&capture->audio_log, sizeof(r_capture_header_t), &audio_log_header);
 

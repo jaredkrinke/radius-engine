@@ -24,7 +24,7 @@ THE SOFTWARE.
 */
 
 #define RADIUS_VERSION_MAJOR         0
-#define RADIUS_VERSION_MINOR         7
+#define RADIUS_VERSION_MINOR         8
 
 extern int radius_execute_application(const char *argv0, const char *application_name, const char *data_dir_override);
 

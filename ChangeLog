@@ -2,6 +2,10 @@
 
 * r_capture.c: Fix GCC compiler warnings
 
+* configure.in: Incremented version
+* radius.h: Incremented version
+* r_defs.h: Removed version from r_defs.h
+
 2011-08-19 deraj@users.sourceforge.net
 
 * r_element.c: Added reset function animation elements

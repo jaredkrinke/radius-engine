@@ -1,4 +1,4 @@
-AC_INIT([Radius Engine], [0.7], [deraj@users.sourceforge.net], [radius-engine], [http://radius-engine.sourceforge.net/])
+AC_INIT([Radius Engine], [0.8], [deraj@users.sourceforge.net], [radius-engine], [http://radius-engine.sourceforge.net/])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
 AC_CANONICAL_BUILD

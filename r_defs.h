@@ -25,10 +25,6 @@ THE SOFTWARE.
 
 /* Generic definitions header file */
 
-#define R_VERSION_MAJOR         0
-#define R_VERSION_MINOR         7
-#define R_VERSION_STRING        "0.7"
-
 /* Status codes (the top-most bit indicates failure) */
 /* TODO: Go through all errors and make sure reasonable values come back and errors are logged appropriately */
 typedef enum {

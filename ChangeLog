@@ -1,3 +1,7 @@
+2011-08-31 deraj@users.sourceforge.net
+
+* r_audio_clip_cache.c (l_AudioState_play): Fix path for layer-specific calls
+
 2011-08-24 deraj@users.sourceforge.net
 
 * r_capture.c: Fix GCC compiler warnings

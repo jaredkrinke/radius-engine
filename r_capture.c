@@ -176,14 +176,14 @@ r_status_t r_capture_write_video_packet(r_state_t *rs, r_capture_t *capture)
         const unsigned int pixel_count = rs->video_width * rs->video_height;
         unsigned int i;
 
-        /* Read all pixels from the display */
+        /* Read all pixels from the display (note: alpha is only read to ensure 4-byte alignment--it's later dropped) */
         glReadPixels(0, 0, rs->video_width, rs->video_height, GL_RGBA, GL_UNSIGNED_BYTE, capture->video_buffers[video_buffer_index_next]);
         frame->ms = SDL_GetTicks();
 
-        /* Store the difference in the previous frame's buffer */
+        /* Store the difference in the previous frame's buffer (ignoring the alpha channel and using the extra byte to represent negative values) */
         for (i = 0; i < pixel_count; ++i)
         {
-            capture->video_buffers[capture->video_buffer_index][i] = capture->video_buffers[video_buffer_index_next][i] - capture->video_buffers[capture->video_buffer_index][i];
+            capture->video_buffers[capture->video_buffer_index][i] = (0x00ffffff & capture->video_buffers[video_buffer_index_next][i]) - (0x00ffffff & capture->video_buffers[capture->video_buffer_index][i]);
         }
 
         /* Compress the differences into the packet and write it to the video log */

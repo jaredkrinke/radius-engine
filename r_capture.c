@@ -72,7 +72,7 @@ r_status_t r_capture_start(r_state_t *rs, r_capture_t **capture_out)
             capture->video_buffer_index = 0;
             capture->video_buffers[0] = calloc(rs->video_width * rs->video_height, sizeof(int));
             capture->video_buffers[1] = calloc(rs->video_width * rs->video_height, sizeof(int));
-            capture->video_packet_buffer = malloc(sizeof(r_capture_video_packet_t) + rs->video_width * rs->video_height * R_CAPTURE_FORMAT_RLE_MAX_SCALE);
+            capture->video_packet_buffer = malloc(sizeof(r_capture_video_packet_t) + rs->video_width * rs->video_height * R_CAPTURE_FORMAT_RLE_MAX_SCALE * sizeof(int));
 
             status = (capture->video_buffers[0] != NULL && capture->video_buffers[1] != NULL && capture->video_packet_buffer != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
 

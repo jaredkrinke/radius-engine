@@ -2,7 +2,7 @@
 #define __R_SCRIPT_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,10 +34,6 @@ THE SOFTWARE.
 #define R_SCRIPT_ENTER()
 #define R_SCRIPT_EXIT(delta)
 #endif
-
-/* Script environment data */
-/* TODO: Instead of using a string key, use the lua_State's pointer as the key! Or a reference */
-#define RS_ENV_STATE        "__RADIUS_STATE"
 
 /* Set script error return point (this macro expands to a function call that can return twice) */
 #define R_SCRIPT_SET_ERROR_CONTEXT(rs, panic)      (lua_atpanic(rs->script_state, panic), setjmp(rs->script_error_return_point))

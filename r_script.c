@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -60,7 +60,7 @@ r_status_t r_script_start(r_state_t *rs)
             lua_State *ls = rs->script_state;
 
             /* Store pointer to r_state_t */
-            lua_pushliteral(ls, RS_ENV_STATE);
+            lua_pushlightuserdata(ls, ls);
             lua_pushlightuserdata(ls, rs);
             lua_rawset(ls, LUA_REGISTRYINDEX);
 
@@ -189,7 +189,7 @@ r_state_t *r_script_get_r_state(lua_State *ls)
 {
     r_state_t *rs;
 
-    lua_pushliteral(ls, RS_ENV_STATE);
+    lua_pushlightuserdata(ls, ls);
     lua_rawget(ls, LUA_REGISTRYINDEX);
     rs = (r_state_t*)lua_touserdata(ls, -1);
     lua_pop(ls, 1);

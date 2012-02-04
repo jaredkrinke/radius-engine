@@ -28,6 +28,4 @@ THE SOFTWARE.
 
 extern int radius_execute_application(const char *argv0, const char *application_name, const char *data_dir_override);
 
-/* TODO: command line application functions, if necessary */
-
 #endif

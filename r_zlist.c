@@ -72,7 +72,6 @@ r_status_t r_zlist_clear(r_state_t *rs, r_object_t *parent, r_zlist_t *zlist)
     return r_object_list_clear(rs, parent, (r_object_list_t*)zlist);
 }
 
-/* TODO: Check all script functions to ensure errors are reported somehow! */
 int l_ZList_add_internal(lua_State *ls, r_object_type_t parent_type, int zlist_offset)
 {
     return l_ObjectList_add_internal(ls, parent_type, zlist_offset, r_zlist_sort_insert);

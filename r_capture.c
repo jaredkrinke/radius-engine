@@ -169,7 +169,7 @@ r_status_t r_capture_write_video_packet(r_state_t *rs, r_capture_t *capture)
 
     if (R_SUCCEEDED(status))
     {
-        /* TODO: This currently assumes 32 bits per pixel */
+        /* This currently assumes 32 bits per pixel */
         r_capture_video_packet_t *frame = (r_capture_video_packet_t*)capture->video_packet_buffer;
         int *frame_buffer = (int*)(((unsigned char*)capture->video_packet_buffer) + sizeof(r_capture_video_packet_t));
         unsigned int video_buffer_index_next = (capture->video_buffer_index + 1) % R_ARRAY_SIZE(capture->video_buffers);

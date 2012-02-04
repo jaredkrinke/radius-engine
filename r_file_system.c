@@ -214,7 +214,6 @@ static r_status_t r_file_system_load_script(r_state_t *rs, const char *path, r_b
 }
 
 /* Print out the list of files in a location */
-/* TODO: better documentation */
 static int l_ls(lua_State *ls)
 {
     int argc = lua_gettop(ls);

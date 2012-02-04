@@ -119,7 +119,6 @@ void r_transform2d_scale(r_transform2d_t *transform, r_real_t sx, r_real_t sy)
 void r_transform2d_rotate(r_transform2d_t *transform, r_real_t degrees)
 {
     r_transform2d_t a;
-    /* TODO: Would it be better to convert to radians when saving/reading the value instead of on every rotation? */
     const r_real_t theta = (r_real_t)(degrees * R_PI_OVER_180);
     const r_real_t cosine_theta = (r_real_t)cos(theta);
     const r_real_t sine_theta = (r_real_t)sin(theta);

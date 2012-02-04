@@ -88,7 +88,6 @@ typedef struct
     {
         struct
         {
-            /* TODO: Rename to better indicate units (bytes, samples, frames, etc.)... */
             Uint32 sample_index;
         } cached;
 

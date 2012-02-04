@@ -29,7 +29,6 @@ THE SOFTWARE.
 #include "r_object_list.h"
 #include "r_script.h"
 
-/* TODO: Use Doxygen for code documentation */
 /* TODO: Should default size and scaling factor be left up to the individual implementations? */
 #define R_OBJECT_LIST_DEFAULT_ALLOCATED    (8)
 #define R_OBJECT_LIST_SCALING_FACTOR       (2)
@@ -95,7 +94,6 @@ static r_status_t r_object_list_find(r_state_t *rs, r_object_list_t *object_list
     return status;
 }
 
-/* TODO: Check all script functions to ensure errors are reported somehow! */
 r_status_t r_object_list_add(r_state_t *rs, r_object_t *parent, r_object_list_t *object_list, int item_index, r_object_list_insert_function_t insert)
 {
     /* Ensure there is enough space for the new item */
@@ -371,7 +369,6 @@ int l_ObjectList_forEach_internal(lua_State *ls, r_object_type_t parent_type, in
     }
 
     lua_pop(ls, lua_gettop(ls));
-    /* TODO: Should ObjectList.forEach return values? */
 
     return 0;
 }

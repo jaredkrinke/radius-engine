@@ -81,8 +81,6 @@ static void r_triangle_convert_to_ccw(r_triangle_t *from, r_triangle_t *to) {
 
 /* Mesh implementation */
 r_object_ref_t r_mesh_ref_add_triangle      = { R_OBJECT_REF_INVALID, { NULL } };
-/* TODO: r_object_ref_t r_mesh_ref_for_each_triangle = { R_OBJECT_REF_INVALID, { NULL } }; */
-/* TODO: r_object_ref_t r_entity_ref_clear           = { R_OBJECT_REF_INVALID, { NULL } }; */
 
 r_object_field_t r_mesh_fields[] = {
     { "addTriangle",    LUA_TFUNCTION, 0, 0, R_FALSE, R_OBJECT_INIT_EXCLUDED, NULL, r_object_ref_field_read_global, &r_mesh_ref_add_triangle, NULL },

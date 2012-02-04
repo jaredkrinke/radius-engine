@@ -611,7 +611,6 @@ r_status_t r_object_push_new(r_state_t *rs, const r_object_header_t *header, int
 int l_Object_new(lua_State *ls, const r_object_header_t *header)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    /* TODO: This should probably be replaced everywhere with simple assertions... or should it? */
     r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int result_count = 0;
 

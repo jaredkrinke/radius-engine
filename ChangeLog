@@ -1,3 +1,7 @@
+2012-02-04 deraj@users.sourceforge.net
+
+* Various: Removed a bunch of unnecessary comments
+
 2011-09-11 deraj@users.sourceforge.net
 
 * r_capture.c (r_capture_write_video_packet): Fix video packet buffer size

@@ -25,7 +25,6 @@ THE SOFTWARE.
 
 #include "r_state.h"
 
-/* TODO: Make r_object_list_t use this internally */
 typedef struct
 {
     unsigned int    count;

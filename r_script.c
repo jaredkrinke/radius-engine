@@ -155,7 +155,6 @@ static r_status_t r_script_call_internal(r_state_t *rs, int argument_count, int 
             {
                 r_log_error(rs, lua_tostring(ls, -1));
 
-                /* TODO: This should only be for debugging or should be able to be turned off at run-time */
                 {
                     lua_Debug dbg;
                     r_status_t status_local = R_SUCCESS;

@@ -30,7 +30,6 @@ THE SOFTWARE.
 
 #define R_LAYER_STACK_LAYERS    "layers"
 
-/* TODO: These kinds of static variables for global references mean that there can't be more than one instance of the engine running. Fix this and store data in r_state_t. */
 r_object_ref_t r_layer_stack_ref_push  = { R_OBJECT_REF_INVALID, { NULL } };
 r_object_ref_t r_layer_stack_ref_pop   = { R_OBJECT_REF_INVALID, { NULL } };
 

@@ -592,7 +592,6 @@ static int l_print(lua_State *ls)
             }
             else
             {
-                /* TODO: call toString()? */
                 r_log(rs, R_PRINT_NULL_STRING);
             }
         }
@@ -955,10 +954,8 @@ static r_status_t r_script_string_setup(r_state_t *rs)
     return status;
 }
 
-/* TODO: Is there a header where this should go? */
 int l_debugBreak(lua_State *ls)
 {
-    /* TODO: Use something cross-platform to break into an attached debugger */
     lua_Debug dbg;
     r_status_t status = R_SUCCESS;
     int level = 0;

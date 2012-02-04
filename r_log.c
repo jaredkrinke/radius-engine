@@ -53,8 +53,6 @@ r_log_function_t r_log_functions[R_LOG_FUNCTION_MAX];
 int r_log_function_depths[R_LOG_FUNCTION_MAX];
 int r_log_function_count = 0;
 
-/* TODO: Logging functions ignore errors and this is a bad practice. Fix it! */
-
 static void r_log_console(r_state_t *rs, r_log_level_t level, const char *str)
 {
     FILE *output_file;

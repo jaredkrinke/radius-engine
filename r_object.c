@@ -209,35 +209,27 @@ static r_status_t r_object_field_write(r_state_t *rs, r_object_t *object, int ob
 static int l_Object_metatable_index(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int result_count = 0;
+    int key_index = 2;
     R_SCRIPT_ENTER();
-
-    R_ASSERT(R_SUCCEEDED(status));
+    r_status_t status = (lua_gettop(ls) == key_index) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
 
     if (R_SUCCEEDED(status))
     {
-        int key_index = 2;
+        int object_index = 1;
 
-        status = (lua_gettop(ls) == key_index) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
+        status = lua_isuserdata(ls, object_index) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
 
         if (R_SUCCEEDED(status))
         {
-            int object_index = 1;
+            r_object_t *object = (r_object_t*)lua_touserdata(ls, object_index);
 
-            status = lua_isuserdata(ls, object_index) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
+            status = r_object_field_read(rs, object, object_index, key_index);
 
-            if (R_SUCCEEDED(status))
+            if (status == R_SUCCESS)
             {
-                r_object_t *object = (r_object_t*)lua_touserdata(ls, object_index);
-
-                status = r_object_field_read(rs, object, object_index, key_index);
-
-                if (status == R_SUCCESS)
-                {
-                    lua_insert(ls, 1);
-                    result_count = 1;
-                }
+                lua_insert(ls, 1);
+                result_count = 1;
             }
         }
     }
@@ -251,30 +243,22 @@ static int l_Object_metatable_index(lua_State *ls)
 static int l_Object_metatable_newindex(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    int value_index = 3;
     R_SCRIPT_ENTER();
-
-    R_ASSERT(R_SUCCEEDED(status));
+    r_status_t status = (lua_gettop(ls) == 3) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
 
     if (R_SUCCEEDED(status))
     {
-        int value_index = 3;
+        int object_index = 1;
 
-        status = (lua_gettop(ls) == 3) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
+        status = lua_isuserdata(ls, 1) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
 
         if (R_SUCCEEDED(status))
         {
-            int object_index = 1;
+            r_object_t *object = (r_object_t*)lua_touserdata(ls, 1);
+            int key_index = 2;
 
-            status = lua_isuserdata(ls, 1) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
-
-            if (R_SUCCEEDED(status))
-            {
-                r_object_t *object = (r_object_t*)lua_touserdata(ls, 1);
-                int key_index = 2;
-
-                status = r_object_field_write(rs, object, object_index, key_index, value_index);
-            }
+            status = r_object_field_write(rs, object, object_index, key_index, value_index);
         }
     }
 
@@ -288,14 +272,7 @@ static int l_Object_metatable_newindex(lua_State *ls)
 static int l_Object_metatable_gc(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-
-    R_ASSERT(R_SUCCEEDED(status));
-
-    if (R_SUCCEEDED(status))
-    {
-        status = (lua_gettop(ls) == 1) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
-    }
+    r_status_t status = (lua_gettop(ls) == 1) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
 
     if (R_SUCCEEDED(status))
     {
@@ -610,13 +587,9 @@ r_status_t r_object_push_new(r_state_t *rs, const r_object_header_t *header, int
 int l_Object_new(lua_State *ls, const r_object_header_t *header)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int result_count = 0;
-
-    if (R_SUCCEEDED(status))
-    {
-        status = r_object_push_new(rs, header, lua_gettop(ls), &result_count, NULL);
-    }
+    
+    r_object_push_new(rs, header, lua_gettop(ls), &result_count, NULL);
 
     return result_count;
 }

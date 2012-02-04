@@ -97,23 +97,16 @@ static r_status_t r_audio_clip_cache_release_all(r_state_t *rs)
 static int l_Internal_getVolume(lua_State *ls, int state_volume_offset)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int result_count = 0;
-
-    R_ASSERT(R_SUCCEEDED(status));
+    r_status_t status = r_script_verify_arguments(rs, 0, NULL);
 
     if (R_SUCCEEDED(status))
     {
-        status = r_script_verify_arguments(rs, 0, NULL);
+        unsigned char *volume = (unsigned char*)(((char*)rs) + state_volume_offset);
 
-        if (R_SUCCEEDED(status))
-        {
-            unsigned char *volume = (unsigned char*)(((char*)rs) + state_volume_offset);
-
-            lua_pushnumber(ls, *volume > 0 ? (((double)(*volume)) + 1) / R_AUDIO_VOLUME_MAX : 0.0);
-            lua_insert(ls, 1);
-            result_count = 1;
-        }
+        lua_pushnumber(ls, *volume > 0 ? (((double)(*volume)) + 1) / R_AUDIO_VOLUME_MAX : 0.0);
+        lua_insert(ls, 1);
+        result_count = 1;
     }
 
     lua_pop(ls, lua_gettop(ls) - result_count);
@@ -126,25 +119,18 @@ typedef r_status_t (*r_audio_set_volume_function_t)(r_state_t *rs, unsigned char
 static int l_Internal_setVolume(lua_State *ls, r_audio_set_volume_function_t set_volume)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TNUMBER, 0 }
+    };
 
-    R_ASSERT(R_SUCCEEDED(status));
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
 
     if (R_SUCCEEDED(status))
     {
-        const r_script_argument_t expected_arguments[] = {
-            { LUA_TNUMBER, 0 }
-        };
+        double f = lua_tonumber(ls, 1);
+        unsigned char volume = (unsigned char)(R_CLAMP(f, 0.0, 1.0) * R_AUDIO_VOLUME_MAX);
 
-        status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
-
-        if (R_SUCCEEDED(status))
-        {
-            double f = lua_tonumber(ls, 1);
-            unsigned char volume = (unsigned char)(R_CLAMP(f, 0.0, 1.0) * R_AUDIO_VOLUME_MAX);
-
-            status = set_volume(rs, volume);
-        }
+        status = set_volume(rs, volume);
     }
 
     lua_pop(ls, lua_gettop(ls));
@@ -175,12 +161,10 @@ static int l_Audio_setMusicVolume(lua_State *ls)
 int l_AudioState_play(lua_State *ls, r_boolean_t global)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-
-    R_ASSERT(R_SUCCEEDED(status));
+    r_status_t status = R_SUCCESS;
 
     /* Skip all work if audio is disabled */
-    if (R_SUCCEEDED(status) && rs->audio_volume > 0)
+    if (rs->audio_volume > 0)
     {
         if (global)
         {
@@ -253,39 +237,34 @@ int l_AudioState_play(lua_State *ls, r_boolean_t global)
 int l_AudioState_clearAudio(lua_State *ls, r_boolean_t global)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    r_status_t status = R_FAILURE;
 
-    R_ASSERT(R_SUCCEEDED(status));
+    if (global)
+    {
+        status = r_script_verify_arguments(rs, 0, NULL);
+    }
+    else
+    {
+        const r_script_argument_t expected_arguments[] = {
+            { LUA_TUSERDATA, R_OBJECT_TYPE_LAYER }
+        };
+
+        status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+    }
 
     if (R_SUCCEEDED(status))
     {
-        if (global)
-        {
-            status = r_script_verify_arguments(rs, 0, NULL);
-        }
-        else
-        {
-            const r_script_argument_t expected_arguments[] = {
-                { LUA_TUSERDATA, R_OBJECT_TYPE_LAYER }
-            };
+        r_audio_state_t *audio_state = NULL;
 
-            status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+        if (!global)
+        {
+            r_layer_t *layer = (r_layer_t*)lua_touserdata(ls, 1);
+
+            audio_state = r_layer_stack_get_active_audio_state_for_layer(rs, layer);
         }
 
-        if (R_SUCCEEDED(status))
-        {
-            r_audio_state_t *audio_state = NULL;
-
-            if (!global)
-            {
-                r_layer_t *layer = (r_layer_t*)lua_touserdata(ls, 1);
-
-                audio_state = r_layer_stack_get_active_audio_state_for_layer(rs, layer);
-            }
-
-            /* TODO: This should prevent new sounds from being queued for the rest of the frame */
-            status = r_audio_state_clear(rs, audio_state);
-        }
+        /* TODO: This should prevent new sounds from being queued for the rest of the frame */
+        status = r_audio_state_clear(rs, audio_state);
     }
 
     lua_pop(ls, lua_gettop(ls));
@@ -296,12 +275,10 @@ int l_AudioState_clearAudio(lua_State *ls, r_boolean_t global)
 int l_AudioState_playMusic(lua_State *ls, r_boolean_t global)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-
-    R_ASSERT(R_SUCCEEDED(status));
+    r_status_t status = R_SUCCESS;
 
     /* Skip all work if audio/music is disabled */
-    if (R_SUCCEEDED(status) && rs->audio_volume > 0 && rs->audio_music_volume > 0)
+    if (rs->audio_volume > 0 && rs->audio_music_volume > 0)
     {
         if (global)
         {
@@ -361,12 +338,10 @@ int l_AudioState_playMusic(lua_State *ls, r_boolean_t global)
 int l_AudioState_stopMusic(lua_State *ls, r_boolean_t global)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-
-    R_ASSERT(R_SUCCEEDED(status));
+    r_status_t status = R_SUCCESS;
 
     /* Skip all work if audio is disabled */
-    if (R_SUCCEEDED(status) && rs->audio_volume > 0)
+    if (rs->audio_volume > 0)
     {
         if (global)
         {
@@ -404,12 +379,10 @@ int l_AudioState_stopMusic(lua_State *ls, r_boolean_t global)
 int l_AudioState_seekMusic(lua_State *ls, r_boolean_t global)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-
-    R_ASSERT(R_SUCCEEDED(status));
+    r_status_t status = R_SUCCESS;
 
     /* Skip all work if audio/music is disabled */
-    if (R_SUCCEEDED(status) && rs->audio_volume > 0 && rs->audio_music_volume > 0)
+    if (rs->audio_volume > 0 && rs->audio_music_volume > 0)
     {
         if (global)
         {

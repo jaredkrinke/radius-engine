@@ -32,9 +32,8 @@ THE SOFTWARE.
 int l_panic(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
 
-    if (R_SUCCEEDED(status))
+    if (rs != NULL)
     {
         r_log_error(rs, lua_tostring(ls, -1));
         lua_pop(ls, 1);

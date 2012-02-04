@@ -165,14 +165,7 @@ static r_status_t r_string_buffer_cleanup(r_state_t *rs, r_object_t *object)
 static int l_StringBuffer_append(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-    R_ASSERT(R_SUCCEEDED(status));
-
-    /* Check arguments */
-    if (R_SUCCEEDED(status))
-    {
-        status = r_script_verify_arguments(rs, R_ARRAY_SIZE(l_StringBuffer_append_arguments), l_StringBuffer_append_arguments);
-    }
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(l_StringBuffer_append_arguments), l_StringBuffer_append_arguments);
 
     if (R_SUCCEEDED(status))
     {
@@ -191,14 +184,7 @@ static int l_StringBuffer_append(lua_State *ls)
 static int l_StringBuffer_insert(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-    R_ASSERT(R_SUCCEEDED(status));
-
-    /* Check arguments */
-    if (R_SUCCEEDED(status))
-    {
-        status = r_script_verify_arguments(rs, R_ARRAY_SIZE(l_StringBuffer_insert_arguments), l_StringBuffer_insert_arguments);
-    }
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(l_StringBuffer_insert_arguments), l_StringBuffer_insert_arguments);
 
     if (R_SUCCEEDED(status))
     {
@@ -217,14 +203,7 @@ static int l_StringBuffer_insert(lua_State *ls)
 static int l_StringBuffer_clear(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-    R_ASSERT(R_SUCCEEDED(status));
-
-    /* Check arguments */
-    if (R_SUCCEEDED(status))
-    {
-        status = r_script_verify_arguments(rs, R_ARRAY_SIZE(l_StringBuffer_clear_arguments), l_StringBuffer_clear_arguments);
-    }
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(l_StringBuffer_clear_arguments), l_StringBuffer_clear_arguments);
 
     if (R_SUCCEEDED(status))
     {
@@ -240,18 +219,10 @@ static int l_StringBuffer_clear(lua_State *ls)
 
 static int l_StringBuffer_remove(lua_State *ls)
 {
-    r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-    int argument_count = 0;
-    R_ASSERT(R_SUCCEEDED(status));
-
     /* Check argument count */
-    if (R_SUCCEEDED(status))
-    {
-        argument_count = lua_gettop(ls);
-
-        status = (argument_count >= 2 && argument_count <= 3) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
-    }
+    r_state_t *rs = r_script_get_r_state(ls);
+    int argument_count = lua_gettop(ls);
+    r_status_t status = (argument_count >= 2 && argument_count <= 3) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
 
     /* Check arguments */
     if (R_SUCCEEDED(status))

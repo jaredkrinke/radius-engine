@@ -28,7 +28,7 @@ THE SOFTWARE.
 
 /* Macros for verifying script stack invariants from C code */
 #ifdef R_DEBUG
-#define R_SCRIPT_ENTER()        int __r_script_enter_base_index = lua_gettop(rs->script_state);
+#define R_SCRIPT_ENTER()        int __r_script_enter_base_index = lua_gettop(rs->script_state)
 #define R_SCRIPT_EXIT(delta)    { int __r_script_exit_base_index = lua_gettop(rs->script_state); R_ASSERT(__r_script_exit_base_index == __r_script_enter_base_index + (delta)); }
 #else
 #define R_SCRIPT_ENTER()
@@ -66,18 +66,12 @@ typedef struct
     r_script_node_t   node;
 } r_script_node_root_t;
 
-/* Initialize scripting engine, returns R_SUCCESS on success, R_FAILURE on error */
 extern r_status_t r_script_start(r_state_t *rs);
-
-/* Deinitialize scripting engine */
 extern void r_script_end(r_state_t *rs);
+extern r_status_t r_script_setup(r_state_t *rs);
 
 extern r_status_t r_script_call(r_state_t *rs, int argument_count, int result_count);
-
-/* TODO: Don't check the result from this anymore */
 extern r_state_t *r_script_get_r_state(lua_State *ls);
-
-extern r_status_t r_script_setup(r_state_t *rs);
 
 /* TODO: Use this everywhere it can be used */
 extern r_status_t r_script_verify_arguments(r_state_t *rs, int expected_argument_count, const r_script_argument_t *expected_arguments);

@@ -257,15 +257,10 @@ r_status_t r_object_list_clear(r_state_t *rs, r_object_t *parent, r_object_list_
 int l_ObjectList_add_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset, r_object_list_insert_function_t insert)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int result_count = 0;
-    R_ASSERT(R_SUCCEEDED(status));
 
     /* Check argument count */
-    if (R_SUCCEEDED(status))
-    {
-        status = (lua_gettop(ls) == 2) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
-    }
+    r_status_t status = (lua_gettop(ls) == 2) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
 
     /* Check arguments */
     if (R_SUCCEEDED(status))
@@ -312,15 +307,10 @@ int l_ObjectList_add_internal(lua_State *ls, r_object_type_t parent_type, int ob
 int l_ObjectList_forEach_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset, r_object_type_t item_type)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int argument_count = lua_gettop(ls);
-    R_ASSERT(R_SUCCEEDED(status));
 
     /* Check argument count */
-    if (R_SUCCEEDED(status))
-    {
-        status = (argument_count == 2) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
-    }
+    r_status_t status = (argument_count == 2) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
 
     /* Check arguments */
     if (R_SUCCEEDED(status))
@@ -376,17 +366,11 @@ int l_ObjectList_forEach_internal(lua_State *ls, r_object_type_t parent_type, in
 int l_ObjectList_pop_internal(lua_State *ls, r_object_type_t parent_type, int object_list_offset)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int argument_count = lua_gettop(ls);
     int result_count = 0;
 
-    R_ASSERT(R_SUCCEEDED(status));
-
     /* Check argument count */
-    if (R_SUCCEEDED(status))
-    {
-        status = (argument_count == 1) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
-    }
+    r_status_t status = (argument_count == 1) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
 
     /* Check arguments */
     if (R_SUCCEEDED(status))

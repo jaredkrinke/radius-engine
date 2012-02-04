@@ -246,19 +246,11 @@ static R_INLINE void r_video_push_mode_table(lua_State *ls, unsigned int width, 
 static int l_Video_setTitle(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TSTRING,  0 }
+    };
 
-    R_ASSERT(R_SUCCEEDED(status));
-
-    /* Check arguments */
-    if (R_SUCCEEDED(status))
-    {
-        const r_script_argument_t expected_arguments[] = {
-            { LUA_TSTRING,  0 }
-        };
-
-        status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
-    }
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
 
     if (R_SUCCEEDED(status))
     {
@@ -275,15 +267,8 @@ static int l_Video_setTitle(lua_State *ls)
 static int l_Video_getModes(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int result_count = 0;
-    R_ASSERT(R_SUCCEEDED(status));
-
-    /* Check arguments */
-    if (R_SUCCEEDED(status))
-    {
-        status = r_script_verify_arguments(rs, 0, NULL);
-    }
+    r_status_t status = r_script_verify_arguments(rs, 0, NULL);
 
     if (R_SUCCEEDED(status))
     {
@@ -324,15 +309,8 @@ static int l_Video_getModes(lua_State *ls)
 static int l_Video_getProperty(lua_State *ls, r_video_property_t properties)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int result_count = 0;
-    R_ASSERT(R_SUCCEEDED(status));
-
-    /* Check arguments */
-    if (R_SUCCEEDED(status))
-    {
-        status = r_script_verify_arguments(rs, 0, NULL);
-    }
+    r_status_t status = r_script_verify_arguments(rs, 0, NULL);
 
     if (R_SUCCEEDED(status))
     {
@@ -386,24 +364,20 @@ static int l_Video_getFullscreen(lua_State *ls)
 static int l_Video_setMode(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int argument_count = lua_gettop(ls);
-    R_ASSERT(R_SUCCEEDED(status));
+    r_status_t status = R_SUCCESS;
 
     /* Check for video mode table (which defines "width" and "height" as fields) */
-    if (R_SUCCEEDED(status))
+    if (argument_count == 1)
     {
-        if (argument_count == 1)
-        {
-            /* A table with width and height is expected */
-            status = (lua_type(ls, 1) == LUA_TTABLE) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
+        /* A table with width and height is expected */
+        status = (lua_type(ls, 1) == LUA_TTABLE) ? R_SUCCESS : RS_F_INCORRECT_TYPE;
 
-            if (R_SUCCEEDED(status))
-            {
-                lua_getfield(ls, 1, "width");
-                lua_getfield(ls, 1, "height");
-                lua_remove(ls, 1);
-            }
+        if (R_SUCCEEDED(status))
+        {
+            lua_getfield(ls, 1, "width");
+            lua_getfield(ls, 1, "height");
+            lua_remove(ls, 1);
         }
     }
 

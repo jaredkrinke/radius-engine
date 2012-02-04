@@ -107,14 +107,8 @@ static r_status_t r_script_log(r_state_t *rs, r_log_level_t level, const char *s
 static int l_execute(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int argument_count = lua_gettop(ls);
-    R_ASSERT(R_SUCCEEDED(status));
-
-    if (R_SUCCEEDED(status))
-    {
-        status = (argument_count == 1) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
-    }
+    r_status_t status = (argument_count == 1) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
 
     if (R_SUCCEEDED(status))
     {
@@ -147,13 +141,7 @@ static int l_execute(lua_State *ls)
 static int l_exit(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-    R_ASSERT(R_SUCCEEDED(status));
-
-    if (R_SUCCEEDED(status))
-    {
-        status = (lua_gettop(ls) == 0) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
-    }
+    r_status_t status = (lua_gettop(ls) == 0) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
 
     if (R_SUCCEEDED(status))
     {
@@ -234,37 +222,30 @@ static int l_isObject(lua_State *ls)
 static int l_random(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int result_count = 0;
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TNUMBER, 0 }
+    };
 
-    R_ASSERT(R_SUCCEEDED(status));
+    r_status_t status = r_script_verify_arguments_with_optional(rs, 0, R_ARRAY_SIZE(expected_arguments), expected_arguments);
 
     if (R_SUCCEEDED(status))
     {
-        const r_script_argument_t expected_arguments[] = {
-            { LUA_TNUMBER, 0 }
-        };
+        int argument_count = lua_gettop(ls);
 
-        status = r_script_verify_arguments_with_optional(rs, 0, R_ARRAY_SIZE(expected_arguments), expected_arguments);
-
-        if (R_SUCCEEDED(status))
+        if (argument_count == 1)
         {
-            int argument_count = lua_gettop(ls);
-
-            if (argument_count == 1)
-            {
-                /* With parameter n, return a random integer on [0, n) (exclusive upper bound) */
-                lua_pushnumber(ls, (double)(rand() % ((int)lua_tonumber(ls, 1))));
-            }
-            else
-            {
-                /* Otherwise, just return a random real number on [0, 1] (inclusive on both ends) */
-                lua_pushnumber(ls, ((r_real_t)rand()) / RAND_MAX);
-            }
-
-            lua_insert(ls, 1);
-            result_count = 1;
+            /* With parameter n, return a random integer on [0, n) (exclusive upper bound) */
+            lua_pushnumber(ls, (double)(rand() % ((int)lua_tonumber(ls, 1))));
         }
+        else
+        {
+            /* Otherwise, just return a random real number on [0, 1] (inclusive on both ends) */
+            lua_pushnumber(ls, ((r_real_t)rand()) / RAND_MAX);
+        }
+
+        lua_insert(ls, 1);
+        result_count = 1;
     }
 
     lua_pop(ls, lua_gettop(ls) - result_count);
@@ -275,27 +256,20 @@ static int l_random(lua_State *ls)
 static R_INLINE int l_mathFunction(lua_State *ls, r_script_math_function_t f)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int result_count = 0;
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TNUMBER, 0 }
+    };
 
-    R_ASSERT(R_SUCCEEDED(status));
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
 
     if (R_SUCCEEDED(status))
     {
-        const r_script_argument_t expected_arguments[] = {
-            { LUA_TNUMBER, 0 }
-        };
+        double x = (double)lua_tonumber(ls, 1);
 
-        status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
-
-        if (R_SUCCEEDED(status))
-        {
-            double x = (double)lua_tonumber(ls, 1);
-
-            lua_pushnumber(ls, f(x));
-            lua_insert(ls, 1);
-            result_count = 1;
-        }
+        lua_pushnumber(ls, f(x));
+        lua_insert(ls, 1);
+        result_count = 1;
     }
 
     lua_pop(ls, lua_gettop(ls) - result_count);
@@ -306,29 +280,22 @@ static R_INLINE int l_mathFunction(lua_State *ls, r_script_math_function_t f)
 static R_INLINE int l_mathFunction2(lua_State *ls, r_script_math_function2_t f)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int result_count = 0;
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TNUMBER, 0 },
+        { LUA_TNUMBER, 0 }
+    };
 
-    R_ASSERT(R_SUCCEEDED(status));
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
 
     if (R_SUCCEEDED(status))
     {
-        const r_script_argument_t expected_arguments[] = {
-            { LUA_TNUMBER, 0 },
-            { LUA_TNUMBER, 0 }
-        };
+        double x = (double)lua_tonumber(ls, 1);
+        double y = (double)lua_tonumber(ls, 2);
 
-        status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
-
-        if (R_SUCCEEDED(status))
-        {
-            double x = (double)lua_tonumber(ls, 1);
-            double y = (double)lua_tonumber(ls, 2);
-
-            lua_pushnumber(ls, f(x, y));
-            lua_insert(ls, 1);
-            result_count = 1;
-        }
+        lua_pushnumber(ls, f(x, y));
+        lua_insert(ls, 1);
+        result_count = 1;
     }
 
     lua_pop(ls, lua_gettop(ls) - result_count);
@@ -795,44 +762,37 @@ static r_status_t r_script_dump_value(r_state_t *rs, int value_index, int max_de
 static int l_Table_forEach(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    const r_script_argument_t expected_arguments[] = {
+        { LUA_TTABLE, 0 },
+        { LUA_TFUNCTION, 0 }
+    };
 
-    R_ASSERT(R_SUCCEEDED(status));
+    r_status_t status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
 
     if (R_SUCCEEDED(status))
     {
-        const r_script_argument_t expected_arguments[] = {
-            { LUA_TTABLE, 0 },
-            { LUA_TFUNCTION, 0 }
-        };
+        int table_index = 1;
+        int function_index = 2;
+        lua_State *ls = rs->script_state;
 
-        status = r_script_verify_arguments(rs, R_ARRAY_SIZE(expected_arguments), expected_arguments);
+        lua_pushnil(ls);
 
-        if (R_SUCCEEDED(status))
+        while (R_SUCCEEDED(status) && lua_next(ls, table_index) != 0)
         {
-            int table_index = 1;
-            int function_index = 2;
-            lua_State *ls = rs->script_state;
+            int key_index = lua_gettop(ls) - 1;
+            int value_index = lua_gettop(ls);
 
-            lua_pushnil(ls);
+            lua_pushvalue(ls, function_index);
+            lua_pushvalue(ls, key_index);
+            lua_pushvalue(ls, value_index);
+            status = r_script_call(rs, 2, 0);
 
-            while (R_SUCCEEDED(status) && lua_next(ls, table_index) != 0)
+            if (R_FAILED(status))
             {
-                int key_index = lua_gettop(ls) - 1;
-                int value_index = lua_gettop(ls);
-
-                lua_pushvalue(ls, function_index);
-                lua_pushvalue(ls, key_index);
-                lua_pushvalue(ls, value_index);
-                status = r_script_call(rs, 2, 0);
-
-                if (R_FAILED(status))
-                {
-                    lua_pop(ls, 1);
-                }
-
                 lua_pop(ls, 1);
             }
+
+            lua_pop(ls, 1);
         }
     }
 
@@ -844,18 +804,13 @@ static int l_Table_forEach(lua_State *ls)
 static int l_dump(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
-    r_status_t status = (rs != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     int argument_count = lua_gettop(ls);
-    R_ASSERT(R_SUCCEEDED(status));
+    r_status_t status = R_SUCCESS;
+    int i;
 
-    if (R_SUCCEEDED(status))
+    for (i = 1; i <= argument_count && R_SUCCEEDED(status); ++i)
     {
-        int i;
-
-        for (i = 1; i <= argument_count && R_SUCCEEDED(status); ++i)
-        {
-            status = r_script_dump_value(rs, i, 1, 0, "");
-        }
+        status = r_script_dump_value(rs, i, 1, 0, "");
     }
 
     lua_pop(ls, lua_gettop(ls));

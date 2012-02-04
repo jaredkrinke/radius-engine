@@ -2,7 +2,7 @@
 #define __RADIUS_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#define RADIUS_VERSION_MAJOR         0
-#define RADIUS_VERSION_MINOR         8
+#define RADIUS_VERSION_MAJOR         1
+#define RADIUS_VERSION_MINOR         0
 
 extern int radius_execute_application(const char *argv0, const char *application_name, const char *data_dir_override);
 

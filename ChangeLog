@@ -1549,6 +1549,9 @@
 * r_image_cache.h: Initial image cache interface
 * r_image_cache.c: Implemented image cache (except for image loading)
 
+* radius.h: Incremented to version 1.0
+* configure.in: Incremented to version 1.0
+
 2009-10-03 deraj@users.sourceforge.net
 
 * All: Completed main code cleanup work

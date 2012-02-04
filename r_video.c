@@ -1,5 +1,5 @@
 /*
-Copyright 2011 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -858,64 +858,58 @@ static r_status_t r_video_draw_entity_list(r_state_t *rs, r_entity_list_t *entit
 
 static r_status_t r_video_draw_entity(r_state_t *rs, r_entity_t *entity)
 {
-    /* TODO: This redundancy is really not necessary... */
-    r_status_t status = (entity != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
-    R_ASSERT(R_SUCCEEDED(status));
+    /* Set up transformations */
+    r_status_t status = R_SUCCESS;
+    r_element_list_t *element_list = (r_element_list_t*)entity->elements.value.object;
 
-    if (R_SUCCEEDED(status))
+    if (element_list != NULL)
     {
-        /* Set up transformations */
-        r_element_list_t *element_list = (r_element_list_t*)entity->elements.value.object;
+        r_color_t color_base;
+        r_color_t *color = (r_color_t*)entity->color.value.object;
+        unsigned int i;
 
-        if (element_list != NULL)
+        if (color != NULL)
         {
-            r_color_t color_base;
-            r_color_t *color = (r_color_t*)entity->color.value.object;
-            unsigned int i;
+            r_video_color_blend(&color_base, color);
+        }
 
-            if (color != NULL)
+        if (color_base.opacity > 0)
+        {
+            glPushMatrix();
+            glTranslatef(entity->x, entity->y, 0);
+            glRotatef(entity->angle, 0, 0, 1);
+            glScalef(entity->width, entity->height, 0);
+
+            /* TODO: Call glGetError at appropriate places everywhere */
+            status = (glGetError() == 0) ? R_SUCCESS : R_VIDEO_FAILURE;
+
+            if (R_SUCCEEDED(status))
             {
-                r_video_color_blend(&color_base, color);
-            }
-
-            if (color_base.opacity > 0)
-            {
-                glPushMatrix();
-                glTranslatef(entity->x, entity->y, 0);
-                glRotatef(entity->angle, 0, 0, 1);
-                glScalef(entity->width, entity->height, 0);
-
-                /* TODO: Call glGetError at appropriate places everywhere */
-                status = (glGetError() == 0) ? R_SUCCESS : R_VIDEO_FAILURE;
-
-                if (R_SUCCEEDED(status))
+                /* Draw all elements */
+                for (i = 0; i < element_list->object_list.count && R_SUCCEEDED(status); ++i)
                 {
-                    /* Draw all elements */
-                    for (i = 0; i < element_list->object_list.count && R_SUCCEEDED(status); ++i)
-                    {
-                        /* Assume the entity list is not locked (it shouldn't be when drawing) */
-                        r_element_t *element = (r_element_t*)element_list->object_list.items[i].object_ref.value.object;
+                    /* Assume the entity list is not locked (it shouldn't be when drawing) */
+                    r_element_t *element = (r_element_t*)element_list->object_list.items[i].object_ref.value.object;
 
-                        status = r_video_draw_element(rs, element);
-                    }
-
-                    /* Draw children, if necessary */
-                    if (R_SUCCEEDED(status))
-                    {
-                        if (entity->has_children && entity->children_display.object_list.count > 0)
-                        {
-                            status = r_video_draw_entity_list(rs, &entity->children_display);
-                        }
-                    }
+                    status = r_video_draw_element(rs, element);
                 }
 
-                glPopMatrix();
+                /* Draw children, if necessary */
+                if (R_SUCCEEDED(status))
+                {
+                    if (entity->has_children && entity->children_display.object_list.count > 0)
+                    {
+                        status = r_video_draw_entity_list(rs, &entity->children_display);
+                    }
+                }
             }
 
-            if (color != NULL)
-            {
-                r_video_color_unblend(&color_base);
-            }
+            glPopMatrix();
+        }
+
+        if (color != NULL)
+        {
+            r_video_color_unblend(&color_base);
         }
     }
 

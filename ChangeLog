@@ -2,6 +2,17 @@
 
 * Various: Removed a bunch of unnecessary comments
 
+* r_vector.h: Remove branch, move inline function to header
+* r_vector.c: Removed
+* Makefile.am: Removed unnecessary file r_vector.c
+
+* r_file_system.c (r_file_system_add_all_data_sources): Use r_string_format
+* r_object.c: Removed unnecessary arguments to functions
+
+* r_video.c (r_video_draw_entity): Removed redundant null checks
+
+* r_event.c (r_event_handle_event): F9/F10 only on debug builds
+
 2011-09-11 deraj@users.sourceforge.net
 
 * r_capture.c (r_capture_write_video_packet): Fix video packet buffer size

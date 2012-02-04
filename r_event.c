@@ -1,5 +1,5 @@
 /*
-Copyright 2011 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -389,14 +389,13 @@ static r_status_t r_event_handle_event(r_state_t *rs, r_layer_t *layer, SDL_Even
         {
         case SDL_KEYDOWN:
         case SDL_KEYUP:
-            /* TODO: F10 to quit is probably just for debugging */
+#ifdef R_DEBUG
             if (ev->key.keysym.sym == SDLK_F10 && ev->key.state == SDL_PRESSED)
             {
                 rs->done = R_TRUE;
             }
             else if (ev->key.keysym.sym == SDLK_F9 && ev->key.state == SDL_PRESSED)
             {
-                /* TODO: F9 capture is definitely just for debugging */
                 r_capture_t *capture = (r_capture_t*)rs->capture;
 
                 if (rs->capture == NULL)
@@ -412,6 +411,7 @@ static r_status_t r_event_handle_event(r_state_t *rs, r_layer_t *layer, SDL_Even
                 rs->capture = capture;
             }
             else
+#endif
             {
                 status = r_event_handle_key_event(rs, layer, &ev->key);
             }

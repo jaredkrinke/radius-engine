@@ -2,7 +2,7 @@
 #define __R_VECTOR_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,12 @@ typedef r_real_t r_vector2d_t[2];
 typedef r_real_t r_vector2d_homogeneous_t[3];
 
 /* Convert 2D homogeneous coordinates back to a normal 2D vector */
-extern R_INLINE void r_vector2d_from_homogeneous(r_vector2d_homogeneous_t *v_h, r_vector2d_t *v);
+R_INLINE void r_vector2d_from_homogeneous(r_vector2d_homogeneous_t *v_h, r_vector2d_t *v)
+{
+    (*v)[0] = (*v_h)[0] / (*v_h)[2];
+    (*v)[1] = (*v_h)[1] / (*v_h)[2];
+}
+
 
 #endif
 

@@ -84,7 +84,6 @@ libradius_engine_a_SOURCES = \
                              r_string_buffer.c \
                              r_transform2d.c \
                              r_transform2d.h \
-                             r_vector.c \
                              r_vector.h \
                              r_video.c \
                              r_video.h \

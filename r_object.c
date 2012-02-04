@@ -1,5 +1,5 @@
 /*
-Copyright 2011 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -108,10 +108,9 @@ static r_status_t r_object_field_write_internal(r_state_t *rs, r_object_t *objec
     return status;
 }
 
-/* TODO: The "fields" parameter appears to be unnecessary now */
-static r_status_t r_object_field_read_write(r_state_t *rs, r_boolean_t read, r_object_field_t *fields, r_object_t *object, int object_index, int key_index, int value_index)
+static r_status_t r_object_field_read_write(r_state_t *rs, r_boolean_t read, r_object_t *object, int object_index, int key_index, int value_index)
 {
-    r_status_t status = (rs != NULL && rs->script_state != NULL && fields != NULL && object != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
+    r_status_t status = (rs != NULL && rs->script_state != NULL && object != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
 
     if (R_SUCCEEDED(status))
@@ -185,23 +184,23 @@ static r_status_t r_object_field_read_write(r_state_t *rs, r_boolean_t read, r_o
     return status;
 }
 
-static r_status_t r_object_field_read(r_state_t *rs, r_object_field_t *fields, r_object_t *object, int object_index, int key_index)
+static r_status_t r_object_field_read(r_state_t *rs, r_object_t *object, int object_index, int key_index)
 {
     r_status_t status = R_FAILURE;
     R_SCRIPT_ENTER();
 
-    status = r_object_field_read_write(rs, R_TRUE, fields, object, object_index, key_index, 0);
+    status = r_object_field_read_write(rs, R_TRUE, object, object_index, key_index, 0);
     R_SCRIPT_EXIT(1);
 
     return status;
 }
 
-static r_status_t r_object_field_write(r_state_t *rs, r_object_field_t *fields, r_object_t *object, int object_index, int key_index, int value_index)
+static r_status_t r_object_field_write(r_state_t *rs, r_object_t *object, int object_index, int key_index, int value_index)
 {
     r_status_t status = R_FAILURE;
     R_SCRIPT_ENTER();
 
-    status = r_object_field_read_write(rs, R_FALSE, fields, object, object_index, key_index, value_index);
+    status = r_object_field_read_write(rs, R_FALSE, object, object_index, key_index, value_index);
     R_SCRIPT_EXIT(0);
 
     return status;
@@ -232,7 +231,7 @@ static int l_Object_metatable_index(lua_State *ls)
             {
                 r_object_t *object = (r_object_t*)lua_touserdata(ls, object_index);
 
-                status = r_object_field_read(rs, object->header->fields, object, object_index, key_index);
+                status = r_object_field_read(rs, object, object_index, key_index);
 
                 if (status == R_SUCCESS)
                 {
@@ -274,7 +273,7 @@ static int l_Object_metatable_newindex(lua_State *ls)
                 r_object_t *object = (r_object_t*)lua_touserdata(ls, 1);
                 int key_index = 2;
 
-                status = r_object_field_write(rs, object->header->fields, object, object_index, key_index, value_index);
+                status = r_object_field_write(rs, object, object_index, key_index, value_index);
             }
         }
     }

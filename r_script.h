@@ -59,7 +59,6 @@ typedef struct _r_script_node
 {
     const char                  *name;
     r_script_node_type_t        type;
-    /* TODO: Shouldn't this be a union? */
     const struct _r_script_node *table_children;
     lua_CFunction               function_func;
 } r_script_node_t;

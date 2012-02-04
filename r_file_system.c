@@ -1,5 +1,5 @@
 /*
-Copyright 2011 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -70,9 +70,7 @@ static r_status_t r_file_system_add_all_data_sources(r_state_t *rs)
 
                     if (R_SUCCEEDED(status))
                     {
-                        /* TODO: Use a secure version of this function (assuming one exists on all platforms)--actually r_string_format should work */
-                        int charactersWritten = sprintf(real_path, "%s%s%s", real_dir, PHYSFS_getDirSeparator(), *file);
-                        status = (charactersWritten > 0) ? R_SUCCESS : R_FAILURE;
+                        status = r_string_format(rs, real_path, length + 1, "%s%s%s", real_dir, PHYSFS_getDirSeparator(), *file);
 
                         if (R_SUCCEEDED(status))
                         {

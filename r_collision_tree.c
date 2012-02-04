@@ -1,5 +1,5 @@
 /*
-Copyright 2011 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -93,7 +93,7 @@ static r_status_t r_collision_tree_node_init(r_state_t *rs, r_collision_tree_nod
     return status;
 }
 
-static R_INLINE r_boolean_t r_collision_tree_node_validate_entity(const r_collision_tree_node_t *node, r_entity_t *entity, r_vector2d_t *min, r_vector2d_t *max)
+R_INLINE r_boolean_t r_collision_tree_node_validate_entity(const r_collision_tree_node_t *node, r_entity_t *entity, r_vector2d_t *min, r_vector2d_t *max)
 {
     return ((*min)[0] > node->min[0] && (*min)[1] > node->min[1] && (*max)[0] < node->max[0] && (*max)[1] < node->max[1]);
 }

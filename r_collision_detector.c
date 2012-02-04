@@ -1,5 +1,5 @@
 /*
-Copyright 2011 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ THE SOFTWARE.
 
 /* Two-dimensional triangle-triangle collision detection, adapted from http://www.acm.org/jgt/papers/GuigueDevillers03/ (2003) */
 
-static R_INLINE r_boolean_t r_triangle_test_point(r_vector2d_t *p1, r_vector2d_t *q1, r_vector2d_t *r1, r_vector2d_t *p2, r_vector2d_t *q2, r_vector2d_t *r2)
+R_INLINE r_boolean_t r_triangle_test_point(r_vector2d_t *p1, r_vector2d_t *q1, r_vector2d_t *r1, r_vector2d_t *p2, r_vector2d_t *q2, r_vector2d_t *r2)
 {
     r_boolean_t intersect = R_FALSE;
 
@@ -97,7 +97,7 @@ static R_INLINE r_boolean_t r_triangle_test_point(r_vector2d_t *p1, r_vector2d_t
     return intersect;
 }
 
-static R_INLINE r_boolean_t r_triangle_test_edge(r_vector2d_t *p1, r_vector2d_t *q1, r_vector2d_t *r1, r_vector2d_t *p2, r_vector2d_t *q2, r_vector2d_t *r2)
+R_INLINE r_boolean_t r_triangle_test_edge(r_vector2d_t *p1, r_vector2d_t *q1, r_vector2d_t *r1, r_vector2d_t *p2, r_vector2d_t *q2, r_vector2d_t *r2)
 {
     r_boolean_t intersect = R_FALSE;
 

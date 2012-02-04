@@ -18,7 +18,26 @@
 
 * Various: Assume r_script_get_r_state return value is valid in normal cases
 
+* r_platform_defs_unix.h: Use "static inline" for R_INLINE on UNIX
+
 * r_audio.c: Don't specify both static and R_INLINE
+* r_collision_detector.c: Don't specify both static and R_INLINE
+* r_collision_tree.c: Don't specify both static and R_INLINE
+* r_script_lib.c: Don't specify both static and R_INLINE
+* r_video.c: Don't specify both static and R_INLINE
+* r_zlist.c: Don't specify both static and R_INLINE
+
+* r_event.h: Move inline implementation to header
+* r_event.c: Remove inline implementation
+
+* r_list.h: Move inline implementation to header
+* r_list.c: Remove inline implementation
+
+* r_object_ref.h: Move inline implementation to header
+* r_object_ref.c: Remove inline implementation
+
+* r_transform2d.h: Move inline implementation to header
+* r_transform2d.c: Remove inline implementation
 
 2011-09-11 deraj@users.sourceforge.net
 

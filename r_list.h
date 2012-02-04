@@ -2,7 +2,7 @@
 #define __R_LIST_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,8 @@ THE SOFTWARE.
 */
 
 #include "r_state.h"
+
+#define R_LIST_ITEM(list_def, items, index) ((void*)&(((char*)items)[(index) * (list_def)->item_size]))
 
 typedef struct
 {
@@ -47,14 +49,25 @@ typedef struct
 
 /* TODO: These functions should either not take r_state_t* or should be robust to it being NULL so they can be used on other threads--also consider making logging functions thread safe... */
 extern r_status_t r_list_add(r_state_t *rs, r_list_t *list, void *item, const r_list_def_t *list_def);
-extern R_INLINE void *r_list_get_index(r_state_t *rs, const r_list_t *list, unsigned int index, const r_list_def_t *list_def);
-extern R_INLINE unsigned int r_list_get_count(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def);
 extern r_status_t r_list_remove_index(r_state_t *rs, r_list_t *list, unsigned int index, const r_list_def_t *list_def);
 extern r_status_t r_list_clear(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def);
 extern r_status_t r_list_steal_index(r_state_t *rs, r_list_t *list, unsigned int index, void *item_out, const r_list_def_t *list_def);
 
 extern r_status_t r_list_init(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def);
 extern r_status_t r_list_cleanup(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def);
+
+R_INLINE void *r_list_get_index(r_state_t *rs, const r_list_t *list, unsigned int index, const r_list_def_t *list_def)
+{
+    /* Ensure the index is valid */
+    r_status_t status = (index >= 0 && index < list->count) ? R_SUCCESS : R_F_INVALID_INDEX;
+
+    return R_SUCCEEDED(status) ? R_LIST_ITEM(list_def, list->items, index) : NULL;
+}
+
+R_INLINE unsigned int r_list_get_count(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def)
+{
+    return list->count;
+}
 
 #endif
 

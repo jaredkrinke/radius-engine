@@ -75,7 +75,7 @@ const char *mouse_button_names[] = {
     "mb31"
 };
 
-static R_INLINE r_status_t r_event_get_current_time(unsigned int *current_time_ms)
+R_INLINE r_status_t r_event_get_current_time(unsigned int *current_time_ms)
 {
     r_status_t status = (current_time_ms != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
     R_ASSERT(R_SUCCEEDED(status));
@@ -568,17 +568,6 @@ r_status_t r_event_setup(r_state_t *rs)
     }
 
     return status;
-}
-
-void r_event_get_time_difference(unsigned int t1, unsigned int t2, unsigned int *difference_ms)
-{
-    if (t2 >= t1)
-    {
-        *difference_ms = 0;
-        /* TODO: better wrap-around logic might be nice here */
-    }
-
-    *difference_ms = t1 - t2;
 }
 
 r_status_t r_event_loop(r_state_t *rs)

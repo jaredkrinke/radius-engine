@@ -1,5 +1,5 @@
 /*
-Copyright 2011 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,12 +26,6 @@ THE SOFTWARE.
 #include "r_object_ref.h"
 #include "r_assert.h"
 #include "r_script.h"
-
-void r_object_ref_init(r_object_ref_t *object_ref)
-{
-    object_ref->ref = R_OBJECT_REF_INVALID;
-    object_ref->value.pointer = NULL;
-}
 
 r_status_t r_object_ref_push(r_state_t *rs, r_object_t *object, const r_object_ref_t *object_ref)
 {

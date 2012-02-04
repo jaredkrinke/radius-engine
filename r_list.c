@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,6 @@ THE SOFTWARE.
 /* TODO: Should default size and scaling factor be left up to the individual implementations? */
 #define R_LIST_DEFAULT_ALLOCATED    (8)
 #define R_LIST_SCALING_FACTOR       (2)
-
-#define R_LIST_ITEM(list_def, items, index) ((void*)&(((char*)items)[(index) * (list_def)->item_size]))
 
 static r_status_t r_list_remove_index_internal(r_state_t *rs, r_list_t *list, unsigned int index, r_boolean_t free_item, const r_list_def_t *list_def)
 {
@@ -106,19 +104,6 @@ r_status_t r_list_add(r_state_t *rs, r_list_t *list, void *item, const r_list_de
     }
 
     return status;
-}
-
-void *r_list_get_index(r_state_t *rs, const r_list_t *list, unsigned int index, const r_list_def_t *list_def)
-{
-    /* Ensure the index is valid */
-    r_status_t status = (index >= 0 && index < list->count) ? R_SUCCESS : R_F_INVALID_INDEX;
-
-    return R_SUCCEEDED(status) ? R_LIST_ITEM(list_def, list->items, index) : NULL;
-}
-
-unsigned int r_list_get_count(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def)
-{
-    return list->count;
 }
 
 r_status_t r_list_remove_index(r_state_t *rs, r_list_t *list, unsigned int index, const r_list_def_t *list_def)

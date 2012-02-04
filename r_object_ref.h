@@ -2,7 +2,7 @@
 #define __R_OBJECT_REF_H
 
 /*
-Copyright 2011 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +42,11 @@ typedef struct
     } value;
 } r_object_ref_t;
 
-extern R_INLINE void r_object_ref_init(r_object_ref_t *object_ref);
+R_INLINE void r_object_ref_init(r_object_ref_t *object_ref)
+{
+    object_ref->ref = R_OBJECT_REF_INVALID;
+    object_ref->value.pointer = NULL;
+}
 
 extern r_status_t r_object_ref_clear(r_state_t *rs, r_object_t *object, r_object_ref_t *object_ref);
 

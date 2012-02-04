@@ -2,7 +2,7 @@
 #define __R_TRANSFORM2D_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,31 @@ extern void r_transform2d_rotate(r_transform2d_t *transform, r_real_t degrees);
 extern void r_transform2d_invert(r_transform2d_t *to, r_transform2d_t *from);
 
 /* Apply the transformation */
-extern R_INLINE void r_transform2d_transform(r_transform2d_t *a, r_vector2d_t *v, r_vector2d_t *av);
+R_INLINE void r_transform2d_transform_homogeneous(r_transform2d_t *a, r_vector2d_homogeneous_t *vh, r_vector2d_homogeneous_t *avh)
+{
+    int i;
+
+    for (i = 0; i < 3; ++i)
+    {
+        int x;
+
+        (*avh)[i] = (r_real_t)0;
+
+        for (x = 0; x < 3; ++x)
+        {
+            (*avh)[i] += ((*a)[i][x]) * ((*vh)[x]);
+        }
+    }
+}
+
+R_INLINE void r_transform2d_transform(r_transform2d_t *a, r_vector2d_t *v, r_vector2d_t *av)
+{
+    r_vector2d_homogeneous_t vh = { (*v)[0], (*v)[1], 1 };
+    r_vector2d_homogeneous_t avh;
+
+    r_transform2d_transform_homogeneous(a, &vh, &avh);
+    r_vector2d_from_homogeneous(&avh, av);
+}
 
 #endif
 

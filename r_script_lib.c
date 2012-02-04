@@ -253,7 +253,7 @@ static int l_random(lua_State *ls)
     return result_count;
 }
 
-static R_INLINE int l_mathFunction(lua_State *ls, r_script_math_function_t f)
+R_INLINE int l_mathFunction(lua_State *ls, r_script_math_function_t f)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     int result_count = 0;
@@ -277,7 +277,7 @@ static R_INLINE int l_mathFunction(lua_State *ls, r_script_math_function_t f)
     return result_count;
 }
 
-static R_INLINE int l_mathFunction2(lua_State *ls, r_script_math_function2_t f)
+R_INLINE int l_mathFunction2(lua_State *ls, r_script_math_function2_t f)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     int result_count = 0;

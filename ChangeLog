@@ -18,6 +18,8 @@
 
 * Various: Assume r_script_get_r_state return value is valid in normal cases
 
+* r_audio.c: Don't specify both static and R_INLINE
+
 2011-09-11 deraj@users.sourceforge.net
 
 * r_capture.c (r_capture_write_video_packet): Fix video packet buffer size

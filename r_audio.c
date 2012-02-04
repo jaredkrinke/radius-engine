@@ -306,13 +306,13 @@ static r_status_t r_audio_music_set_volume_internal(r_state_t *rs, unsigned char
 }
 
 /* First scale global and clip volume (denominator is 2 ^ 16 to ensure no loss of 16-bit sample data) */
-static R_INLINE int r_audio_compute_volume_numerator(const int global_volume, const int volume)
+R_INLINE int r_audio_compute_volume_numerator(const int global_volume, const int volume)
 {
     return global_volume * (((int)volume) + 1);
 }
 
 /* Then scale by channel volume (denominator is 2 ^ 8) */
-static R_INLINE int r_audio_compute_channel_numerator(const int channel, const int position)
+R_INLINE int r_audio_compute_channel_numerator(const int channel, const int position)
 {
     return (((int)R_AUDIO_POSITION_MAX) + ((channel == 0) ? -1 : 1) * position);
 }

@@ -211,8 +211,8 @@ static int l_Object_metatable_index(lua_State *ls)
     r_state_t *rs = r_script_get_r_state(ls);
     int result_count = 0;
     int key_index = 2;
-    R_SCRIPT_ENTER();
     r_status_t status = (lua_gettop(ls) == key_index) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
+    R_SCRIPT_ENTER();
 
     if (R_SUCCEEDED(status))
     {
@@ -244,8 +244,8 @@ static int l_Object_metatable_newindex(lua_State *ls)
 {
     r_state_t *rs = r_script_get_r_state(ls);
     int value_index = 3;
-    R_SCRIPT_ENTER();
     r_status_t status = (lua_gettop(ls) == 3) ? R_SUCCESS : RS_F_ARGUMENT_COUNT;
+    R_SCRIPT_ENTER();
 
     if (R_SUCCEEDED(status))
     {

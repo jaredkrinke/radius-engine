@@ -1,3 +1,9 @@
+radius-engine (1.0-1) unstable; urgency=low
+
+  * Updated package for v1.0
+
+ -- Jared Krinke <deraj@users.sourceforge.net>  Wed, 15 Feb 2012 19:15:00 -0800
+
 radius-engine (0.7-1) unstable; urgency=low
 
   * Initial package for v0.7

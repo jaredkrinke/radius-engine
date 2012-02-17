@@ -540,6 +540,9 @@ void r_event_end(r_state_t *rs)
         {
             SDL_JoystickClose(event_state->joysticks[i]);
         }
+
+        free(event_state);
+        rs->event_state = NULL;
     }
 
     /* Revert Unicode translation */

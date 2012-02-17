@@ -516,10 +516,12 @@ static r_status_t r_image_load(r_state_t *rs, const char *image_path, r_object_t
                             status = R_FAILURE;
                         }
 
-                        png_destroy_read_struct(NULL, &png_info, NULL);
+                        png_destroy_read_struct(&png, &png_info, NULL);
                     }
-
-                    png_destroy_read_struct(&png, NULL, NULL);
+                    else
+                    {
+                        png_destroy_read_struct(&png, NULL, NULL);
+                    }
                 }
 
                 PHYSFS_close(file);

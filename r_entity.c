@@ -123,6 +123,7 @@ static r_status_t r_entity_init(r_state_t *rs, r_object_t *object)
     entity->color.ref           = R_OBJECT_REF_INVALID;
     entity->color.value.object  = (r_object_t*)(&r_color_white);
 
+    entity->order = 0;
     entity->group = 0;
 
     return R_SUCCESS;

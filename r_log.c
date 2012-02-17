@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
@@ -311,6 +312,8 @@ r_status_t r_log_file_start(r_state_t *rs, const char *application_name)
             {
                 r_log_error_format(rs, "Could not create log file %s: %s", log_path, PHYSFS_getLastError());
             }
+
+            free(log_path);
         }
     }
 

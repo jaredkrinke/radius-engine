@@ -417,8 +417,18 @@ r_status_t r_audio_clip_instance_release(r_state_t *rs, r_audio_clip_instance_t 
 
             case R_AUDIO_CLIP_TYPE_ON_DEMAND:
                 Sound_FreeSample(clip_instance->state.on_demand.sample);
-                free(clip_instance->state.on_demand.buffers[0]);
-                free(clip_instance->state.on_demand.buffers[1]);
+
+                {
+                    int i;
+
+                    for (i = 0; i < R_AUDIO_CLIP_ON_DEMAND_BUFFERS; ++i)
+                    {
+                        if (clip_instance->state.on_demand.buffers[i] != NULL)
+                        {
+                            free(clip_instance->state.on_demand.buffers[i]);
+                        }
+                    }
+                }
                 break;
 
             default:

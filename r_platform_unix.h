@@ -160,6 +160,8 @@ r_status_t r_platform_application_allocate_data_dirs(r_state_t *rs, const char *
                 *data_dirs = data_dirs_internal;
             }
         }
+
+        free(application_name_lower);
     }
 
     return status;

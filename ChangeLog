@@ -1,3 +1,19 @@
+2012-02-17 deraj@users.sourceforge.net
+
+* r_entity.c (r_entity_init): Initialize order field
+
+* r_event.c (r_event_end): Free allocated event state
+
+* r_platform_unix.h (r_platform_application_allocate_data_dirs): Don't leak
+
+* r_audio_decoder.c (r_audio_decoder_stop): Cleanup sync primitives
+
+* r_audio_clip_manager.c (r_audio_clip_instance_release): Free all buffers
+
+* r_image_cache.c (r_image_load): Free PNG structures properly
+
+* r_log.c (r_log_file_start): Free temporary buffer
+
 2012-02-04 deraj@users.sourceforge.net
 
 * Various: Removed a bunch of unnecessary comments

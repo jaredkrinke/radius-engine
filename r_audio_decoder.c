@@ -541,6 +541,21 @@ r_status_t r_audio_decoder_stop(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
+        if (decoder->lock != NULL)
+        {
+            SDL_DestroyMutex(decoder->lock);
+            decoder->lock = NULL;
+        }
+
+        if (decoder->semaphore != NULL)
+        {
+            SDL_DestroySemaphore(decoder->semaphore);
+            decoder->semaphore = NULL;
+        }
+    }
+
+    if (R_SUCCEEDED(status))
+    {
         free(decoder);
         rs->audio_decoder = NULL;
     }

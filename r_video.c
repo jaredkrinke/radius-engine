@@ -456,7 +456,7 @@ r_status_t r_video_setup(r_state_t *rs)
     return status;
 }
 
-R_INLINE void r_video_color_blend(r_color_t *color_base, const r_color_t *color)
+R_INLINE void r_video_color_get_current_color(r_color_t *color_base)
 {
     GLfloat values[4];
 
@@ -466,7 +466,10 @@ R_INLINE void r_video_color_blend(r_color_t *color_base, const r_color_t *color)
     color_base->green    = values[1];
     color_base->blue     = values[2];
     color_base->opacity  = values[3];
+}
 
+R_INLINE void r_video_color_blend(const r_color_t *color_base, const r_color_t *color)
+{
     glColor4f(color_base->red * color->red, color_base->green * color->green, color_base->blue * color->blue, color_base->opacity * color->opacity);
 }
 
@@ -675,13 +678,18 @@ static r_status_t r_video_draw_element(r_state_t *rs, r_element_t *element)
         /* Common element setup */
         r_color_t color_base;
         r_color_t *color = (r_color_t*)element->color.value.object;
+        r_boolean_t visible = R_TRUE;
+
+        r_video_color_get_current_color(&color_base);
+        visible = (color_base.opacity > 0);
 
         if (color != NULL)
         {
             r_video_color_blend(&color_base, color);
+            visible = visible && (color->opacity > 0);
         }
 
-        if (element->image.value.object != NULL && color_base.opacity > 0)
+        if (element->image.value.object != NULL && visible)
         {
             glPushMatrix();
             glTranslatef(element->x, element->y, 0);
@@ -840,14 +848,18 @@ static r_status_t r_video_draw_entity(r_state_t *rs, r_entity_t *entity)
     {
         r_color_t color_base;
         r_color_t *color = (r_color_t*)entity->color.value.object;
-        unsigned int i;
+        r_boolean_t visible = R_TRUE;
+
+        r_video_color_get_current_color(&color_base);
+        visible = (color_base.opacity > 0);
 
         if (color != NULL)
         {
             r_video_color_blend(&color_base, color);
+            visible = visible && (color->opacity > 0);
         }
 
-        if (color_base.opacity > 0)
+        if (visible)
         {
             glPushMatrix();
             glTranslatef(entity->x, entity->y, 0);
@@ -859,6 +871,8 @@ static r_status_t r_video_draw_entity(r_state_t *rs, r_entity_t *entity)
 
             if (R_SUCCEEDED(status))
             {
+                unsigned int i;
+
                 /* Draw all elements */
                 for (i = 0; i < element_list->object_list.count && R_SUCCEEDED(status); ++i)
                 {

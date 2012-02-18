@@ -2,6 +2,8 @@
 
 * r_audio_clip_manager.c (r_audio_clip_data_free_internal): Free allocation
 
+* r_video.c: Fixed visible calculations for entities
+
 2012-02-17 deraj@users.sourceforge.net
 
 * r_entity.c (r_entity_init): Initialize order field

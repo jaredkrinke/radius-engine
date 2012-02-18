@@ -213,7 +213,7 @@ static r_status_t r_image_create_texture(r_state_t *rs, unsigned int *id_out, un
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
     /* Actually create the texture now */
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, pixel_format, GL_UNSIGNED_BYTE, (void*)pixels);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, pixel_format, GL_UNSIGNED_BYTE, (const void*)pixels);
 
     status = r_glenum_to_status(glGetError());
 

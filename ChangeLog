@@ -4,6 +4,17 @@
 
 * r_video.c: Fixed visible calculations for entities
 
+* r_defs.h: Change r_status_t to uint (since ISO C doesn't allow uint enums)
+
+* r_transform2d.h: Fixed compiler warnings
+* r_log.h: Fixed compiler warnings
+* r_list.h: Fixed compiler warnings
+* r_file_internal.c: Fixed compiler warnings
+* r_log.c: Fixed compiler warnings
+* r_image_cache.c: Fixed compiler warnings
+* r_mesh.c: Fixed compiler warnings
+* r_object_id_list.c: Fixed compiler warnings
+
 2012-02-17 deraj@users.sourceforge.net
 
 * r_entity.c (r_entity_init): Initialize order field

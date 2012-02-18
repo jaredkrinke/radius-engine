@@ -2,7 +2,7 @@
 #define __R_LOG_H
 
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@ typedef enum
     R_LOG_LEVEL_DATA,
     R_LOG_LEVEL_WARNING,
     R_LOG_LEVEL_ERROR,
-    R_LOG_LEVEL_MAX,
+    R_LOG_LEVEL_MAX
 } r_log_level_t;
 
 typedef r_status_t (*r_log_function_t)(r_state_t *rs, r_log_level_t level, const char *str);

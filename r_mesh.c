@@ -146,7 +146,7 @@ static int l_Mesh_addTriangle(lua_State *ls)
 
 r_triangle_t *r_triangle_list_get_index(r_state_t *rs, const r_triangle_list_t *list, unsigned int index)
 {
-    return (r_triangle_t*)r_list_get_index(rs, (r_list_t*)list, index, &r_triangle_list_def);
+    return (r_triangle_t*)r_list_get_index(rs, (const r_list_t*)list, index, &r_triangle_list_def);
 }
 
 r_status_t r_mesh_setup(r_state_t *rs)

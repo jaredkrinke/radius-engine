@@ -85,7 +85,7 @@ r_status_t r_file_internal_write(r_state_t *rs, r_file_internal_t *file, const c
             /* Write string and newline */
             PHYSFS_file* file_handle = (PHYSFS_file*)file->data;
             unsigned int str_length = (unsigned int)strlen(str);
-            unsigned int bytes_written = (unsigned int)PHYSFS_write(file_handle, (void*)str, sizeof(char), str_length);
+            unsigned int bytes_written = (unsigned int)PHYSFS_write(file_handle, (const void*)str, sizeof(char), str_length);
 
             status = (bytes_written == str_length) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
 

@@ -163,7 +163,7 @@ static r_status_t r_log_file_log(r_state_t *rs, r_log_level_t level, const char 
     {
         /* Write the message, followed by a newline */
         size_t length = strlen(str);
-        size_t written = (size_t)PHYSFS_write(log_file, (void*)str, sizeof(str[0]), length);
+        size_t written = (size_t)PHYSFS_write(log_file, (const void*)str, sizeof(str[0]), length);
 
         status = (written == length) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
 

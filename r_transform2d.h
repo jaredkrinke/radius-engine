@@ -58,8 +58,12 @@ R_INLINE void r_transform2d_transform_homogeneous(r_transform2d_t *a, r_vector2d
 
 R_INLINE void r_transform2d_transform(r_transform2d_t *a, r_vector2d_t *v, r_vector2d_t *av)
 {
-    r_vector2d_homogeneous_t vh = { (*v)[0], (*v)[1], 1 };
+    r_vector2d_homogeneous_t vh;
     r_vector2d_homogeneous_t avh;
+
+    vh[0] = (*v)[0];
+    vh[1] = (*v)[1];
+    vh[2] = 1;
 
     r_transform2d_transform_homogeneous(a, &vh, &avh);
     r_vector2d_from_homogeneous(&avh, av);

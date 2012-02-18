@@ -33,7 +33,7 @@ static void r_object_id_null(r_state_t *rs, void *item)
 static void r_object_id_copy(r_state_t *rs, void *to, const void *from)
 {
     unsigned int *id_to = (unsigned int*)to;
-    unsigned int *id_from = (unsigned int*)from;
+    const unsigned int *id_from = (const unsigned int*)from;
 
     *id_to = *id_from;
 }

@@ -25,7 +25,7 @@ THE SOFTWARE.
 
 #include "r_state.h"
 
-#define R_LIST_ITEM(list_def, items, index) ((void*)&(((char*)items)[(index) * (list_def)->item_size]))
+#define R_LIST_ITEM(list_def, items, item_index) ((void*)&(((char*)items)[(item_index) * (list_def)->item_size]))
 
 typedef struct
 {
@@ -41,7 +41,7 @@ typedef void (*r_list_item_copy_t)(r_state_t *rs, void *to, const void *from);
 
 typedef struct
 {
-    int                 item_size;
+    unsigned int        item_size;
     r_list_item_null_t  item_null;
     r_list_item_free_t  item_free;
     r_list_item_copy_t  item_copy;
@@ -49,19 +49,19 @@ typedef struct
 
 /* TODO: These functions should either not take r_state_t* or should be robust to it being NULL so they can be used on other threads--also consider making logging functions thread safe... */
 extern r_status_t r_list_add(r_state_t *rs, r_list_t *list, void *item, const r_list_def_t *list_def);
-extern r_status_t r_list_remove_index(r_state_t *rs, r_list_t *list, unsigned int index, const r_list_def_t *list_def);
+extern r_status_t r_list_remove_index(r_state_t *rs, r_list_t *list, unsigned int item_index, const r_list_def_t *list_def);
 extern r_status_t r_list_clear(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def);
-extern r_status_t r_list_steal_index(r_state_t *rs, r_list_t *list, unsigned int index, void *item_out, const r_list_def_t *list_def);
+extern r_status_t r_list_steal_index(r_state_t *rs, r_list_t *list, unsigned int item_index, void *item_out, const r_list_def_t *list_def);
 
 extern r_status_t r_list_init(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def);
 extern r_status_t r_list_cleanup(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def);
 
-R_INLINE void *r_list_get_index(r_state_t *rs, const r_list_t *list, unsigned int index, const r_list_def_t *list_def)
+R_INLINE void *r_list_get_index(r_state_t *rs, const r_list_t *list, unsigned int item_index, const r_list_def_t *list_def)
 {
     /* Ensure the index is valid */
-    r_status_t status = (index >= 0 && index < list->count) ? R_SUCCESS : R_F_INVALID_INDEX;
+    r_status_t status = (item_index < list->count) ? R_SUCCESS : R_F_INVALID_INDEX;
 
-    return R_SUCCEEDED(status) ? R_LIST_ITEM(list_def, list->items, index) : NULL;
+    return R_SUCCEEDED(status) ? R_LIST_ITEM(list_def, list->items, item_index) : NULL;
 }
 
 R_INLINE unsigned int r_list_get_count(r_state_t *rs, r_list_t *list, const r_list_def_t *list_def)

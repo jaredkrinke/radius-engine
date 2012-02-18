@@ -25,7 +25,7 @@ THE SOFTWARE.
 
 #include "r_state.h"
 
-#define R_LIST_ITEM(list_def, items, item_index) ((void*)&(((char*)items)[(item_index) * (list_def)->item_size]))
+#define R_LIST_ITEM(list_def, items, item_index) (&(((char*)items)[(item_index) * (list_def)->item_size]))
 
 typedef struct
 {

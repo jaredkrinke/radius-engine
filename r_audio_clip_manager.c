@@ -151,17 +151,9 @@ static r_status_t r_file_alloc_rwops(r_state_t *rs, const char *path, r_boolean_
 }
 
 /* Audio clip functions */
-static void r_audio_clip_data_null_internal(r_state_t *rs, r_audio_clip_data_t *audio_clip_data)
-{
-    audio_clip_data->ref_count = 0;
-    audio_clip_data->type = R_AUDIO_CLIP_TYPE_MAX;
-
-    audio_clip_data->data.cached.sample = NULL;
-    audio_clip_data->data.cached.samples = 0;
-}
-
 static void r_audio_clip_data_free_internal(r_state_t *rs, r_audio_clip_data_t *audio_clip_data)
 {
+    /* Free the type-specific data */
     switch (audio_clip_data->type)
     {
     case R_AUDIO_CLIP_TYPE_CACHED:
@@ -177,7 +169,8 @@ static void r_audio_clip_data_free_internal(r_state_t *rs, r_audio_clip_data_t *
         break;
     }
 
-    r_audio_clip_data_null_internal(rs, (void*)audio_clip_data);
+    /* Free the allocation itself */
+    free(audio_clip_data);
 }
 
 static void r_audio_clip_data_ptr_null(r_state_t *rs, void *item)

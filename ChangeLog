@@ -14,6 +14,10 @@
 
 * r_log.c (r_log_file_start): Free temporary buffer
 
+* r_audio_clip_manager.c (internal_close): Free heap-allocated SDL_RWops
+
+* r_string_buffer.c (r_string_buffer_insert): Fix heap corruption for empty add
+
 2012-02-04 deraj@users.sourceforge.net
 
 * Various: Removed a bunch of unnecessary comments

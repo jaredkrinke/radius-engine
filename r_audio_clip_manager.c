@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -102,7 +102,10 @@ static int internal_write(struct SDL_RWops *context, const void *buffer, int siz
 static int internal_close(struct SDL_RWops *context)
 {
     PHYSFS_file *file = (PHYSFS_file*)context->hidden.unknown.data1;
-    r_status_t status = (PHYSFS_close(file) != 0) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR; 
+    r_status_t status = (PHYSFS_close(file) != 0) ? R_SUCCESS : R_F_FILE_SYSTEM_ERROR;
+
+    /* Also free the SDL_RWops itself (note: this means that all SDL_RWops used by this function are allocated with malloc) */
+    free(context);
 
     return R_SUCCEEDED(status) ? 1 : 0;
 }

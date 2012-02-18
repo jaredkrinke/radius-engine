@@ -1,5 +1,5 @@
 /*
-Copyright 2011 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -48,61 +48,64 @@ static r_status_t r_string_buffer_insert(r_state_t *rs, r_string_buffer_t *strin
     if (R_SUCCEEDED(status))
     {
         int str_length = (int)strlen(str);
-        int new_length = string_buffer->length + str_length;
 
-        /* Ensure the string buffer is long enough */
-        if (new_length + 1 > string_buffer->allocated)
+        /* No work is needed to insert an empty string */
+        if (str_length > 0)
         {
-            int new_allocated = string_buffer->allocated;
-            char *new_buffer = NULL;
+            int new_length = string_buffer->length + str_length;
 
-            /* Determine a length that is long enough to hold the new string */
-            do
+            /* Ensure the string buffer is long enough */
+            if (new_length + 1 > string_buffer->allocated)
             {
-                new_allocated = string_buffer->length * R_STRING_BUFFER_SCALING_FACTOR;
-            } while (new_length + 1 > new_allocated);
-            
-            /* Allocate a new buffer */
-            new_buffer = (char*)malloc(new_allocated * sizeof(char));
-            status = (new_buffer != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+                int new_allocated = string_buffer->allocated;
+                char *new_buffer = NULL;
 
+                /* Determine a length that is long enough to hold the new string */
+                do
+                {
+                    new_allocated = string_buffer->length * R_STRING_BUFFER_SCALING_FACTOR;
+                } while (new_length + 1 > new_allocated);
+                
+                /* Allocate a new buffer */
+                new_buffer = (char*)malloc(new_allocated * sizeof(char));
+                status = (new_buffer != NULL) ? R_SUCCESS : R_F_OUT_OF_MEMORY;
+
+                if (R_SUCCEEDED(status))
+                {
+                    int i;
+
+                    for (i = 0; i < string_buffer->length; ++i)
+                    {
+                        new_buffer[i] = string_buffer->buffer[i];
+                    }
+
+                    new_buffer[string_buffer->length] = '\0';
+                    free(string_buffer->buffer);
+
+                    string_buffer->allocated = new_allocated;
+                    string_buffer->buffer = new_buffer;
+                }
+            }
+
+            /* Insert the string */
             if (R_SUCCEEDED(status))
             {
-                int i;
+                int i, j;
 
-                for (i = 0; i < string_buffer->length; ++i)
+                /* First, move out the existing characters */
+                for (i = string_buffer->length, j = string_buffer->length + str_length; i >= position; --i, --j)
                 {
-                    new_buffer[i] = string_buffer->buffer[i];
+                    string_buffer->buffer[j] = string_buffer->buffer[i];
                 }
 
-                new_buffer[string_buffer->length] = '\0';
-                free(string_buffer->buffer);
+                /* Now insert the new characters */
+                for (i = 0, j = position; i < str_length; ++i, ++j)
+                {
+                    string_buffer->buffer[j] = str[i];
+                }
 
-                string_buffer->allocated = new_allocated;
-                string_buffer->buffer = new_buffer;
+                string_buffer->length = new_length;
             }
-        }
-
-        /* Insert the string */
-        if (R_SUCCEEDED(status))
-        {
-            int i, j;
-
-            /* First, move out the existing characters */
-            for (i = string_buffer->length, j = string_buffer->length + str_length; i >= position; --i, --j)
-            {
-                string_buffer->buffer[j] = string_buffer->buffer[i];
-            }
-
-            string_buffer->buffer[j] = '\0';
-
-            /* Now insert the new characters */
-            for (i = 0, j = position; i < str_length; ++i, ++j)
-            {
-                string_buffer->buffer[j] = str[i];
-            }
-
-            string_buffer->length = new_length;
         }
     }
 

@@ -208,7 +208,7 @@ static r_status_t r_audio_decoder_schedule_decode_task_internal(r_state_t *rs,
 
     R_ASSERT(R_SUCCEEDED(status));
 
-    if (R_SUCCEEDED(status))
+    if (R_SUCCEEDED(status) && !decoder->done)
     {
         r_audio_decoder_task_t task;
 
@@ -437,8 +437,17 @@ static int r_audio_decoder_thread(void *data)
         }
     }
 
-    /* Cleanup the rest of the tasks */
-    r_audio_decoder_task_list_cleanup(rs, &decoder->tasks);
+    /* Set the "done" flag so that no more tasks get scheduled (in case this thread ends unexpectedly) */
+    {
+        r_status_t status_lock = r_audio_decoder_lock(decoder);
+
+        if (R_SUCCEEDED(status_lock))
+        {
+            decoder->done = R_TRUE;
+            r_audio_decoder_unlock(decoder);
+        }
+    }
+
 
     return (int)status;
 }
@@ -540,6 +549,12 @@ r_status_t r_audio_decoder_stop(r_state_t *rs)
 
     if (R_SUCCEEDED(status))
     {
+        /* Cleanup the rest of the tasks */
+        r_audio_decoder_task_list_cleanup(rs, &decoder->tasks);
+    }
+
+    if (R_SUCCEEDED(status))
+    {
         if (decoder->lock != NULL)
         {
             SDL_DestroyMutex(decoder->lock);
@@ -574,7 +589,7 @@ r_status_t r_audio_decoder_schedule_seek_task(r_state_t *rs, r_boolean_t lock_au
 
     R_ASSERT(R_SUCCEEDED(status));
 
-    if (R_SUCCEEDED(status))
+    if (R_SUCCEEDED(status) && !decoder->done)
     {
         r_audio_decoder_task_t task;
 

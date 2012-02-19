@@ -17,6 +17,8 @@
 
 * r_audio_decoder.c: Avoid SDL_SemWaitTimeout since it can be inefficient
 
+* r_audio_decoder.c: Don't cleanup decoding tasks until shutdown
+
 2012-02-17 deraj@users.sourceforge.net
 
 * r_entity.c (r_entity_init): Initialize order field

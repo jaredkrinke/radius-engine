@@ -382,7 +382,7 @@ static int r_audio_decoder_thread(void *data)
     r_state_t *rs = (r_state_t*)data;
     r_audio_decoder_t *decoder = (r_audio_decoder_t*)rs->audio_decoder;
     r_boolean_t done = R_FALSE;
-    r_status_t status = (decoder != NULL) ? R_SUCCESS : R_FAILURE;
+    r_status_t status = (decoder != NULL) ? R_SUCCESS : R_F_INVALID_POINTER;
 
     while (!done && R_SUCCEEDED(status))
     {
@@ -398,11 +398,9 @@ static int r_audio_decoder_thread(void *data)
         if (R_SUCCEEDED(status) && !done)
         {
             /* Check for a task */
-            int sem_wait_result = SDL_SemWait(decoder->semaphore);
+            status = (SDL_SemWait(decoder->semaphore) == 0) ? R_SUCCESS : RA_F_DECODER_SEM;
 
-            status = (sem_wait_result != -1) ? R_SUCCESS : RA_F_DECODER_SEM;
-
-            if (R_SUCCEEDED(status) && sem_wait_result == 0)
+            if (R_SUCCEEDED(status))
             {
                 /* Pull a task off of the queue */
                 r_audio_decoder_task_t task;
@@ -489,8 +487,8 @@ r_status_t r_audio_decoder_start(r_state_t *rs)
 
                     if (R_FAILED(status))
                     {
-                        r_audio_decoder_task_list_cleanup(rs, &decoder->tasks);
                         rs->audio_decoder = NULL;
+                        r_audio_decoder_task_list_cleanup(rs, &decoder->tasks);
                     }
                 }
             }

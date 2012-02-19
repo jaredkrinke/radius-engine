@@ -25,6 +25,7 @@ THE SOFTWARE.
 #include <physfs.h>
 
 #include "r_assert.h"
+#include "r_log.h"
 #include "r_audio_decoder.h"
 #include "r_audio_clip_manager.h"
 
@@ -140,12 +141,12 @@ static r_status_t r_audio_decoder_task_list_cleanup(r_state_t *rs, r_audio_decod
 
 static r_status_t r_audio_decoder_lock(r_audio_decoder_t *decoder)
 {
-    return (SDL_LockMutex(decoder->lock) == 0) ? R_SUCCESS : R_FAILURE;
+    return (SDL_LockMutex(decoder->lock) == 0) ? R_SUCCESS : RA_F_DECODER_LOCK;
 }
 
 static r_status_t r_audio_decoder_unlock(r_audio_decoder_t *decoder)
 {
-    return (SDL_UnlockMutex(decoder->lock) == 0) ? R_SUCCESS : R_FAILURE;
+    return (SDL_UnlockMutex(decoder->lock) == 0) ? R_SUCCESS : RA_F_DECODER_UNLOCK;
 }
 
 static r_status_t r_audio_decoder_schedule_task_internal(r_state_t *rs, r_audio_decoder_t *decoder, r_boolean_t lock_audio, r_boolean_t lock_decoder, r_audio_decoder_task_t *task)
@@ -399,7 +400,7 @@ static int r_audio_decoder_thread(void *data)
             /* Check for a task */
             int sem_wait_result = SDL_SemWait(decoder->semaphore);
 
-            status = (sem_wait_result != -1) ? R_SUCCESS : R_FAILURE;
+            status = (sem_wait_result != -1) ? R_SUCCESS : RA_F_DECODER_SEM;
 
             if (R_SUCCEEDED(status) && sem_wait_result == 0)
             {
@@ -542,9 +543,16 @@ r_status_t r_audio_decoder_stop(r_state_t *rs)
     {
         /* Wait for worker thread to exit */
         int return_code = 0;
+        r_status_t status_decoder = R_SUCCESS;
 
         SDL_WaitThread(decoder->thread, &return_code);
-        status = (r_status_t)return_code;
+        status_decoder = (r_status_t)return_code;
+
+        /* If the decoder thread return an error, log it for diagnosis */
+        if (R_FAILED(status_decoder))
+        {
+            r_log_warning_format(rs, "Warning: Decoder thread exited early with error code: 0x%08x", status_decoder);
+        }
     }
 
     if (R_SUCCEEDED(status))

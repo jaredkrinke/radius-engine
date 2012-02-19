@@ -80,6 +80,9 @@ typedef unsigned int r_status_t;
 #define RA_F_INVALID_POINTER    0x84004003
 #define RA_F_DECODE_ERROR       0x84000101
 #define RA_F_DECODE_PENDING     0x84000102
+#define RA_F_DECODER_LOCK       0x84000110
+#define RA_F_DECODER_UNLOCK     0x84000111
+#define RA_F_DECODER_SEM        0x84000112
 #define RA_F_CANT_SEEK          0x84000103
 #define RA_F_SEEK_ERROR         0x84000104
 #define R_F_AUDIO_FAILURE       0x84004005

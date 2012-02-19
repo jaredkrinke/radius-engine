@@ -19,6 +19,9 @@
 
 * r_audio_decoder.c: Don't cleanup decoding tasks until shutdown
 
+* r_defs.h: Added more specific error codes for the audio decoder
+* r_audio_decoder.c: Log a warning if the audio decoder thread fails
+
 2012-02-17 deraj@users.sourceforge.net
 
 * r_entity.c (r_entity_init): Initialize order field

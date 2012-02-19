@@ -1,5 +1,5 @@
 /*
-Copyright 2010 Jared Krinke.
+Copyright 2012 Jared Krinke.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,8 +27,6 @@ THE SOFTWARE.
 #include "r_assert.h"
 #include "r_audio_decoder.h"
 #include "r_audio_clip_manager.h"
-
-#define R_AUDIO_DECODER_QUEUE_POLLING_PERIOD_MS 1000
 
 typedef enum
 {
@@ -399,7 +397,7 @@ static int r_audio_decoder_thread(void *data)
         if (R_SUCCEEDED(status) && !done)
         {
             /* Check for a task */
-            int sem_wait_result = SDL_SemWaitTimeout(decoder->semaphore, R_AUDIO_DECODER_QUEUE_POLLING_PERIOD_MS);
+            int sem_wait_result = SDL_SemWait(decoder->semaphore);
 
             status = (sem_wait_result != -1) ? R_SUCCESS : R_FAILURE;
 
@@ -525,8 +523,9 @@ r_status_t r_audio_decoder_stop(r_state_t *rs)
         if (R_SUCCEEDED(status))
         {
             decoder->done = R_TRUE;
-
             r_audio_decoder_unlock(decoder);
+
+            status = (SDL_SemPost(decoder->semaphore) == 0) ? R_SUCCESS : R_FAILURE;
         }
     }
 

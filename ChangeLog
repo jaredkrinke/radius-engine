@@ -1,3 +1,8 @@
+2012-02-21 deraj@users.sourceforge.net
+
+* configure.in: Incremented version to 1.1
+* radius.h: Incremented version to 1.1
+
 2012-02-18 deraj@users.sourceforge.net
 
 * r_audio_clip_manager.c (r_audio_clip_data_free_internal): Free allocation
